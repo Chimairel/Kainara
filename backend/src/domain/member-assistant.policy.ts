@@ -29,7 +29,9 @@ export const assistantInterpretationSchema = z.object({
 export type AssistantCriteria = z.infer<typeof assistantInterpretationSchema>;
 
 export function assistantLimits(tier: MembershipTierName, env: NodeJS.ProcessEnv = process.env) {
-  const defaults = { FREE: 5, LIFESTYLE: 20, HEALTH: 40 } as const;
+  // Conservative capstone allowances, not a claim about provider/project quota.
+  // Shared admission remains authoritative; one reply can require two attempts.
+  const defaults = { FREE: 5, LIFESTYLE: 15, HEALTH: 30 } as const;
   const limit = (fallback: number) => {
     const raw = env[`MEMBER_ASSISTANT_${tier}_WEEKLY_CREDITS`];
     if (raw === undefined || raw === '') return fallback;

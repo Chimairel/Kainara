@@ -43,8 +43,8 @@ test('only narrow free messages bypass AI confirmation', () => {
   assert.equal(assistantDirectAction('View my plan'), 'VIEW_PLAN');
   assert.equal(assistantDirectAction('Explain my guidance'), 'GUIDANCE');
 });
-test('weekly credit caps are 5/20/40 with no daily reply cap', () => {
-  for (const [tier, cap] of [['FREE', 5], ['LIFESTYLE', 20], ['HEALTH', 40]] as const)
+test('conservative weekly credit caps are 5/15/30 with no daily reply cap', () => {
+  for (const [tier, cap] of [['FREE', 5], ['LIFESTYLE', 15], ['HEALTH', 30]] as const)
     assert.deepEqual(assistantLimits(tier, {}), { weekly: cap });
   assert.deepEqual(assistantLimits('FREE', { MEMBER_ASSISTANT_FREE_WEEKLY_CREDITS: '0' }), { weekly: 0 });
   assert.throws(() => assistantLimits('FREE', { MEMBER_ASSISTANT_FREE_WEEKLY_CREDITS: '-1' }));
@@ -198,12 +198,12 @@ test('lost response replay returns the saved reply without another AI call', asy
 });
 test('current entitlement changes caps without resetting used credits; pending trial gets Free', async t => {
   process.env.MEMBERSHIP_ENABLED = 'true';
-  mockDelegate(t, prisma.assistantRequest, 'count', async () => 4);
+  mockDelegate(t, prisma.assistantRequest, 'count', async () => 16);
   mockDelegate(t, prisma.assistantRequest, 'findFirst', async () => null);
-  for (const [level, tier, cap] of [['TRIAL_PENDING', 'HEALTH', 5], ['TRIAL', 'HEALTH', 40], ['MEMBER', 'LIFESTYLE', 20], ['FREE', 'FREE', 5]]) {
+  for (const [level, tier, cap] of [['TRIAL_PENDING', 'HEALTH', 5], ['TRIAL', 'HEALTH', 30], ['MEMBER', 'LIFESTYLE', 15], ['FREE', 'FREE', 5]]) {
     t.mock.method(MembershipService, 'state', async () => ({ level, tier }) as Awaited<ReturnType<typeof MembershipService.state>>);
     const result = await Usage.allowance('member');
-    assert.equal(result.cap, cap); assert.equal(result.used, 4); assert.equal(result.remaining, +cap - 4);
+    assert.equal(result.cap, cap); assert.equal(result.used, 16); assert.equal(result.remaining, Math.max(0, +cap - 16));
   }
   process.env.MEMBERSHIP_ENABLED = 'false';
 });
@@ -212,7 +212,7 @@ test('shared chat sub-budget refuses provider work before the project budget is 
   const oldest = new Date('2026-10-15T13:00:00Z');
   t.mock.method(prisma, '$transaction', async (fn: unknown) => (fn as (tx: unknown) => unknown)({
     $executeRaw: async () => 0,
-    aiQuotaReservation: { deleteMany: async () => ({}), count: async () => 10,
+    aiQuotaReservation: { deleteMany: async () => ({}), count: async () => 20,
       findFirst: async (query: any) => {
         assert.equal(query.where.operation, 'MEMBER_ASSISTANT'); assert.equal(query.skip, 0);
         assert.equal(query.where.reservedAt.gt.toISOString(), '2026-10-14T19:20:00.000Z');
@@ -221,4 +221,34 @@ test('shared chat sub-budget refuses provider work before the project budget is 
   }));
   await assert.rejects(AiCapacityService.reserve({ model: 'fixture', estimatedTokens: 100, operation: 'MEMBER_ASSISTANT', now }),
     (error: any) => error.errorCode === 'ASSISTANT_SHARED_CAPACITY' && error.retryAt.toISOString() === '2026-10-16T13:00:01.000Z');
+});
+
+test('chat admits beyond the old ten-attempt cap while preserving the core reserve', async t => {
+  const keys = ['GEMINI_PROJECT_MAX_RPD', 'MEMBER_ASSISTANT_PROJECT_RPD', 'MEMBER_ASSISTANT_CORE_RESERVE_RPD'];
+  const prior = keys.map(key => process.env[key]);
+  t.after(() => keys.forEach((key, index) => {
+    if (prior[index] === undefined) delete process.env[key]; else process.env[key] = prior[index];
+  }));
+  process.env.GEMINI_PROJECT_MAX_RPD = '40';
+  process.env.MEMBER_ASSISTANT_PROJECT_RPD = '100';
+  process.env.MEMBER_ASSISTANT_CORE_RESERVE_RPD = '20';
+  const now = new Date('2026-10-16T01:00:00Z'); let chatCount = 19; let created = 0;
+  t.mock.method(prisma, '$transaction', async (fn: unknown) => (fn as (tx: unknown) => unknown)({
+    $executeRaw: async () => 0,
+    aiQuotaReservation: {
+      deleteMany: async () => ({}),
+      count: async (query: any) => query.where.operation === 'MEMBER_ASSISTANT' ? chatCount
+        : query.where.operation || query.where.completedAt === null ? 0
+          : +query.where.reservedAt.gt === +now - 86400000 ? chatCount : 0,
+      aggregate: async () => ({ _sum: { estimatedTokens: 0 } }),
+      findFirst: async () => ({ reservedAt: new Date(+now - 600000) }),
+      create: async () => { created++; return { id: 'admitted' }; },
+    },
+    aiUsageEvent: { findFirst: async () => null },
+  }));
+  assert.equal(await AiCapacityService.reserve({ model: 'fixture', estimatedTokens: 100, operation: 'MEMBER_ASSISTANT', now }), 'admitted');
+  chatCount = 20;
+  await assert.rejects(AiCapacityService.reserve({ model: 'fixture', estimatedTokens: 100, operation: 'MEMBER_ASSISTANT', now }),
+    { errorCode: 'ASSISTANT_SHARED_CAPACITY' });
+  assert.equal(created, 1, 'an oversized chat override cannot spend the 20 reserved core requests');
 });

@@ -97,7 +97,7 @@ export function assistantStaticReply(message: string, action?: string): Assistan
   const direct = action ?? assistantDirectAction(message);
   if (['TODAY', 'GUIDANCE', 'CURRENT_MEALS', 'GROCERIES'].includes(direct ?? '')) return null;
   if (direct === 'CREDITS') return {
-    text: 'One successful AI-assisted request uses one Nara credit. Outside-food AI estimates have a separate allowance. I ask before calling AI. App instructions, greetings and free shortcuts do not spend credits. Credits reset on Monday at 12:00 AM in the Philippines; unused credits do not roll over. The balance below is the last checked balance. The server checks your current allowance before any AI request.',
+    text: 'One successful AI-assisted request uses one Nara credit. Outside-food AI estimates have a separate allowance. I ask before calling AI. App instructions, greetings and free shortcuts do not spend credits. Credits reset on Monday at 12:00 AM in the Philippines; unused credits do not roll over. The balance below is the last checked balance. Weekly credits are an allowance, not reserved Gemini capacity: shared AI limits can temporarily pause requests even when credits remain. Failed requests do not spend member credits. The server checks your current allowance before any AI request.',
     links: [{ label: 'View membership', href: '/membership' }],
   };
   if (direct === 'VIEW_PLAN') return {

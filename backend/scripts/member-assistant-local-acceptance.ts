@@ -122,7 +122,7 @@ async function main() {
     assert.equal((await request(null)).status, 401);
     for (const actor of [rnd, admin]) assert.equal((await request(actor)).status, 403);
     pass('authenticated member role boundary');
-    for (const [actor, cap] of [[member, 5], [lifestyle, 20], [health, 40]] as const) assert.equal((await request(actor)).body.data.allowance.cap, cap);
+    for (const [actor, cap] of [[member, 5], [lifestyle, 15], [health, 30]] as const) assert.equal((await request(actor)).body.data.allowance.cap, cap);
     pass('real Free/Lifestyle/Health entitlement grants');
     const raw = { requestKey: randomUUID(), message: 'Chicken lunch under 500 kcal with at least 25 g protein' };
     const preflight = await request(member, '/messages', raw);

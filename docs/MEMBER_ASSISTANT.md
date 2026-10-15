@@ -40,8 +40,14 @@ The cached balance is display-only. Every confirmed AI request still passes curr
 | Current entitlement | Weekly AI credits |
 | --- | ---: |
 | Free / trial not yet started / membership rollout disabled | 5 |
-| Lifestyle | 20 |
-| Health / active Health trial | 40 |
+| Lifestyle | 15 |
+| Health / active Health trial | 30 |
+
+These October 16 defaults supersede the earlier 5/20/40 starting allowance. They are conservative capstone allowances, not reserved provider capacity or a guarantee for an unlimited number of members. An initial 1/3/5 proposal was revised after the owner supplied the complete quota columns. Free system help does not require AI credits.
+
+The owner's October 16 AI Studio screenshots show Free tier, Default Gemini Project and a 28-day peak view. Matching the two table views, Gemini 3.5 Flash Lite displays 24/15 RPM, 27.11K/250K input TPM and 219/500 RPD (peak/limit). These establish displayed limits of 15 RPM, 250,000 input TPM and 500 RPD, not current usage, remaining allowance or the cause of every app 429. Other displayed fallback models have lower limits; do not add their quotas to the primary model's allowance. Normal local project admission stays at 2 RPM, 50,000 estimated TPM, 40 rolling-day attempts and one in-flight call. Chat's default rises to 20 attempts while preserving 20 for other operations. Independent local/hosted databases and other clients do not share one reservation ledger even if they use the same provider project. Validate the actual deployed key's project/model settings and combined workload before hosted activation.
+
+Capacity planning must consider all active members, other Gemini clients and both calls per AI reply: the 20-attempt rolling-day chat cap allows at most 140 attempts over seven days. At two calls per completed reply, 70 replies would consume all of that without allowing for failures. A conservative illustrative envelope is 50 completed replies/week (100 attempts), leaving 40 attempts for failures/slack. One Health, one Lifestyle and one Free member have 50 weekly credits in total; ten Health members would exceed even the theoretical two-call throughput. This is a small-demo allocation, not an observed throughput guarantee or an automatic seat-allocation system. Review active membership demand before expanding rollout; higher concurrency/volume requires a separately reviewed shared-budget change. Google quotas are per project and model and its RPD resets at midnight Pacific; our stricter rolling window is an application control. See [Google rate limits](https://ai.google.dev/gemini-api/docs/rate-limits).
 
 No member daily reply cap. Weekly windows run Monday 00:00 to Monday 00:00 Asia/Manila. Credits do not roll over. Existing usage is retained across upgrades/downgrades. One successful AI-assisted request spends one credit, including requests where AI asks a clarification or identifies unsupported scope. Failed/expired attempts do not spend member credits. A guidance explanation can make two bounded provider calls for that one member credit. Provider attempts still consume shared capacity even when member work fails.
 
@@ -74,7 +80,7 @@ A PostgreSQL advisory transaction lock per member serializes admission across AP
 
 Receipts older than eight days are removed on the member's next AI admission and by the daily check-in cron while the feature is enabled. Operate that existing cron to enforce cleanup for inactive users. Export includes retained receipts when enabled; account deletion cascades them. Disabling the rollout pauses its cron cleanup too; purge retained receipts before a prolonged shutdown if required.
 
-Each provider call passes through existing project-wide capacity admission. Chat additionally defaults to **10 provider attempts per rolling 24 hours**, capped so **20 project requests remain outside chat** under the default 40-request project limit. Member credits do not guarantee immediate provider capacity. Each model call has a single attempt, the existing 15-second provider timeout and an explicit output-token ceiling; no hidden fallback cascade or automatic browser retry. At most two calls per assistant request.
+Each provider call passes through existing project-wide capacity admission. Chat additionally defaults to **20 provider attempts per rolling 24 hours**, capped so **20 project requests remain outside chat** under the default 40-request project limit. An oversized chat override cannot spend the core reserve. Member credits do not guarantee immediate provider capacity. Each model call has a single attempt, the existing 15-second provider timeout and an explicit output-token ceiling; no hidden fallback cascade or automatic browser retry. At most two calls per assistant request.
 
 ## Rollout
 
@@ -82,15 +88,21 @@ Each provider call passes through existing project-wide capacity admission. Chat
 2. Deploy the compatible code with the assistant disabled, then enable after all readers support the new enum value. Default: disabled. Existing portals continue operating without the new table when disabled.
 3. Set `MEMBER_ASSISTANT_ENABLED=true`. Optional settings:
    - `MEMBER_ASSISTANT_FREE_WEEKLY_CREDITS=5`
-   - `MEMBER_ASSISTANT_LIFESTYLE_WEEKLY_CREDITS=20`
-   - `MEMBER_ASSISTANT_HEALTH_WEEKLY_CREDITS=40`
-   - `MEMBER_ASSISTANT_PROJECT_RPD=10`
+   - `MEMBER_ASSISTANT_LIFESTYLE_WEEKLY_CREDITS=15`
+   - `MEMBER_ASSISTANT_HEALTH_WEEKLY_CREDITS=30`
+   - `MEMBER_ASSISTANT_PROJECT_RPD=20`
    - `MEMBER_ASSISTANT_CORE_RESERVE_RPD=20`
 4. Verify normal member login, free action without consent, AI consent/cancel, one confirmed response, idempotent retry, current membership allowance and cleanup scheduling. Existing Gemini credentials/capacity configuration apply.
 
 This feature branch has not applied its migration to Neon, changed hosted secrets, or deployed the assistant. Isolated tests use synthetic data and stubbed provider responses; these do not establish real-model language quality or clinical validation.
 
 ## Verification
+
+### Conservative weekly allowances — October 16, 2026
+
+Changed the default and example configuration to Free 5 / Lifestyle 15 / Health 30 credits per Monday-to-Monday Manila week. Existing usage is retained; lowering a cap below usage yields zero remaining credits without resetting receipts. Custom environment overrides still apply. Raised the default shared chat sub-budget from 10 to 20 attempts per rolling day, keeping the 40-attempt project budget, 20-request core reserve and all minute/token/concurrency guards. No schema or provider model change. Consent and the composer explain shared availability; prepared credit help explains that member credits are not reserved provider requests. The backend guide and generated browser guide match.
+
+Verification: 44 backend assistant tests, 42 frontend assistant tests and 12 isolated PostgreSQL/HTTP acceptance scenarios pass, covering real tier grants, weekly exhaustion, idempotent recovery, failed-credit preservation, retained usage after entitlement changes and free help at zero credits. Capacity tests admit work beyond the former ten-attempt cap and reject at 20 even with an oversized chat override. Both production builds, backend tests TypeScript, scoped lint and generated-guide parity pass. Provider responses were stubbed in acceptance; no real Gemini call, Neon change or demo release. Provider quota evidence is the owner's two screenshots, not a measured throughput test; combined-client demand remains a rollout consideration.
 
 ### Shared request limit reason and retry deadline — October 16, 2026
 

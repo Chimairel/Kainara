@@ -123,7 +123,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
       </section> : null}
       {model.pending && !model.busy ? <section ref={confirmation} tabIndex={-1} aria-label="Confirm AI credit use" className="mt-5 rounded-2xl border border-brand-border bg-brand-bgAlt p-4 outline-none focus-visible:ring-2 focus-visible:ring-brand-green">
         <h3 className="text-sm font-semibold">This request uses 1 AI credit</h3>
-        <p className="mt-2 text-xs leading-5 text-brand-muted">{model.allowance?.remaining ?? 0} credits remaining this week. Failed requests won’t spend a credit.</p>
+        <p className="mt-2 text-xs leading-5 text-brand-muted">{model.allowance?.remaining ?? 0} credits remaining this week. AI replies depend on shared availability. Failed requests won’t spend a credit.</p>
         <div className="mt-4 flex gap-2">
           <Button size="sm" onClick={model.confirm} disabled={!model.allowance?.remaining || model.cooldownSeconds > 0}>Continue</Button>
           <Button size="sm" variant="secondary" onClick={model.cancel}>Cancel</Button>
@@ -153,7 +153,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
           className="max-h-36 min-h-14 flex-1 resize-none border-0 bg-transparent p-2 text-sm leading-6 text-brand-text outline-none placeholder:text-brand-muted disabled:opacity-50" />
         <Button type="submit" size="sm" disabled={disabled || model.cooldownBlocksDraft || !model.draft.trim()} aria-label="Send message" className="!h-10 !w-10 !min-w-10 !rounded-xl !p-0"><ArrowUp className="h-5 w-5" /></Button>
       </form>
-      <p className="mt-2 text-[11px] leading-4 text-brand-muted">AI can misinterpret requests. Your saved guidance and RND decisions still apply.</p>
+      <p className="mt-2 text-[11px] leading-4 text-brand-muted">AI replies depend on shared availability and can misinterpret requests. Your saved guidance and RND decisions still apply.</p>
     </footer>
   </div>;
 }
