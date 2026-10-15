@@ -1,12 +1,12 @@
 # Hosted capstone demonstration on Vercel and Railway
 
-Status: deployment preparation implemented; hosted deployment and live integrations not yet verified.
+Current deployment evidence is maintained in the latest engineering/release records; the setup notes below include historical instructions. Every new authorized demo promotion must follow [Required localhost/demo release parity](DEMO_RELEASE_PARITY.md). A Git push is incomplete until compatible frontend/API deployments, required migrations, feature settings, intentional reference-data updates and actual live behavior have been verified.
 
 The publicly accessible website itself is the capstone demonstration. Normal registration, Google login, onboarding and professional applications remain available; there is no demo email allowlist or extra account-access restriction. It is not a clinical service or a clinical approval. No approved policy version is claimed. Existing email verification, role checks, allergies, review decisions, independent reviewers, document claims and audit logs still apply. Use synthetic health information for demonstrations.
 
 ## 1. Select accounts, database and release
 
-- Owner confirmed the existing database is already the capstone demo database. Reuse its current connection and document encryption key after a backup. Local and hosted writes then affect the same records; do not run resets or test-account seeds as part of hosting setup. A separate copy is optional isolation, not a deployment requirement.
+- The hosted database remains the owner-confirmed capstone demo target. Normal localhost now uses isolated local PostgreSQL, as recorded in [local development](LOCAL_DEVELOPMENT_AND_DEFENSE.md). Verify each target independently, preserve hosted secrets and data, and promote intentional schema/reference-data changes through the parity checklist. Do not run resets, test-account seeds or a local-over-live restore during release.
 - Prepare demonstration accounts for all three roles and rehearse registration/application journeys. Existing credentials, email/Google identity verification and role prerequisites still apply; demo mode does not create accounts or grant nutritionist/admin roles.
 - Deploy the `demo` release branch on both hosts. Routine `development` pushes do not update it; promote a tested commit to `demo` deliberately. Do not switch branches over another tool's unfinished changes.
 - Review required public assets before release. Untracked `frontend/public/sources/` and `Documentations/` are not automatically included in a Git deployment; do not publish their contents without reviewing them.
