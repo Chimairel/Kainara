@@ -11,10 +11,24 @@ const amount = (value: number) => Math.round(value * 10) / 10;
 export default function ReviewSwapNutrition({ before, after, targets, filters = {} }: {
   before: SwapNutritionValues; after: SwapNutritionValues; targets?: ReviewNutritionTargets; filters?: NutrientFilters;
 }) {
-  const macroTargets = Object.fromEntries(REVIEW_NUTRIENT_FIELDS.slice(0, 4).map(([key, , unit]) => [key,
-    typeof targets?.meal?.[key as keyof NonNullable<ReviewNutritionTargets['meal']>] === 'number'
-      ? `${amount(targets.meal![key as keyof NonNullable<ReviewNutritionTargets['meal']>]!)} ${unit}` : 'Not set',
-  ]));
+  const macroTargets = Object.fromEntries(REVIEW_NUTRIENT_FIELDS.slice(0, 4).map(([key, , unit]) => {
+    const point = targets?.meal?.[key as keyof NonNullable<ReviewNutritionTargets['meal']>];
+    const guidance = targets?.guidance?.find(item => item.nutrient === key);
+    const rules = targets?.rules.filter(rule => rule.nutrient === key && operators[rule.operator]) ?? [];
+    if (!guidance && !rules.length && typeof point !== 'number') return [key, 'Not set'];
+    return [key, <div key={key} className="space-y-1 text-xs leading-5">
+      {rules.map((rule, index) => <p key={index} title={`${rule.condition.replaceAll('_', ' ')} · ${rule.sourceTitle}`}>
+        <span className="font-semibold">{operators[rule.operator]} {amount(rule.value)} {rule.unit}</span>
+        <span className="block text-brand-muted">Approved rule</span>
+      </p>)}
+      {guidance && <p title={guidance.explanation}>
+        <span className="font-semibold">{guidance.value}</span>
+        <span className="block text-brand-muted">Saved daily reference</span>
+      </p>}
+      {!guidance && !rules.length && key !== 'calories' && <p className="text-brand-muted">No saved range</p>}
+      {typeof point === 'number' && <p className="text-brand-muted">Planning point: <span className="whitespace-nowrap">{amount(point)} {unit}/meal</span></p>}
+    </div>];
+  }));
   const clinicalTargets: Partial<Record<keyof SwapNutritionValues, ReactNode>> = {};
   for (const [key, , unit] of REVIEW_NUTRIENT_FIELDS.slice(4)) {
     const rules = targets?.rules.filter(rule => rule.nutrient === key && operators[rule.operator]) ?? [];
@@ -39,9 +53,9 @@ export default function ReviewSwapNutrition({ before, after, targets, filters = 
   return <section aria-label="Meal nutrition comparison" className="space-y-5">
     <div>
       <h3 className="font-display text-base font-bold">Calories & macros</h3>
-      <p className="mt-1 text-xs leading-5 text-brand-muted">One meal, including rice. Targets use the saved plan’s meal allocation.</p>
+      <p className="mt-1 text-xs leading-5 text-brand-muted">Current and replacement values are per meal, including rice. Reference ranges cover the full day; planning points use the saved meal allocation.</p>
       <SwapNutritionTable before={before} after={after} fields={REVIEW_NUTRIENT_FIELDS.slice(0, 4)}
-        beforeLabel="Current" afterLabel="Replacement" targets={macroTargets} compact={false} />
+        beforeLabel="Current" afterLabel="Replacement" targets={macroTargets} targetLabel="Reference / target" compact={false} />
     </div>
     <div>
       <h3 className="font-display text-base font-bold">Other nutrients</h3>
@@ -52,7 +66,7 @@ export default function ReviewSwapNutrition({ before, after, targets, filters = 
     <details className="border-t border-brand-border/60 pt-3 text-xs text-brand-muted">
       <summary className="cursor-pointer font-semibold text-brand-text">Target details & sources</summary>
       <div className="mt-3 space-y-3 leading-5">
-        {targets?.daily ? <p>Daily planning reference: {amount(targets.daily.calories!)} kcal · {amount(targets.daily.proteinG!)} g protein · {amount(targets.daily.carbsG!)} g carbs · {amount(targets.daily.fatG!)} g fat.</p>
+        {targets?.daily ? <p>Daily planning point: {amount(targets.daily.calories!)} kcal · {amount(targets.daily.proteinG!)} g protein · {amount(targets.daily.carbsG!)} g carbs · {amount(targets.daily.fatG!)} g fat.</p>
           : <p>No saved planning target is available.</p>}
         {targets?.daily?.explanation && <p>{targets.daily.explanation}</p>}
         {targets?.rules.map((rule, index) => <p key={index}>

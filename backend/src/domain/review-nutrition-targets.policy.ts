@@ -27,7 +27,8 @@ export function reviewNutritionTargets(input: {
     guidance: (Array.isArray(input.referenceItems) ? input.referenceItems : []).flatMap((value: unknown) => {
       if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
       const item = value as Record<string, unknown>;
-      const nutrient = ({ 'Sodium reference for DASH': 'sodiumMg', 'Dietary fiber reference': 'fiberG',
+      const nutrient = ({ 'Protein reference': 'proteinG', 'Fat reference': 'fatG', 'Carbohydrate reference': 'carbsG',
+        'Sodium reference for DASH': 'sodiumMg', 'Dietary fiber reference': 'fiberG',
         'Saturated fat guidance': 'saturatedFatG' } as Record<string, string>)[String(item.heading)];
       if (!nutrient || !['value', 'explanation', 'sourceTitle', 'sourceUrl'].every(key => typeof item[key] === 'string')) return [];
       return [{ nutrient, value: item.value as string, explanation: item.explanation as string,

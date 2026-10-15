@@ -48,3 +48,19 @@ test('dynamic reviewed rules use saved daily energy or body weight and preserve 
   assert.equal(result.rules[2].basis, 'MEAL');
   assert.equal(result.rules[2].unit, 'mg/serving');
 });
+
+test('macro references retain saved daily ranges and sources without deriving meal thresholds', () => {
+  const references = [
+    { heading: 'Protein reference', value: '50–75 g/day' },
+    { heading: 'Fat reference', value: '33.3–66.7 g/day' },
+    { heading: 'Carbohydrate reference', value: '275–375 g/day' },
+  ].map(item => ({ ...item, explanation: 'Saved daily population range.', sourceTitle: 'Saved report source', sourceUrl: 'https://example.test/pdri' }));
+  const result = reviewNutritionTargets({ dailyTargets: daily, mealType: 'LUNCH', rules: [], referenceItems: references });
+  assert.deepEqual(result.guidance.map(item => [item.nutrient, item.value]), [
+    ['proteinG', '50–75 g/day'], ['fatG', '33.3–66.7 g/day'], ['carbsG', '275–375 g/day'],
+  ]);
+  assert.equal(result.meal?.proteinG, daily.proteinG * 0.4);
+  assert.equal(result.guidance[0].sourceUrl, references[0].sourceUrl);
+  assert.equal(result.rules.length, 0);
+  assert.deepEqual(reviewNutritionTargets({ dailyTargets: daily, mealType: 'LUNCH', rules: [] }).guidance, []);
+});
