@@ -1,0 +1,136 @@
+# Nara: audited system guide
+
+Guide date: October 15, 2026. Baseline: `6bc5e016`, branch `codex/member-assistant`, shared working copy. **Reviewed content and implementation specification; not yet connected to the chatbot.** See the [audit and findings](verification/NARA_SYSTEM_AUDIT_2026-10-15.md).
+
+## Purpose and authority
+
+Nara should explain the actual application, direct members to the correct screen, and distinguish app instructions from questions about food and nutrition. Members should not need to know a page's exact name to ask for help.
+
+Use executable routes, UI controls, backend policies and current engineering decisions as evidence. Public documentation supplies useful wording but is not automatically trustworthy: the audit found outdated upload and quarantine instructions. Historical prompts, screenshots, source labels and old completion claims do not establish current functionality.
+
+This guide records general product behavior. It contains no account records, credentials, clinical documents or live balances. It does not authorize changes to a member's account or plan.
+
+## Three answer paths
+
+| Kind of question | Answer source | Credit / request behavior |
+| --- | --- | --- |
+| How KAINARA works; where to find something; what a workflow means | Reviewed entries below, bundled with the browser | Free; no Gemini call and no message API request |
+| My recorded intake, saved guidance, current balance or personal status | Existing authenticated account endpoints | Free supported shortcuts; current server state is authoritative |
+| General food facts, meal ideas, nutrition education or an explanation needing AI | Consent-based AI interpretation, with the appropriate reference/retrieval handler | Explicit one-credit prompt before provider work; expanded nutrition handlers still need implementation |
+
+An unfamiliar phrase should not automatically be treated as an app question. “Nutrition facts for pandesal” belongs to food information, even though it does not contain a recognized recipe-search command. “How do I report an issue?” belongs to free support instructions.
+
+## Member information entries
+
+Each row is a prepared answer contract. The destination is an existing route; action availability still depends on the screen and the member's current state. Route groups in source filenames do not appear in URLs.
+
+### Getting started and account access
+
+| ID / examples | Prepared answer | Destination / evidence |
+| --- | --- | --- |
+| SYS-01: “What is KAINARA?”, “unsa ni nga app?” | KAINARA supports meal planning, food and water records, groceries, progress and saved nutrition guidance. RND reviews and AI estimates have different roles. | `/docs#what-is-kainara`; [app overview](../frontend/src/app/docs/chapters/what-is-kainara.tsx) |
+| SYS-02: “What can Nara do?” | Nara explains features and links to screens; current shortcuts show recorded intake and saved guidance. AI requests require consent. Chat does not log food, edit a profile or approve a meal. | `/docs`; [assistant contract](MEMBER_ASSISTANT.md) |
+| ACC-01: “How do I register?”, “make an account” | Register, verify your email and complete the onboarding steps shown for your account. | `/register`; [auth routes](../backend/src/routes/auth.routes.ts), [onboarding routes](../backend/src/routes/user.routes.ts) |
+| ACC-02: “Where is my verification code?”, “resend OTP” | Open email verification and use its resend option when available. Check your inbox and spam folder. Do not send a code in chat. Nara cannot inspect email delivery. | `/verify-email`; [verification screen](../frontend/src/app/(auth)/verify-email/page.tsx) |
+| ACC-03: “Forgot password”, “cannot sign in” | Use password recovery for password sign-in. Google-only accounts continue through Google sign-in. Report persistent access problems through support. | `/forgot-password`, `/login`, `/help`; [password recovery](../frontend/src/app/(auth)/forgot-password/page.tsx) |
+| ACC-04: “Where do I change my avatar/name?” | Open Personal details and use the account or avatar controls available there. | `/profile/personal`; [personal page](../frontend/src/app/(user)/profile/personal/page.tsx) |
+| ACC-05: “Change password”, “delete my account”, “privacy controls” | Open Security & privacy. Account deletion requires the page's explicit confirmation and authentication checks. Nara cannot perform it. | `/profile/security`; [privacy service](../backend/src/services/user-privacy.service.ts) |
+| ACC-06: “Get a copy of my data” | Use the account export controls for supported saved account records. Report and grocery downloads have their own export screens. | `/profile/security`, `/export`; [user routes](../backend/src/routes/user.routes.ts) |
+
+### Daily use and meals
+
+| ID / examples | Prepared answer | Destination / evidence |
+| --- | --- | --- |
+| DAY-01: “Where is today's menu?” | Open the Dashboard and choose the date. Scheduled meals and recorded intake describe different things. | `/dashboard`; [dashboard workspace](../frontend/src/features/dashboard/DashboardWorkspace.tsx) |
+| DAY-02: “How do I mark a meal eaten?”, “skip breakfast” | Select the scheduled meal and use its available eaten or skipped action. This chat only gives instructions. | `/dashboard`, `/meals`; [meal routes](../backend/src/routes/meals.routes.ts) |
+| DAY-03: “How do I add water?”, “record tubig” | Use the water controls on the Dashboard. They record water separately from meals. The API uses today's Manila business-day window. | `/dashboard`; [water service](../backend/src/services/water.service.ts) |
+| DAY-04: “Why are my consumed calories zero?” | Intake depends on recorded eaten food, not merely scheduled meals. Missing records do not prove that nothing was eaten. Inspect your entries; a personal total needs the authenticated shortcut. | `/dashboard`, `/meals?tab=history`; [tracking guide](../frontend/src/app/docs/chapters/tracking.tsx) |
+| DAY-05: “What is the weekly check-in?”, “check-in due” | Open the Dashboard reminder, confirm whether details changed and review any new dated guidance. Follow the report's planning action. A check-in does not restart the trial. | `/dashboard`, `/profile/nutrition-report`; [check-in service](../backend/src/services/checkin.service.ts) |
+| MEAL-01: “Where is my weekly meal plan?” | Open Meals → Plan and choose a date. Select a meal for its serving, evidence, status and available actions. | `/meals`; [meals workspace](../frontend/src/features/meals/MealsWorkspace.tsx) |
+| MEAL-02: “Find my old meals”, “meal history” | Open Meals → History to inspect recorded scheduled meals and outside-food entries. | `/meals?tab=history`; [history section](../frontend/src/features/meals/MealsHistorySection.tsx) |
+| MEAL-03: “Browse recipes”, “where is the library?” | Open Meals → Library and use its search and filters. Browsing a recipe does not add it to the plan or establish personal clearance. | `/meals?tab=library`; [library panel](../frontend/src/features/meals/MealLibraryPanel.tsx) |
+| MEAL-04: “How do I swap?”, “replace lunch” | Open a scheduled meal's available swap action, compare the candidate and confirm there. Eligibility, cycle state and remaining swaps still apply. | `/meals`; [swap service](../backend/src/services/meal-swap.service.ts) |
+| MEAL-05: “Why is a meal missing/loading?” | A slot may be preparing, awaiting review or lack an eligible candidate. Check its status and available retry. A missing slot is not an instruction to skip eating. Report persistent problems with the affected date. | `/meals`, `/help`; [meal planning guide](../frontend/src/app/docs/chapters/meal-planning.tsx) |
+| MEAL-06: “Why is the same dish repeated?” | The planner tries eligible alternatives, but a small suitable pool can repeat dishes. Starter and weekly cycles are separate selections. Do not guess which restriction limited a particular member without server evidence. | `/meals`; [FAQs](../frontend/src/app/docs/DocsFaqs.tsx) |
+| MEAL-07: “Does this include rice?” | Check the meal's serving label. Recorded rice sides are included in the displayed plate totals. Nara's current recipe-search results explicitly exclude separately paired rice. Extra rice changes actual consumption. | `/meals`; [FAQs](../frontend/src/app/docs/DocsFaqs.tsx), [assistant service](../backend/src/services/member-assistant.service.ts) |
+| MEAL-08: “Why is the photo a logo?” | A missing or failed photo can use the KAINARA logo placeholder. It is not an approval status. Report incorrect photos through support. | `/help`; [meal image component](../frontend/src/components/user/MealImage.tsx) |
+
+### Outside food and RND review
+
+| ID / examples | Prepared answer | Destination / evidence |
+| --- | --- | --- |
+| LOG-01: “How do I log a snack?”, “I ate tempura” | Open “Log food or snack” from Dashboard or Meals. Enter the food, known portion and ingredients, review the preview and confirm there. Do not claim that chat has logged the food. | `/dashboard`, `/meals`; [outside-food model](../frontend/src/features/dashboard/outside-meal/useOutsideMealFormModel.tsx), [logging service](../backend/src/services/meal-log.service.ts) |
+| LOG-02: “Why is the estimate wrong/different?” | Estimates can differ with brand, portion, sauces, oil and preparation. Inspect the food entry and actual packaging. Unknown nutrition must stay unknown rather than becoming zero. | `/meals?tab=history`; [outside-food guide](../frontend/src/app/docs/chapters/outside-meals.tsx) |
+| LOG-03: “How do I get RND feedback?”, “ask a nutritionist about my logged food” | Select the logged outside-food entry and use “Get RND feedback” when available. Current access and allowance apply. Advice is for future choices; it does not rewrite the recorded nutrition or grant condition clearance. | `/meals?tab=history`; [outside-food guide](../frontend/src/app/docs/chapters/outside-meals.tsx), [outside review service](../backend/src/services/outside-meal-review.service.ts) |
+| LOG-04: “Does my food wait for RND approval to count?” | Saving a food log records intake. Optional RND feedback is a separate request; it does not turn the log into a verified reusable recipe. | `/meals?tab=history`; [outside-food guide](../frontend/src/app/docs/chapters/outside-meals.tsx) |
+| REV-01: “What does pending review mean?” | Base recipe verification, profile review and member-case approval are distinct checks. Follow the meal's current status and action. Nara cannot clear a hold. | `/meals`, `/docs#professional-review`; [review routes](../backend/src/routes/nutritionist.routes.ts) |
+| REV-02: “Why was my meal flagged?” | A flag records a concern and suspends use within that flag's scope while it is reviewed. Only show a member's actual reason when an authorized endpoint returns it. | `/meals`; [governance](MEAL_REVIEW_GOVERNANCE.md) |
+| REV-03: “Why is a reviewed meal waiting again?” | Changed profile, serving, ingredients or evidence can invalidate the earlier context. A similar dish or diagnosis does not establish an exact reusable approval. | `/meals`, `/profile/nutrition-report`; [governance](MEAL_REVIEW_GOVERNANCE.md) |
+| REV-04: “Can I message my RND here?” | Nara is not an RND inbox. Use logged-food feedback or respond to an RND's requested Health details form where available. Technical and account problems go to Contact Support. | `/meals?tab=history`, `/profile/clinical-evidence`, `/help`; [health-details inbox](../frontend/src/features/profile/HealthDetailsInbox.tsx) |
+
+### Health, preferences and saved guidance
+
+| ID / examples | Prepared answer | Destination / evidence |
+| --- | --- | --- |
+| PROF-01: “Update my weight”, “log timbang” | Open Progress → “Log today's weight” and save the observation there. This is different from setting a goal weight. | `/progress`; [progress workspace](../frontend/src/features/progress/useProgressWorkspace.ts) |
+| PROF-02: “Change target weight/height/activity/goal” | Open Health & goals → Body & goals. Review the measurements and save them there. | `/profile/health`; [health page](../frontend/src/app/(user)/profile/health/page.tsx) |
+| PROF-03: “Change my allergies/conditions/foods to avoid” | Open Health & goals → Conditions & allergies. Record each restriction in the appropriate field and follow any new review or guidance prompt. | `/profile/health`; [structured restriction policy](../backend/src/domain/structured-restriction.adapter.ts) |
+| PROF-04: “Change diet/rice/shopping day” | Open Food & planning and save the available preference or schedule fields. Do not promise immediate rebuilding of every current meal. | `/profile/planning`; [planning page](../frontend/src/app/(user)/profile/planning/page.tsx) |
+| PROF-05: “Where do I answer the RND?”, “health details” | Open Health details. Forms appear when an RND asks for more information; new declarations do not automatically create a form. Existing legacy file records do not imply new uploads are available. | `/profile/clinical-evidence`; [health-details policy](../backend/src/domain/health-details.policy.ts), [user routes](../backend/src/routes/user.routes.ts) |
+| PROF-06: “Where is my nutrition report?” | Open Nutrition guidance for the saved estimates, references, status and version. App navigation is free. | `/profile/nutrition-report`; [report service](../backend/src/services/nutrition-report.service.ts) |
+| PROF-07: “Why acknowledge/apply a report?” | Saving profile details and applying the report for planning are separate steps. Review the dated report and choose its available planning action; membership or review may be required. | `/profile/nutrition-report`; [report service](../backend/src/services/nutrition-report.service.ts) |
+| PROF-08: “What happens after I update my profile?” | Planning-affecting changes follow the next-cycle/current-report workflow. Safety restrictions can immediately hold conflicting uneaten meals. Already recorded meals retain their history. Use the actual page notice for the current account. | `/profile/health`, `/profile/nutrition-report`; [profile revision](../backend/src/services/profile-revision.service.ts) |
+
+### Groceries, membership and support
+
+| ID / examples | Prepared answer | Destination / evidence |
+| --- | --- | --- |
+| SHOP-01: “Where is my shopping list?” | Open Groceries for the current list, purchases and pantry controls. Check the list again after plan changes. | `/grocery`; [grocery service](../backend/src/services/grocery.service.ts) |
+| SHOP-02: “Why can't I check this grocery item?” | Linked meals or unresolved slots may hold the item. Open its explanation and acknowledge a partial list when offered. A held checkbox does not record a purchase. | `/grocery`; [grocery service](../backend/src/services/grocery.service.ts) |
+| SHOP-03: “Download grocery PDF/reports” | Use the available grocery or Export controls. The export reflects recorded information at the time it was created. | `/grocery`, `/export`; [grocery routes](../backend/src/routes/grocery.routes.ts) |
+| MEM-01: “What plan do I have?”, “upgrade/renew” | Open Membership for your current plan, dates, remaining allowances and available changes. A general answer must not invent personal entitlement. | `/membership`; [membership routes](../backend/src/routes/membership.routes.ts) |
+| MEM-02: “When does the trial start?” | The 30-day trial starts when the first cleared current plan is available. Waiting for review and future plans do not start it; moving from starter to weekly does not restart it. | `/membership`; [membership service](../backend/src/services/membership.service.ts), [membership guide](../frontend/src/app/docs/DocsMembership.tsx) |
+| MEM-03: “Will it charge or renew automatically?” | Current checkout is an explicitly enabled PayMongo test flow, and memberships do not automatically renew. Use the current quote/status screen; Nara cannot complete checkout. Do not infer real payment success. | `/membership`; [checkout policy](../backend/src/domain/membership-checkout.policy.ts) |
+| MEM-04: “How do Nara credits work?” | App instructions are free. A successful confirmed AI request uses one Nara credit. Credits reset weekly on Monday at 00:00 Manila and do not roll over. The current configured allowance and balance come from the server. | `/membership`; [assistant policy](../backend/src/domain/member-assistant.policy.ts), [usage service](../backend/src/services/member-assistant-usage.service.ts) |
+| MEM-05: “Are estimates and chat credits the same?” | Nara credits and outside-food AI estimate allowances are separate counters. A plan's other review and swap allowances are also separate. Use Membership and Nara's balance for their respective current values. | `/membership`; [membership policy](../backend/src/domain/membership.policy.ts), [assistant policy](../backend/src/domain/member-assistant.policy.ts) |
+| HELP-01: “How to report issue?”, “I found a bug”, “contact support” | Open Contact Support. Choose a topic and include the page, expected result and actual result. Verified signed-in accounts can submit the form. Check the reply email; an admin can respond by email. Nara has not submitted anything. | `/help`; [support form](../frontend/src/components/shared/SupportContact.tsx), [support routes](../backend/src/routes/support.routes.ts), [support service](../backend/src/services/support.service.ts) |
+| HELP-02: “Where are notifications?”, “no phone banner” | Read in-app updates through the header bell. Device notifications also depend on browser/OS permissions and settings. Provider acceptance is not proof that the OS displayed a banner. | `/profile/planning`; [notifications routes](../backend/src/routes/notifications.routes.ts), [FAQs](../frontend/src/app/docs/DocsFaqs.tsx) |
+| HELP-03: “Change theme”, “dark mode” | Use the sun/moon control in the page header. | Current header; [theme toggle](../frontend/src/components/ui/ThemeToggle.tsx) |
+
+## Cross-role understanding
+
+Nara currently exists in the member portal. Understanding what staff do helps explain statuses; it does not grant members staff tools, private reviewer notes, other members' records or staff-only links.
+
+| Role / area | Verified responsibility | Primary evidence |
+| --- | --- | --- |
+| RND Reviews | Recipe verification, member-case decisions, member/profile work and outside-food feedback; claims and current evidence govern decisions. | [nutritionist routes](../backend/src/routes/nutritionist.routes.ts), [review service](../backend/src/services/meal-review.service.ts) |
+| RND Library / Audit | Inspect recipe evidence, recorded approvals, flags and review history. Prior involvement can prevent independent re-review. | [library routes](../backend/src/routes/nutritionist-library.routes.ts), [governance](MEAL_REVIEW_GOVERNANCE.md) |
+| RND credentials | Maintain own profile and license updates; clinical actions require current eligibility. | [eligibility middleware](../backend/src/middleware/nutritionistEligibility.ts), [license routes](../backend/src/routes/nutritionist-license.routes.ts) |
+| Admin People / Support | Manage accounts and professional applications; inspect support requests and send recorded email replies. | [admin routes](../backend/src/routes/admin.routes.ts), [support service](../backend/src/services/support.service.ts) |
+| Admin Data / Meals | Manage nutrition sources, aliases, recipe drafts/batches and images. Imports do not grant member-specific clearance. | [admin data routes](../backend/src/routes/admin-data.routes.ts), [meal routes](../backend/src/routes/admin-meals.routes.ts) |
+| Admin Audit / governance | Inspect authorized saved review context; quarantine release/archive uses a version-bound administrative decision. Current code does not require two RND quarantine confirmations. | [review service](../backend/src/services/meal-review.service.ts), [audit routes](../backend/src/routes/admin-audit.routes.ts) |
+| Admin website | Preview/publish website media and manage its revisions; unrelated to nutrition approval. | [website routes](../backend/src/routes/admin-website-content.routes.ts) |
+
+## Food and nutrition questions: accepted scope to implement
+
+- Accept food-composition questions, nutrient explanations, balanced-meal concepts, meal selection, portions, cooking/preparation and food-safety questions related to KAINARA's purpose. Do not require an app-navigation keyword or a familiar Filipino food name.
+- For “nutrition facts of pandesal”, interpret the food identity, retrieve a small bounded set of existing FNRI/USDA candidates, and ask about variants when ambiguous. Display the matched record, source and basis. Per-100-g data must not silently become “one piece”; only scale a known mass with deterministic arithmetic. Missing nutrients stay unavailable. Do not ask Gemini to invent a nutrition table.
+- General educational explanations may use the approved AI path with bounded output and explicit source/evidence rules. General education does not diagnose, prescribe personal therapeutic targets or clear a food for a condition/allergy. Explain such limits in the relevant answer, not as a rejection of all nutrition questions.
+- Personal questions must distinguish the member's saved guidance from general references. Do not infer diagnoses or unrestricted eligibility from a food name. Existing clinical gates remain authoritative.
+- Unknown app instructions get a short free clarification with relevant topic choices and Contact Support. Unrelated requests get a concise scope explanation. AI must not be a fallback for every missed support phrase.
+
+## Wording, retrieval and maintenance
+
+Implement reviewed entries as structured records with `id`, topic, action aliases, representative English/Tagalog/Bisaya phrases, answer, fixed internal destinations, source files, role and review date. Keep educational-food routing separate from app help. Specific support and workflow questions take precedence over broad words like “report”, “plan”, “health” or “nutrition”.
+
+Use the existing normalization, explicit typo corrections, word boundaries, phrase scoring and ambiguity choices. Test both positive paraphrases and confusing pairs: report an issue / nutrition report; current weight / goal weight / healthy weight; meal plan / membership plan; RND feedback / technical support; nutrition facts / recorded daily totals. Bounded matching cannot promise understanding every wording.
+
+Keep the existing single canonical guide, generated frontend copy and parity check. General app answers remain bundled code; no vector database, extra food catalogue, full chat transcript table or repeated membership query is needed for those answers. Existing per-account memory cache behavior remains unchanged.
+
+### Implementation order after this audit
+
+1. Review this content against the findings. Correct stale public instructions alongside the prepared help entries.
+2. Expand free app knowledge and its paraphrase/destination tests. Add a coverage test for every entry and all actual destinations, including `/help`.
+3. Extend food/nutrition classification **and backend handlers together**. Merely loosening the frontend matcher cannot enable food answers with the current strict intent schema.
+4. Test consent/cancel, zero-credit free help, no provider before consent, source/serving ambiguity, missing nutrients, unsupported tasks and no automatic member-data changes. Retain receipt replay and server credit locking.
+5. Run bounded isolated browser checks and keep actual-model quality, hosted parity and clinical review as separate evidence. Use the normal authorized demo release procedure when promotion is requested.

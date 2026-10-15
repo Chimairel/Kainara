@@ -2,6 +2,8 @@
 
 Branch: `codex/member-assistant`. Status: implemented on this feature branch; shared/hosted activation is separate.
 
+The [October 15 system audit](verification/NARA_SYSTEM_AUDIT_2026-10-15.md) reproduces missing support answers and overly narrow food/nutrition routing. The [audited general guide](NARA_SYSTEM_GUIDE.md) records broader source-linked help and the intended educational-food scope. That guide is a content specification; its expanded entries and nutrition handlers are not yet active in this implementation.
+
 ## Accepted design
 
 - Member portal only. **Nara** reuses the existing Tanod mascot as the floating chat button and chat identity. The larger, transparent launcher has a subtle silhouette shadow and clears the mobile bottom navigation. Its accessible name is **Open Nara chat**. Hover or keyboard focus cycles through five friendly greeting tooltips and shows her open-mouth smile. Leaving, activating or dismissing the tooltip restores pointer tracking; returning focus after closing chat does not reopen the greeting or smile. Member bubbles and their current profile avatar sit on the right; Nara's bubbles and static portrait sit on the left.
