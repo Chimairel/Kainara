@@ -1,8 +1,11 @@
-import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
+import { act, fireEvent, render as renderUi, screen, within, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { ThemeProvider } from '@/lib/context/ThemeContext';
+
 import CaseReviewContext from './CaseReviewContext';
 import type { ReviewContext } from './CaseReviewDocument';
+
+const render = (ui: Parameters<typeof renderUi>[0]) => renderUi(ui, { wrapper: ThemeProvider });
 
 const mocks = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@/lib/axios', () => ({ default: mocks }));

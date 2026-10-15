@@ -1,8 +1,12 @@
+import { ThemeProvider } from '@/lib/context/ThemeContext';
+
 import type { ComponentProps } from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render as renderUi, screen, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import CaseReviewDocument from './CaseReviewDocument';
 import api from '@/lib/axios';
+
+const render = (ui: Parameters<typeof renderUi>[0]) => renderUi(ui, { wrapper: ThemeProvider });
 
 vi.mock('@/lib/axios', () => ({ default: { get: vi.fn() } }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'current-rnd' } }) }));

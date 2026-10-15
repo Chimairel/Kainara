@@ -1,10 +1,14 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { ThemeProvider } from '@/lib/context/ThemeContext';
+
+import { act, fireEvent, render as renderUi, screen, waitFor } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import DesktopReviewGate from './DesktopReviewGate';
 import RndQueueDocument, { ReviewDocumentPage } from './RndQueueDocument';
 import Modal from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
+
+const render = (ui: Parameters<typeof renderUi>[0]) => renderUi(ui, { wrapper: ThemeProvider });
 
 afterEach(() => vi.unstubAllGlobals());
 it.each([true, false])('mounts review work only with a desktop-sized viewport: %s', (matches) => {

@@ -6,6 +6,7 @@ import {
   Fragment,
   isValidElement,
   useCallback,
+  useId,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -14,8 +15,9 @@ import {
   type ReactNode,
   type ReactElement,
 } from 'react';
-import { Hand, MousePointer2, Maximize2, Minimize2, Minus, Plus, RotateCcw, Scan, Square } from '@/components/ui/icons';
+import { Hand, MousePointer2, Maximize2, Minimize2, Minus, Plus, RotateCcw, Scan, Square, ChevronUp, ChevronDown, Moon, Sun } from '@/components/ui/icons';
 import CanvasMenu from './CanvasMenu';
+import { useTheme } from '@/lib/context/ThemeContext';
 import CanvasToolButton from './CanvasToolButton';
 import CanvasTooltip from './CanvasTooltip';
 import { useDesktopWorkspaceVisible } from '@/lib/desktop-workspace-visibility';
@@ -81,6 +83,9 @@ export default function ReviewCanvas({
   restoreLayout?: { layout: ReviewCanvasLayout; request: number } | null;
 }) {
   const desktopVisible = useDesktopWorkspaceVisible();
+  const { theme, toggleTheme } = useTheme();
+  const [viewControlsOpen, setViewControlsOpen] = useState(true);
+  const viewControlsId = useId();
   const narrow = useSyncExternalStore(subscribeCompact, compactSnapshot, () => false);
   const compact = stackOnMobile && narrow;
   const pages = flattenSheets(children);
@@ -316,6 +321,10 @@ export default function ReviewCanvas({
         </h2>
         <div className="flex flex-wrap items-center gap-2">
           {actions}
+          <CanvasToolButton tooltipPlacement="bottom" title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} onClick={toggleTheme}>
+            {theme === 'dark' ? <Sun aria-hidden="true" className="h-5 w-5" /> : <Moon aria-hidden="true" className="h-5 w-5" />}
+          </CanvasToolButton>
           <CanvasTooltip label={expanded ? 'Exit fullscreen' : 'Expand canvas'} placement="bottom" align="end">{descriptionId => <button
             ref={expanded ? undefined : expandButton}
             type="button"
@@ -328,29 +337,43 @@ export default function ReviewCanvas({
           </button>}</CanvasTooltip>
         </div>
       </header>
-      <div
-        className={`${compact ? 'hidden' : 'flex'} shrink-0 flex-wrap items-center gap-2 border-b border-brand-border bg-brand-surface px-3 py-2`}
-        role="toolbar"
-        aria-label="Canvas view controls"
-      >
-        <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" tooltipAlign="start" title="Zoom out" aria-label="Zoom out" onClick={() => zoom(view.scale - 0.1)}>
-          <Minus className="h-4 w-4" />
-        </CanvasToolButton>
-        <span className="w-12 text-center font-mono text-xs" aria-live="polite">
-          {Math.round(view.scale * 100)}%
-        </span>
-        <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" title="Zoom in" aria-label="Zoom in" onClick={() => zoom(view.scale + 0.1)}>
-          <Plus className="h-4 w-4" />
-        </CanvasToolButton>
-        <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" title="Fit all sheets" onClick={() => fit(true)} aria-label="Fit all sheets">
-          <Scan className="h-4 w-4" />
-        </CanvasToolButton>
-        <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" title="Fit selected sheet" onClick={() => fit(false)} aria-label="Fit selected sheet">
-          <Square className="h-4 w-4" />
-        </CanvasToolButton>
-        <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" title="Reset sheet layout" onClick={() => fit(true, true)} aria-label="Reset sheet layout">
-          <RotateCcw className="h-4 w-4" />
-        </CanvasToolButton>
+      <div className={`${compact ? 'hidden' : 'flex'} shrink-0 items-center border-b border-brand-border bg-brand-surface px-3`}>
+        <div
+          id={viewControlsId}
+          hidden={!viewControlsOpen}
+          className={`${viewControlsOpen ? 'flex' : 'hidden'} min-w-0 flex-1 flex-wrap items-center gap-2 py-2`}
+          role="toolbar"
+          aria-label="Canvas view controls"
+        >
+          <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" tooltipAlign="start" title="Zoom out" aria-label="Zoom out" onClick={() => zoom(view.scale - 0.1)}>
+            <Minus className="h-4 w-4" />
+          </CanvasToolButton>
+          <span className="w-12 text-center font-mono text-xs" aria-live="polite">
+            {Math.round(view.scale * 100)}%
+          </span>
+          <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" title="Zoom in" aria-label="Zoom in" onClick={() => zoom(view.scale + 0.1)}>
+            <Plus className="h-4 w-4" />
+          </CanvasToolButton>
+          <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" title="Fit all sheets" onClick={() => fit(true)} aria-label="Fit all sheets">
+            <Scan className="h-4 w-4" />
+          </CanvasToolButton>
+          <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" title="Fit selected sheet" onClick={() => fit(false)} aria-label="Fit selected sheet">
+            <Square className="h-4 w-4" />
+          </CanvasToolButton>
+          <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" title="Reset sheet layout" onClick={() => fit(true, true)} aria-label="Reset sheet layout">
+            <RotateCcw className="h-4 w-4" />
+          </CanvasToolButton>
+        </div>
+        <div className="ml-auto">
+          <CanvasToolButton className={`text-brand-muted ${viewControlsOpen ? '' : '!h-8'}`}
+            tooltipPlacement="bottom" tooltipAlign="end"
+            title={viewControlsOpen ? 'Hide view controls' : 'Show view controls'}
+            aria-label={viewControlsOpen ? 'Hide view controls' : 'Show view controls'}
+            aria-expanded={viewControlsOpen} aria-controls={viewControlsId}
+            onClick={() => setViewControlsOpen(previous => !previous)}>
+            {viewControlsOpen ? <ChevronUp aria-hidden="true" className="h-4 w-4" /> : <ChevronDown aria-hidden="true" className="h-4 w-4" />}
+          </CanvasToolButton>
+        </div>
       </div>
       <div
         ref={bindViewport}

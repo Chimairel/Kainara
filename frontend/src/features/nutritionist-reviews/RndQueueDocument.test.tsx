@@ -1,7 +1,11 @@
+import { ThemeProvider } from '@/lib/context/ThemeContext';
+
 import React, { useState } from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render as renderUi, screen, waitFor, within } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import RndQueueDocument, { ReviewDocumentPage } from './RndQueueDocument';
+
+const render = (ui: Parameters<typeof renderUi>[0]) => renderUi(ui, { wrapper: ThemeProvider });
 
 function Fixture({ onBack, claimed = true, focusSheet }: { onBack: () => void; claimed?: boolean; focusSheet?: { title: string; request: number } }) {
   const [expanded, setExpanded] = useState(false);
@@ -203,4 +207,40 @@ it('lets reference tables scroll natively while keeping modified wheel zoom', ()
   const zoom = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -100, ctrlKey: true });
   fireEvent(target, zoom);
   expect(zoom.defaultPrevented).toBe(true);
+});
+
+it('collapses the view drawer across fullscreen without losing the draft, layout or navigation tools', () => {
+  render(<Fixture onBack={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText('Decision note'), { target: { value: 'Keep this review draft' } });
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Move Meal evidence sheet' }), { key: 'ArrowDown' });
+  const before = document.querySelector('[data-canvas-world]')!.getAttribute('style');
+  const hide = screen.getByRole('button', { name: 'Hide view controls' });
+  expect(hide).toHaveAttribute('aria-expanded', 'true');
+  fireEvent.click(hide);
+  expect(screen.queryByRole('toolbar', { name: 'Canvas view controls' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Show view controls' })).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.getByRole('combobox', { name: 'Move tool (V)' })).toBeEnabled();
+  expect(document.querySelector('[data-canvas-world]')).toHaveAttribute('style', before);
+  fireEvent.click(screen.getByRole('button', { name: 'Expand canvas' }));
+  expect(screen.getByRole('button', { name: 'Show view controls' })).toBeVisible();
+  expect(screen.getByLabelText('Decision note')).toHaveValue('Keep this review draft');
+  expect(document.querySelector('[data-canvas-sheet="1"]')).toHaveStyle({ top: '20px' });
+  fireEvent.click(screen.getByRole('button', { name: 'Show view controls' }));
+  expect(screen.getByRole('toolbar', { name: 'Canvas view controls' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Zoom in' })).toBeEnabled();
+});
+
+it('changes the application theme from inside fullscreen with the view drawer collapsed', () => {
+  localStorage.removeItem('nutrimind-theme');
+  render(<Fixture onBack={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Expand canvas' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Hide view controls' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Switch to dark mode' }));
+  expect(document.documentElement).toHaveClass('dark');
+  expect(localStorage.getItem('nutrimind-theme')).toBe('dark');
+  expect(screen.getByRole('button', { name: 'Switch to light mode' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Show view controls' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Switch to light mode' }));
+  expect(document.documentElement).not.toHaveClass('dark');
+  localStorage.removeItem('nutrimind-theme');
 });
