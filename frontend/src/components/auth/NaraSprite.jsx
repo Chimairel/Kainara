@@ -65,7 +65,8 @@ const layer = {
     backgroundRepeat: 'no-repeat',
 };
 export function Mascot(props) {
-    const { directions, reactions, size = 140, className, label = 'mascot' } = props;
+    const { directions, reactions, size = 140, className, label = 'mascot', interactive = true,
+        trackPointer = true, direction: controlledDirection, reaction: controlledReaction } = props;
     const buttonRef = useRef(null);
     const squashRef = useRef(null);
     const timersRef = useRef([]);
@@ -73,7 +74,8 @@ export function Mascot(props) {
     const [direction, setDirection] = useState('center');
     const [reaction, setReaction] = useState(null);
     useEffect(() => {
-        if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+        if (!trackPointer || !window.matchMedia('(hover: hover) and (pointer: fine)').matches
+            || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         let sector = -1;
         let pointer = null;
         let frame = 0;
@@ -103,7 +105,7 @@ export function Mascot(props) {
             cancelAnimationFrame(frame);
             window.removeEventListener('pointermove', onPointerMove);
         };
-    }, []);
+    }, [trackPointer]);
     useEffect(() => {
         return () => {
             timersRef.current.forEach(window.clearTimeout);
@@ -137,7 +139,10 @@ export function Mascot(props) {
         squashRef.current?.animate(SQUASH, { duration: SQUASH_MS, easing: 'linear' });
     };
     // Inline styles so the file drops into any project without a CSS framework.
-    return (_jsx("button", { ref: buttonRef, type: "button", onClick: boop, "aria-label": `Boop the ${label}`, className: className, style: {
+    const shownReaction = controlledReaction ?? reaction;
+    return (_jsx(interactive ? "button" : "span", { ref: buttonRef, type: interactive ? "button" : undefined,
+        onClick: interactive ? boop : undefined, "aria-label": interactive ? `Boop the ${label}` : undefined,
+        "aria-hidden": interactive ? undefined : true, className: className, style: {
             position: 'relative',
             display: 'block',
             flexShrink: 0,
@@ -147,17 +152,17 @@ export function Mascot(props) {
             border: 0,
             background: 'transparent',
             appearance: 'none',
-            cursor: 'pointer',
+            cursor: interactive ? 'pointer' : 'inherit',
             userSelect: 'none',
         }, children: _jsxs("span", { ref: squashRef, style: { position: 'relative', display: 'block', width: '100%', height: '100%', transformOrigin: '50% 78%' }, children: [_jsx("span", { style: {
                         ...layer,
                         backgroundImage: `url(${directions})`,
-                        ...cell(DIRECTIONS.indexOf(direction)),
-                        opacity: reaction ? 0 : 1,
+                        ...cell(DIRECTIONS.indexOf(controlledDirection ?? direction)),
+                        opacity: shownReaction ? 0 : 1,
                     } }), _jsx("span", { style: {
                         ...layer,
                         backgroundImage: `url(${reactions})`,
-                        ...cell(REACTIONS.indexOf(reaction ?? 'blink')),
-                        opacity: reaction ? 1 : 0,
+                        ...cell(REACTIONS.indexOf(shownReaction ?? 'blink')),
+                        opacity: shownReaction ? 1 : 0,
                     } })] }) }));
 }

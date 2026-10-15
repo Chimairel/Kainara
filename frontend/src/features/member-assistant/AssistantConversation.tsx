@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import * as Dialog from '@radix-ui/react-dialog';
 import Button from '@/components/ui/Button';
+import Avatar from '@/components/ui/Avatar';
+import NaraPortrait from './NaraPortrait';
 import { ArrowUp, ArrowUpRight, BookOpen, MessageSquare, Plus, Soup, X } from '@/components/ui/icons';
 import type { MemberAssistantModel } from './useMemberAssistant';
 import type { AssistantReply } from './types';
@@ -45,7 +47,9 @@ function ReplyDetails({ reply, onNavigate }: { reply: AssistantReply; onNavigate
   </>;
 }
 
-export default function AssistantConversation({ model, titleId, modal = false }: { model: MemberAssistantModel; titleId: string; modal?: boolean }) {
+export default function AssistantConversation({ model, titleId, member, modal = false }: {
+  model: MemberAssistantModel; titleId: string; member?: { name: string; image?: string | null }; modal?: boolean;
+}) {
   const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const confirmation = useRef<HTMLElement>(null);
@@ -54,20 +58,23 @@ export default function AssistantConversation({ model, titleId, modal = false }:
   useEffect(() => { if (model.pending && !model.busy) confirmation.current?.focus(); }, [model.pending, model.busy]);
   const reset = model.allowance ? new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(model.allowance.resetsAt)) : '';
   const disabled = model.busy || Boolean(model.pending);
+  const mood = model.busy ? 'thinking' : model.error || (model.pending && model.allowance?.remaining === 0) ? 'failed' : 'front';
   return <div className="flex h-full min-h-0 flex-col bg-brand-surface text-brand-text">
-    <header className="flex shrink-0 items-center justify-between gap-3 border-b border-brand-border px-5 py-4">
-      <div className="min-w-0">{modal
-        ? <Dialog.Title className="font-display text-lg font-semibold">KAINARA Assistant</Dialog.Title>
-        : <h2 id={titleId} className="font-display text-lg font-semibold">KAINARA Assistant</h2>}
-        <p className="mt-0.5 text-xs text-brand-muted">Your meals, logs, and saved guidance</p></div>
-      <div className="flex gap-1">
+    <header className="flex shrink-0 items-center justify-between gap-2 border-b border-brand-border px-5 py-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <NaraPortrait mood={mood} size={48} />
+        <div className="min-w-0">{modal
+        ? <Dialog.Title className="font-display text-lg font-semibold">Nara</Dialog.Title>
+        : <h2 id={titleId} className="font-display text-lg font-semibold">Nara</h2>}
+        <p className="mt-0.5 text-xs text-brand-muted">Your nutrition companion</p></div>
+      </div>
+      <div className="flex shrink-0 gap-1">
         <button type="button" className={iconButton} aria-label="New chat" title="New chat" onClick={model.newChat} disabled={model.busy}><Plus className="h-5 w-5" /></button>
         <button type="button" className={iconButton} aria-label="Close assistant" title="Close assistant" onClick={() => model.setOpen(false)}><X className="h-5 w-5" /></button>
       </div>
     </header>
     <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6">
       {!model.messages.length ? <div className="flex min-h-60 flex-col justify-center pb-8">
-        <MessageSquare className="mb-5 h-8 w-8 text-brand-green" />
         <h3 className="font-display text-2xl font-semibold leading-tight">What would help<br />with your next meal?</h3>
         <p className="mt-3 text-sm leading-6 text-brand-muted">Find meals, check what you’ve logged, or understand your saved nutrition guidance.</p>
         <div className="mt-6 flex flex-col gap-2">{quickActions.map(({ action, label, icon: Icon }) => <button key={action} type="button" disabled={disabled}
@@ -77,16 +84,21 @@ export default function AssistantConversation({ model, titleId, modal = false }:
         <p className="mt-4 text-xs leading-5 text-brand-muted">These shortcuts are free. I’ll ask before a request uses an AI credit.</p>
       </div> : <>
         <div role="log" aria-label="Assistant conversation" aria-live="polite" aria-relevant="additions" className="space-y-6">
-          {model.messages.map(message => <div key={message.id} className={message.role === 'user' ? 'ml-6 rounded-2xl bg-brand-bgAlt px-4 py-3' : ''}>
-            <span className="sr-only">{message.role === 'user' ? 'You' : 'Assistant'}: </span>
-            <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.text}</p>
-            {message.reply ? <ReplyDetails reply={message.reply} onNavigate={modal ? () => model.setOpen(false) : undefined} /> : null}
+          {model.messages.map(message => <div key={message.id} className={`flex items-end gap-2 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+            {message.role === 'user'
+              ? <Avatar src={member?.image} name={member?.name ?? 'You'} alt="" size="sm" aria-hidden="true" className="!h-8 !w-8 !text-[10px]" />
+              : <NaraPortrait size={32} />}
+            <div className={`min-w-0 max-w-[calc(100%-40px)] rounded-2xl px-4 py-3 ${message.role === 'user' ? 'rounded-br-sm bg-brand-green text-brand-surface' : 'rounded-bl-sm bg-brand-bgAlt'}`}>
+              <span className="sr-only">{message.role === 'user' ? 'You' : 'Nara'}: </span>
+              <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.text}</p>
+              {message.reply ? <ReplyDetails reply={message.reply} onNavigate={modal ? () => model.setOpen(false) : undefined} /> : null}
+            </div>
           </div>)}
         </div>
         <div className="mt-6 flex flex-wrap gap-2">{quickActions.map(({ action, label }) => <button key={action} type="button" disabled={disabled} onClick={() => model.send(action, label)}
           className="min-h-9 rounded-lg border border-brand-border px-2.5 text-xs text-brand-muted hover:bg-brand-bgAlt focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-40">{label}</button>)}</div>
       </>}
-      {model.busy ? <p role="status" className="mt-5 text-sm text-brand-muted">{model.pending ? 'Working on your request…' : 'Checking your request…'}</p> : null}
+      {model.busy ? <p role="status" className="mt-5 text-sm text-brand-muted">Nara is thinking…</p> : null}
       {model.pending && !model.busy ? <section ref={confirmation} tabIndex={-1} aria-label="Confirm AI credit use" className="mt-5 rounded-2xl border border-brand-border bg-brand-bgAlt p-4 outline-none focus-visible:ring-2 focus-visible:ring-brand-green">
         <h3 className="text-sm font-semibold">This request uses 1 AI credit</h3>
         <p className="mt-2 text-xs leading-5 text-brand-muted">{model.allowance?.remaining ?? 0} credits remaining this week. Failed requests won’t spend a credit.</p>
