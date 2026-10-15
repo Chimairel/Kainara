@@ -1,3 +1,4 @@
+import { allocatedReviewRanges } from './review-meal-planning.policy';
 import { mealMacroBudget, MEAL_MACRO_POLICY_VERSION, type PlanningMacroTargets } from './meal-macro-target.policy';
 import { resolveConditionRuleThreshold, type ConditionRuleLike } from './condition-rule-evaluation.policy';
 
@@ -21,19 +22,21 @@ export function reviewNutritionTargets(input: {
   const daily = input.dailyTargets?.policyVersion === MEAL_MACRO_POLICY_VERSION &&
     [input.dailyTargets.calories, input.dailyTargets.proteinG, input.dailyTargets.carbsG, input.dailyTargets.fatG]
       .every(value => Number.isFinite(value) && value >= 0) ? input.dailyTargets : null;
+  const guidance = (Array.isArray(input.referenceItems) ? input.referenceItems : []).flatMap((value: unknown) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+    const item = value as Record<string, unknown>;
+    const nutrient = ({ 'Protein reference': 'proteinG', 'Fat reference': 'fatG', 'Carbohydrate reference': 'carbsG',
+      'Sodium reference for DASH': 'sodiumMg', 'Dietary fiber reference': 'fiberG',
+      'Saturated fat guidance': 'saturatedFatG' } as Record<string, string>)[String(item.heading)];
+    if (!nutrient || !['value', 'explanation', 'sourceTitle', 'sourceUrl'].every(key => typeof item[key] === 'string')) return [];
+    return [{ nutrient, value: item.value as string, explanation: item.explanation as string,
+      sourceTitle: item.sourceTitle as string, sourceUrl: item.sourceUrl as string }];
+  });
   return {
     daily,
     meal: mealMacroBudget(daily, input.mealType) ?? null,
-    guidance: (Array.isArray(input.referenceItems) ? input.referenceItems : []).flatMap((value: unknown) => {
-      if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
-      const item = value as Record<string, unknown>;
-      const nutrient = ({ 'Protein reference': 'proteinG', 'Fat reference': 'fatG', 'Carbohydrate reference': 'carbsG',
-        'Sodium reference for DASH': 'sodiumMg', 'Dietary fiber reference': 'fiberG',
-        'Saturated fat guidance': 'saturatedFatG' } as Record<string, string>)[String(item.heading)];
-      if (!nutrient || !['value', 'explanation', 'sourceTitle', 'sourceUrl'].every(key => typeof item[key] === 'string')) return [];
-      return [{ nutrient, value: item.value as string, explanation: item.explanation as string,
-        sourceTitle: item.sourceTitle as string, sourceUrl: item.sourceUrl as string }];
-    }),
+    guidance,
+    ...allocatedReviewRanges(guidance, input.mealType, daily?.calories),
     rules: input.rules.flatMap(rule => {
       const nutrient = nutrientKeys[rule.nutrient as keyof typeof nutrientKeys];
       if (!nutrient || !rule.active || rule.reviewStatus !== 'APPROVED' || !rule.approvedByNutritionistId ||

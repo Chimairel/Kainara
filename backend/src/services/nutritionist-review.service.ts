@@ -37,6 +37,8 @@ import { resolveMealPlanDispute } from './nutritionist-dispute.service';
 import { rejectMealPlan } from './nutritionist-rejection.service';
 import { resolvePlanImage } from './meal-plan-presentation.service';
 import { recordedRndPlateNutrients } from '@/domain/recorded-rnd-plate-nutrients.policy';
+import { reviewPlannedDay } from '@/domain/review-meal-planning.policy';
+import { getManilaDateKey, getManilaMidnight } from '@/domain/meal-plan-cycle.policy';
 import { reviewNutritionTargets } from '@/domain/review-nutrition-targets.policy';
 import { MEAL_MACRO_POLICY_VERSION, reportPlanningMacroTargets, type PlanningMacroTargets } from '@/domain/meal-macro-target.policy';
 import { resolveLibraryRecipeImages } from './library-recipe-image.service';
@@ -653,7 +655,8 @@ export class NutritionistReviewService {
         })
       : [];
 
-    const [healthDetails, clarifications, reviewReferences, flagConcerns] = await Promise.all([
+    const dayStart = getManilaMidnight(getManilaDateKey(updatedMealPlan.scheduledDate));
+    const [healthDetails, clarifications, reviewReferences, flagConcerns, plannedDayRows] = await Promise.all([
       prisma.clinicalContextResponse.findMany({
         where: { userId: updatedMealPlan.userId },
         select: { area: true, responses: true, revision: true },
@@ -661,6 +664,13 @@ export class NutritionistReviewService {
       openedContext ? ClinicalClarificationService.list(updatedMealPlan.userId, nutritionistProfileId) : undefined,
       openedContext ? listReviewReferences(openedContext, nutritionistProfileId) : undefined,
       mealPlanFlagContext(prisma, mealPlanId),
+      prisma.mealPlan.findMany({
+        where: { userId: updatedMealPlan.userId, planGroupId: updatedMealPlan.planGroupId,
+          scheduledDate: { gte: dayStart, lt: new Date(dayStart.getTime() + 86400000) },
+          status: { in: ['APPROVED', 'PENDING_REVIEW'] }, supersededByMealPlanId: null },
+        select: { id: true, mealType: true, status: true, supersededByMealPlanId: true,
+          calories: true, proteinG: true, carbsG: true, fatG: true },
+      }),
     ]);
     // Recheck after all independent evidence reads, before returning the assembled case.
     if (openedContext) await assertCurrentMealReviewContext(mealPlanId, openedContext.contextKey);
@@ -679,14 +689,14 @@ export class NutritionistReviewService {
         : {}),
       mealPlan: {
         id: updatedMealPlan.id,
-        nutritionTargets: reviewNutritionTargets({
+        nutritionTargets: { ...reviewNutritionTargets({
           mealType: updatedMealPlan.mealType,
           dailyTargets: Object.values((updatedMealPlan.cycle.snapshot?.dailyMacroTargets ?? {}) as Record<string, PlanningMacroTargets>)
             .find(target => target?.policyVersion === MEAL_MACRO_POLICY_VERSION) ?? reportPlanningMacroTargets(planningReport),
           bodyWeightKg: userProfile?.weightKg,
           rules: conditionRuleResults.nutrientEvaluations.map(result => result.rule),
           referenceItems: (planningReport?.content as Record<string, unknown> | null)?.referenceItems,
-        }),
+        }), plannedDay: reviewPlannedDay(updatedMealPlan, plannedDayRows) },
         planGroupId: updatedMealPlan.planGroupId,
         userId: updatedMealPlan.userId,
         status: updatedMealPlan.status,
