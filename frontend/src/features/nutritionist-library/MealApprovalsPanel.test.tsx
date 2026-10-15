@@ -1,3 +1,4 @@
+vi.mock('@/features/nutritionist-reviews/useFlagDraft', async () => ({ useFlagDraft: (await import('@/test-utils/flag-draft-mock')).useFlagDraftMock }));
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MealApprovalsPanel } from './MealApprovalsPanel';
@@ -156,6 +157,7 @@ describe('meal approvals on the recipe detail page', () => {
         kind: 'CONDITION',
         approvalId: 'condition-1',
         expectedVersion: 'a'.repeat(64),
+      flagDraftId: '00000000-0000-4000-8000-000000000015',
         notes: {
           category: 'NUTRITION',
           affectedFields: ['salt'],

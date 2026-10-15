@@ -771,6 +771,26 @@ model MealReviewLineage {
   incidents            MealReviewIncident[]
 }
 
+// Exclusive, expiring drafting leases. Final evidence/audit remains separate.
+model ReviewFlagDraft {
+  id              String   @id @default(uuid())
+  targetKey       String
+  entityType      String
+  entityId        String
+  ownerUserId     String
+  ownerName       String
+  expectedVersion String
+  notes           Json
+  state           String   @default("ACTIVE")
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  result          Json?
+
+  @@index([targetKey, state])
+  @@index([state, expiresAt])
+}
+
 model MealReviewIncident {
   id                      String                   @id @default(cuid())
   lineageId               String

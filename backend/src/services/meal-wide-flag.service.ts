@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
 import { mealFlagSubmissionSchema, type MealFlagSubmission } from '@/validation/meal-review.schemas';
 import { baseMealAdmissionMatches } from './meal-base-admission.service';
+import { flagDraftForSubmission, finishFlagDraft } from './flag-draft-store.service';
 import {
   json,
   reviewContext,
@@ -40,6 +41,8 @@ async function flagMeal(userId: string, rndId: string | null, mealId: string, in
           : mealFlagSubmissionSchema.parse(input);
       if (submission.notes.explanation.length < 10)
         throw new AppError('Give comprehensive flag notes.', 422, 'FLAG_NOTES_REQUIRED');
+      const draft = await flagDraftForSubmission(tx, `meal:${context.key}`, userId, submission);
+      if (draft?.state === 'SUBMITTED') return draft.result;
       assertVersion(context.recipeVersion, submission.expectedVersion);
       if (context.lineage?.state === 'ARCHIVED') throw new AppError('This recipe is archived.', 409, 'RECIPE_ARCHIVED');
       const ids = context.meals.map((meal) => meal.id);
@@ -210,7 +213,7 @@ async function flagMeal(userId: string, rndId: string | null, mealId: string, in
       }
       context = await reviewContext(tx, mealId);
       await recordReviewDecision(tx, context, actor, 'FLAGGED', submission.notes.explanation, submission.notes);
-      return {
+      const result = {
         incidentId: incident.id,
         incidentNumber: incident.number,
         reviewState: incident.state,
@@ -219,6 +222,8 @@ async function flagMeal(userId: string, rndId: string | null, mealId: string, in
         affectedUsers: users.length,
         recipeVersion: context.recipeVersion,
       };
+      await finishFlagDraft(tx, draft, result);
+      return result;
     },
     { maxWait: 10_000, timeout: 30_000 }
   );

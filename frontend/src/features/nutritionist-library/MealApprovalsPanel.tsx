@@ -14,6 +14,8 @@ import ApprovalRecheckCanvas from '@/features/nutritionist-reviews/ApprovalReche
 import ConcernResolution, { type ReviewConcern } from '@/features/nutritionist-reviews/ConcernResolution';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import RecipeCaseHistory from './RecipeCaseHistory';
+import { useFlagDraft } from '@/features/nutritionist-reviews/useFlagDraft';
+import FlagDraftNotice from '@/features/nutritionist-reviews/FlagDraftNotice';
 
 type Approval = {
   id: string;
@@ -111,18 +113,21 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [flagTarget, setFlagTarget] = useState<{ variantId: string; approval: Approval } | null>(null);
   const [recheckTarget, setRecheckTarget] = useState<{ variantId: string; approval: Approval } | null>(null);
-  const [reason, setReason] = useState('');
-  const [concernCategory, setConcernCategory] = useState('NUTRITION');
-  const [affectedFields, setAffectedFields] = useState('');
-  const [reference, setReference] = useState('');
-  const [proposedCorrection, setProposedCorrection] = useState('');
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'FLAGGED' | 'REVIEW_DUE'>('ALL');
   const [selected, setSelected] = useState<{ variantId: string; approval: Approval } | null>(null);
   const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const flagDraft = useFlagDraft(selected ? { kind: selected.approval.kind, targetId: selected.approval.id, mealId: selected.variantId } : null,
+    variants.find(variant => variant.id === selected?.variantId)?.recipeVersion);
+  const flagTarget = flagDraft.writing ? selected : null;
+  const { explanation: reason, category: concernCategory, affectedFields, reference, proposedCorrection } = flagDraft.notes;
+  const setReason = (value: string) => flagDraft.setNotes(previous => ({ ...previous, explanation: value }));
+  const setConcernCategory = (value: string) => flagDraft.setNotes(previous => ({ ...previous, category: value }));
+  const setAffectedFields = (value: string) => flagDraft.setNotes(previous => ({ ...previous, affectedFields: value }));
+  const setReference = (value: string) => flagDraft.setNotes(previous => ({ ...previous, reference: value }));
+  const setProposedCorrection = (value: string) => flagDraft.setNotes(previous => ({ ...previous, proposedCorrection: value }));
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -144,6 +149,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
   async function flag() {
     if (
       !flagTarget ||
+      !flagDraft.draftId ||
       reason.trim().length < 20 ||
       !affectedFields.trim() ||
       reference.trim().length < 10 ||
@@ -152,10 +158,12 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
       return;
     setBusy(true);
     try {
+      if (!await flagDraft.save()) return;
       await api.post(`/nutritionist/library/${flagTarget.variantId}/approvals/flag`, {
         kind: flagTarget.approval.kind,
         approvalId: flagTarget.approval.id,
         expectedVersion: variants.find((variant) => variant.id === flagTarget.variantId)?.recipeVersion,
+        flagDraftId: flagDraft.draftId,
         notes: {
           category: concernCategory,
           affectedFields: affectedFields
@@ -167,8 +175,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
           proposedCorrection,
         },
       });
-      setFlagTarget(null);
-      setReason('');
+      flagDraft.completed();
       await reload();
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'Could not flag this approval.'));
@@ -185,7 +192,6 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
   async function viewApproval(variantId: string, approval: Approval) {
     setSelected({ variantId, approval });
     setCaseDetails(null);
-    setFlagTarget(null);
     setRecheckTarget(null);
     setDetailLoading(true);
     try {
@@ -221,7 +227,6 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
             setExpanded(false);
             setSelected(null);
             setCaseDetails(null);
-            setFlagTarget(null);
             setRecheckTarget(null);
           }}
         >
@@ -400,13 +405,12 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
               {(currentApproval.status === 'ACTIVE' || currentApproval.status === 'REVIEW_DUE') && (
                 <Button
                   variant="secondary"
-                  disabled={busy || variants.find((variant) => variant.id === selected.variantId)?.status === 'FLAGGED'}
+                  disabled={busy || flagDraft.busy || (!flagDraft.writing && !flagDraft.ready) || variants.find((variant) => variant.id === selected.variantId)?.status === 'FLAGGED'}
                   onClick={() => {
-                    setFlagTarget({ variantId: selected.variantId, approval: currentApproval });
-                    setReason('');
+                    void flagDraft.begin();
                   }}
                 >
-                  Flag approval
+                  {flagDraft.status?.blocked ? 'Flag in progress' : 'Flag approval'}
                 </Button>
               )}
               {(currentApproval.status === 'FLAGGED' || currentApproval.status === 'REVIEW_DUE') && (
@@ -422,6 +426,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
                 </Button>
               )}
             </div>
+            <FlagDraftNotice draft={flagDraft} />
             {flagTarget && (
               <div className="rounded-xl border border-amber-600/50 p-4">
                 <label htmlFor="approval-flag-reason" className="block text-sm font-semibold">
@@ -478,7 +483,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
                 <div className="mt-2 flex gap-2">
                   <Button
                     disabled={
-                      busy ||
+                      busy || flagDraft.busy || Boolean(flagDraft.error) ||
                       reason.trim().length < 20 ||
                       !affectedFields.trim() ||
                       reference.trim().length < 10 ||
@@ -488,7 +493,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
                   >
                     Submit flag
                   </Button>
-                  <Button variant="secondary" onClick={() => setFlagTarget(null)}>
+                  <Button variant="secondary" disabled={busy || flagDraft.busy} onClick={() => void flagDraft.cancel()}>
                     Cancel
                   </Button>
                 </div>

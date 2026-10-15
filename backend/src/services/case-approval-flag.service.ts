@@ -8,6 +8,7 @@ import type { MealFlagSubmission } from '@/validation/meal-review.schemas';
 import { getStartOfManilaBusinessDay, isActiveMealReviewPeriod } from '@/domain/meal-actionability.policy';
 import { mealFlagSubmissionSchema } from '@/validation/meal-review.schemas';
 import { getReviewClaimCutoff } from '@/domain/nutritionist-review.policy';
+import { flagDraftForSubmission, finishFlagDraft, retryFlagTransaction } from './flag-draft-store.service';
 
 export async function caseApprovalFlagContext(tx: Prisma.TransactionClient, decisionId: string) {
   const decision = await tx.mealPlanReviewDecision.findUnique({ where: { id: decisionId }, include: {
@@ -28,9 +29,11 @@ export async function caseApprovalFlagContext(tx: Prisma.TransactionClient, deci
 export async function flagCaseApproval(userId: string, reviewerId: string, decisionId: string, input: MealFlagSubmission, db = prisma) {
   if (!env.CLINICAL_CLARIFICATIONS_ENABLED) throw new AppError('Case approval flagging is not enabled.', 503, 'FEATURE_UNAVAILABLE');
   input = mealFlagSubmissionSchema.parse(input);
-  return db.$transaction(async tx => {
+  return retryFlagTransaction(() => db.$transaction(async tx => {
     await reviewActor(tx, userId, reviewerId);
     await tx.$queryRaw`SELECT id FROM "MealPlanReviewDecision" WHERE id = ${decisionId} FOR UPDATE`;
+    const draft = await flagDraftForSubmission(tx, `case:${decisionId}`, userId, input);
+    if (draft?.state === 'SUBMITTED') return draft.result;
     const context = await caseApprovalFlagContext(tx, decisionId);
     if (context.expectedVersion !== input.expectedVersion) throw new AppError('This approval changed. Reopen its saved review.', 409, 'APPROVAL_REVIEW_STALE');
     if (!context.canFlag) throw new AppError('This approval is already flagged or superseded.', 409, 'APPROVAL_REVIEW_CLOSED');
@@ -57,8 +60,10 @@ export async function flagCaseApproval(userId: string, reviewerId: string, decis
         originalReviewerId: context.decision.nutritionistProfileId, flaggerId: reviewerId, expectedVersion: input.expectedVersion,
         affectedPlanIds: affected.map(plan => plan.id),
       } } });
-    return { affectedMeals: affected.length };
-  }, { isolationLevel: 'Serializable', timeout: 30000 });
+    const result = { affectedMeals: affected.length };
+    await finishFlagDraft(tx, draft, result);
+    return result;
+  }, { isolationLevel: 'Serializable', timeout: 30000 }));
 }
 
 export async function activeCaseApprovalFlag(tx: Prisma.TransactionClient, planId: string) {

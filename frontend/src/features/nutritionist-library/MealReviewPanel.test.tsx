@@ -1,3 +1,4 @@
+vi.mock('@/features/nutritionist-reviews/useFlagDraft', async () => ({ useFlagDraft: (await import('@/test-utils/flag-draft-mock')).useFlagDraftMock }));
 import { ThemeProvider } from '@/lib/context/ThemeContext';
 import type { ComponentProps } from 'react';
 import { fireEvent, render as renderUi, screen, waitFor } from '@testing-library/react';

@@ -1,4 +1,5 @@
 import { approvalRecheckContext, assertApprovalResolution } from './approval-recheck-context.service';
+import { flagDraftForSubmission, finishFlagDraft, retryFlagTransaction } from './flag-draft-store.service';
 import { reviewContext, assertVersion, json } from './meal-review-context.service';
 import type { MealFlagSubmission } from '@/validation/meal-review.schemas';
 import { ConditionClearanceState, NotificationType, Prisma } from '@prisma/client';
@@ -313,6 +314,7 @@ export async function getMealApprovalCaseDetails(input: {
 
 /** A scoped flag suspends only plans that actually used this approval. */
 export async function flagMealApproval(input: {
+  flagDraftId?: string;
   nutritionistProfileId: string;
   mealLibraryId: string;
   kind: 'PROFILE' | 'CONDITION';
@@ -325,9 +327,12 @@ export async function flagMealApproval(input: {
   const reason = input.reason.trim();
   if (reason.length < 10 || reason.length > 1000) throw new Error('Give a reason of 10 to 1000 characters.');
   const now = new Date();
-  return prisma.$transaction(
+  return retryFlagTransaction(() => prisma.$transaction(
     async (tx) => {
       const context = input.expectedVersion ? await reviewContext(tx, input.mealLibraryId, true) : null;
+      const draft = await flagDraftForSubmission(tx, `${input.kind.toLowerCase()}:${input.approvalId}`, actor.userId,
+        { flagDraftId: input.flagDraftId, expectedVersion: input.expectedVersion ?? '' });
+      if (draft?.state === 'SUBMITTED') return draft.result;
       if (context && input.expectedVersion) assertVersion(context.recipeVersion, input.expectedVersion);
       const meal = await tx.mealLibrary.findUnique({
         where: { id: input.mealLibraryId },
@@ -417,10 +422,12 @@ export async function flagMealApproval(input: {
           },
         },
       });
-      return { flaggedAt: now, affectedUsers: users.length };
+      const result = { flaggedAt: now, affectedUsers: users.length };
+      await finishFlagDraft(tx, draft, result);
+      return result;
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
-  );
+  ));
 }
 
 /** Explicit review of a manually flagged approval; no calendar-based expiry. */

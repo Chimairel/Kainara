@@ -1,3 +1,4 @@
+vi.mock('@/features/nutritionist-reviews/useFlagDraft', async () => ({ useFlagDraft: (await import('@/test-utils/flag-draft-mock')).useFlagDraftMock }));
 import { ThemeProvider } from '@/lib/context/ThemeContext';
 import { fireEvent, render as renderUi, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -30,11 +31,11 @@ function fill() {
   fireEvent.change(screen.getByLabelText('Proposed correction'), { target: { value: 'Check measured sodium amounts.' } });
 }
 
-it('replays saved sheet positions and camera; Cancel removes the draft and restores presentation without a request', () => {
+it('replays saved sheet positions and camera; Cancel removes the draft and restores presentation without a flag submission', async () => {
   const consoleError = vi.spyOn(console, 'error');
   const { container } = render(<SavedApprovalCanvas snapshot={snapshot} decisionId="decision" approvalFlag={target} />);
   const world = () => container.querySelector('[data-canvas-world]') as HTMLElement;
-  expect(world().style.transform).toBe('translate(-213px, 50px) scale(0.8)');
+  await waitFor(() => expect(world().style.transform).toBe('translate(-213px, 50px) scale(0.8)'));
   expect((container.querySelector('[data-canvas-sheet="0"]') as HTMLElement).style.left).toBe('44px');
   expect(screen.getByRole('combobox', { name: 'Hand tool (H)' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Flag approval' }));
@@ -42,7 +43,7 @@ it('replays saved sheet positions and camera; Cancel removes the draft and resto
   fill();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(screen.queryByRole('article', { name: 'Flag approval reasons' })).not.toBeInTheDocument();
-  expect(world().style.transform).toBe('translate(-213px, 50px) scale(0.8)');
+  await waitFor(() => expect(world().style.transform).toBe('translate(-213px, 50px) scale(0.8)'));
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Flag approval' }));
   expect(screen.getByLabelText('Explanation')).toHaveValue('');
@@ -60,7 +61,7 @@ it('retains a rejected draft and submits the linked approval version, with succe
   expect(screen.getByLabelText('Explanation')).toHaveValue('Recorded sodium evidence needs an independent review.');
   fireEvent.click(screen.getByRole('button', { name: 'Submit approval flag' }));
   await waitFor(() => expect(toast.success).toHaveBeenCalled());
-  expect(api.post).toHaveBeenLastCalledWith(target.url, { expectedVersion: target.expectedVersion, notes: {
+  expect(api.post).toHaveBeenLastCalledWith(target.url, { expectedVersion: target.expectedVersion, flagDraftId: '00000000-0000-4000-8000-000000000015', notes: {
     category: 'NUTRITION', affectedFields: ['salt', 'sodium'], explanation: 'Recorded sodium evidence needs an independent review.',
     reference: 'Saved ingredient facts.', proposedCorrection: 'Check measured sodium amounts.',
   } });

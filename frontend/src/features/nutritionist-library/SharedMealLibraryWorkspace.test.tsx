@@ -1,3 +1,4 @@
+vi.mock('@/features/nutritionist-reviews/useFlagDraft', async () => ({ useFlagDraft: (await import('@/test-utils/flag-draft-mock')).useFlagDraftMock }));
 import { ThemeProvider } from '@/lib/context/ThemeContext';
 import { fireEvent, render as renderUi, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -204,6 +205,7 @@ describe('shared library permissions and feedback', () => {
     await screen.findByRole('region', { name: 'Flag concern report-1' });
     expect(mocks.post).toHaveBeenCalledWith('/admin/library/meal-1/flag', {
       expectedVersion: 'a'.repeat(64),
+      flagDraftId: '00000000-0000-4000-8000-000000000015',
       notes: {
         category: 'NUTRITION',
         affectedFields: ['sodiumMg', 'salt'],

@@ -3,6 +3,7 @@ import { Router, Response } from 'express';
 import { AuthenticatedRequest } from '@/types';
 import { NutritionistService } from '@/services/nutritionist.service';
 import { flagWholeMealAsAdmin } from '@/services/meal-wide-flag.service';
+import { leasedMealFlagSubmissionSchema } from '@/validation/meal-review.schemas';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import validateZodBody from '@/middleware/validateZod';
 import { asyncHandler } from '@/middleware/errorHandler';
@@ -52,7 +53,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
 });
 router.post(
   '/:id/flag',
-  validateZodBody(mealFlagSubmissionSchema),
+  validateZodBody(leasedMealFlagSubmissionSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const data = await flagWholeMealAsAdmin(req.user!.userId, req.params.id, req.body);

@@ -3,6 +3,8 @@ import { adminDataListQuerySchema } from '@/validation/admin-data.schemas';
 import { clinicalClarificationRouter } from './clinical-clarification.routes';
 import { mealReviewRouter } from './meal-review.routes';
 import { Router, Response } from 'express';
+import { flagDraftRouter } from './flag-draft.routes';
+import { leasedMealFlagSubmissionSchema } from '@/validation/meal-review.schemas';
 import { AppError } from '@/errors/AppError';
 import { z } from 'zod';
 import authenticate from '@/middleware/auth';
@@ -69,6 +71,7 @@ router.get(
 router.use('/profile', nutritionistProfileRouter);
 router.use('/license-updates', nutritionistLicenseRouter('NUTRITIONIST'));
 router.use(requireEligibleNutritionist);
+router.use('/flag-drafts', flagDraftRouter());
 router.use(clinicalClarificationRouter('rnd'));
 router.use(reviewSwapRouter);
 router.use('/meal-review-cases', mealReviewRouter('rnd'));
@@ -613,7 +616,7 @@ router.get('/queue/:id/condition-reviews',
     res.json({ success: true, data });
   })
 );
-router.post('/case-approvals/:id/flag', validateZodRequest({ params: z.object({ id: z.string().min(1).max(191) }).strict() }), validateZodBody(mealFlagSubmissionSchema), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post('/case-approvals/:id/flag', validateZodRequest({ params: z.object({ id: z.string().min(1).max(191) }).strict() }), validateZodBody(leasedMealFlagSubmissionSchema), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   res.json({ success: true, data: await flagCaseApproval(req.user!.userId, req.nutritionistProfileId!, req.params.id, req.body) });
 }));
 router.get('/case-approval-follow-ups', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {

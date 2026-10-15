@@ -1,4 +1,4 @@
-import { mealFlagSubmissionSchema, mealReviewSubmissionSchema } from '@/validation/meal-review.schemas';
+import { mealFlagSubmissionSchema, leasedMealFlagSubmissionSchema, mealReviewSubmissionSchema } from '@/validation/meal-review.schemas';
 import { MealReviewService } from '@/services/meal-review.service';
 import { AppError } from '@/errors/AppError';
 import { NutritionistAuditService } from '@/services/nutritionist-audit.service';
@@ -167,7 +167,7 @@ router.get('/library/:id/approvals', async (req: AuthenticatedRequest, res: Resp
   }
 });
 
-const mealFlagReasonSchema = mealFlagSubmissionSchema;
+const mealFlagReasonSchema = leasedMealFlagSubmissionSchema;
 const mealFlagReleaseSchema = mealReviewSubmissionSchema;
 router.post(
   '/library/:id/flag',
@@ -228,6 +228,7 @@ const scopedFlagSchema = z
     approvalId: z.string().min(1),
     expectedVersion: mealFlagSubmissionSchema.shape.expectedVersion,
     notes: mealFlagSubmissionSchema.shape.notes,
+    flagDraftId: leasedMealFlagSubmissionSchema.shape.flagDraftId,
   })
   .strict();
 router.post(

@@ -9,6 +9,7 @@ import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import MealFlagCanvas from './MealFlagCanvas';
+import { useFlagDraft } from '@/features/nutritionist-reviews/useFlagDraft';
 import MealReviewTimeline, { reviewStateLabel, type ReviewIncident } from './MealReviewTimeline';
 import RndQueueDocument, { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocument';
 import CanvasToolButton from '@/features/nutritionist-reviews/CanvasToolButton';
@@ -59,11 +60,6 @@ export default function MealReviewPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('');
-  const [category, setCategory] = useState('NUTRITION');
-  const [affected, setAffected] = useState('');
-  const [explanation, setExplanation] = useState('');
-  const [reference, setReference] = useState('');
-  const [correction, setCorrection] = useState('');
   const [rationale, setRationale] = useState('');
   const [evidenceReviewed, setEvidenceReviewed] = useState(false);
   const [resolutions, setResolutions] = useState<Record<string, string>>({});
@@ -72,6 +68,8 @@ export default function MealReviewPanel({
   const [resolutionOpen, setResolutionOpen] = useState(false);
   const [savedVersion, setSavedVersion] = useState<string | null>(null);
   const data = query.data;
+  const flagDraft = useFlagDraft(isCanvasOpen ? { kind: 'MEAL', targetId: meal.id } : null, data?.recipeVersion, isAdmin);
+  const { category, affectedFields: affected, explanation, reference, proposedCorrection: correction } = flagDraft.notes;
   useEffect(() => {
     setResolutionOpen(false);
     setEvidenceReviewed(false);
@@ -130,7 +128,7 @@ export default function MealReviewPanel({
     ) : undefined;
   async function mutate(action: 'flag' | 'claim' | 'confirm' | 'release' | 'archive') {
     if (!data || submitting.current || busy || (action === 'confirm' && savedVersion === data.reviewVersion)) return;
-    if (action === 'flag' && (!affected.trim() || explanation.trim().length < 20 || reference.trim().length < 10 || correction.trim().length < 10 || data.state === 'ARCHIVED')) return;
+    if (action === 'flag' && (!flagDraft.draftId || !affected.trim() || explanation.trim().length < 20 || reference.trim().length < 10 || correction.trim().length < 10 || data.state === 'ARCHIVED')) return;
     if (
       action === 'confirm' &&
       (!data.claimStatus?.claimedByMe || data.incident?.reports.some((report) => !resolved[report.id]))
@@ -141,12 +139,14 @@ export default function MealReviewPanel({
     setError(null);
     setMessage('');
     try {
+      if (action === 'flag' && !await flagDraft.save()) return;
       const url =
         action === 'flag' ? `${base}/library/${meal.id}/flag` : `${base}/meal-review-cases/${meal.id}/${action}`;
       const payload =
         action === 'flag'
           ? {
               expectedVersion: data.recipeVersion,
+              flagDraftId: flagDraft.draftId,
               notes: {
                 category,
                 affectedFields: affected
@@ -176,7 +176,7 @@ export default function MealReviewPanel({
       if (response.data?.success !== true) throw new Error('Unconfirmed review action');
       if (action === 'flag') {
         setCanvasOpen(false);
-        setAffected(''); setExplanation(''); setReference(''); setCorrection('');
+        flagDraft.completed();
         toast.success(held ? 'Additional evidence recorded.' : 'Meal flagged for review.');
       }
       if (action === 'confirm') setSavedVersion(data.reviewVersion);
@@ -370,9 +370,8 @@ export default function MealReviewPanel({
               {held && <Button variant="secondary" disabled={busy} onClick={() => setCanvasOpen(true)}>Add evidence to this incident</Button>}
               {!held && !onCanvasOpenChange && <Button variant="secondary" onClick={() => setCanvasOpen(true)}>Details</Button>}
               {isCanvasOpen && <MealFlagCanvas meal={meal} busy={busy} error={error}
-                value={{ category, affectedFields: affected, explanation, reference, proposedCorrection: correction }}
-                onChange={value => { setCategory(value.category); setAffected(value.affectedFields); setExplanation(value.explanation); setReference(value.reference); setCorrection(value.proposedCorrection); }}
-                onClose={() => { if (!submitting.current) { setCanvasOpen(false); setCategory('NUTRITION'); setAffected(''); setExplanation(''); setReference(''); setCorrection(''); } }}
+                draft={flagDraft}
+                onClose={() => { if (!submitting.current) setCanvasOpen(false); }}
                 onSubmit={() => void mutate('flag')} />}
 
             </>

@@ -12,7 +12,9 @@ import RelatedConditionReviews from './RelatedConditionReviews';
 import { ReviewDocumentPage } from './RndQueueDocument';
 import { savedReviewPresentation } from './saved-review-presentation';
 import ReviewDecisionPage from './ReviewDecisionPage';
-import FlagReasonFields, { emptyFlagReason, flagReasonPayload, useFlagReasonDraft, validFlagReason } from './FlagReasonFields';
+import FlagReasonFields, { flagReasonPayload, validFlagReason } from './FlagReasonFields';
+import { useFlagDraft } from './useFlagDraft';
+import FlagDraftNotice from './FlagDraftNotice';
 
 export type ApprovalFlagTarget = { url: string; expectedVersion: string; canFlag: boolean; flagged: boolean };
 export default function SavedApprovalCanvas({ snapshot, approvalFlag, decisionId, recordedConcern }: {
@@ -21,8 +23,8 @@ export default function SavedApprovalCanvas({ snapshot, approvalFlag, decisionId
 }) {
   const { detail, layout, exact, related } = useMemo(() => savedReviewPresentation(snapshot), [snapshot]);
   const [expanded, setExpanded] = useState(false);
-  const [writing, setWriting] = useState(false);
-  const [draft, setDraft] = useFlagReasonDraft();
+  const flagDraft = useFlagDraft(approvalFlag ? { kind: 'CASE', targetId: decisionId } : null, approvalFlag?.expectedVersion);
+  const { writing, notes: draft, setNotes: setDraft } = flagDraft;
   const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [request, setRequest] = useState(0);
@@ -32,29 +34,31 @@ export default function SavedApprovalCanvas({ snapshot, approvalFlag, decisionId
   const rationale = snapshot && typeof snapshot === 'object' && 'reviewRationale' in snapshot && typeof snapshot.reviewRationale === 'string' ? snapshot.reviewRationale : null;
   const hasRationalePage = Boolean(layout?.sheets.some(sheet => sheet.title === 'Approval rationale'));
   const lastPage = 2 + (detail.flagConcerns?.length ? 1 : 0) + (detail.clarifications?.forms.length ?? 0) + (related ? 1 : 0) + (recordedConcern ? 1 : 0) + Number(hasRationalePage);
-  const cancel = () => {
-    setDraft({ ...emptyFlagReason }); setWriting(false);
+  const restoreBeforeFlag = () => {
     if (beforeFlag.current) setRestore(previous => ({ layout: beforeFlag.current!, request: (previous?.request ?? 0) + 1 }));
   };
+  const cancel = async () => { if (await flagDraft.cancel()) restoreBeforeFlag(); };
   async function submit() {
-    if (!approvalFlag?.canFlag || busy || !validFlagReason(draft)) return;
+    if (!approvalFlag?.canFlag || busy || !flagDraft.draftId || !validFlagReason(draft)) return;
     setBusy(true);
     try {
-      const response = await api.post(approvalFlag.url, { expectedVersion: approvalFlag.expectedVersion, notes: flagReasonPayload(draft) });
+      if (!await flagDraft.save()) return;
+      const response = await api.post(approvalFlag.url, { expectedVersion: approvalFlag.expectedVersion, flagDraftId: flagDraft.draftId, notes: flagReasonPayload(draft) });
       if (!response.data?.success) throw new Error('Flag was not confirmed.');
-      cancel(); setSubmitted(true); toast.success('Approval flagged for independent review.');
+      flagDraft.completed(); restoreBeforeFlag(); setSubmitted(true); toast.success('Approval flagged for independent review.');
     } catch (error) { toast.error(getApiErrorMessage(error, 'The approval could not be flagged. Reopen its saved review.')); }
     finally { setBusy(false); }
   }
   return <div className="space-y-3">
+    <FlagDraftNotice draft={flagDraft} />
     {!exact && <p className="text-sm text-brand-muted">This older approval did not save its canvas layout. These pages use only the evidence recorded at approval.</p>}
     <ReviewCanvas stackOnMobile readOnly title={`Case approval · ${detail.mealPlan.mealName}`} contentKey={decisionId} initialLayout={layout}
       restoreLayout={restore} onLayoutChange={value => { latestLayout.current = value; }}
       expanded={expanded} onExpandedChange={value => { if (!busy) setExpanded(value); }}
       focusSheet={writing ? { title: 'Flag approval reasons', request } : undefined}
-      actions={approvalFlag && <Button variant={writing ? 'secondary' : 'danger'} size="sm" disabled={busy || submitted || (!writing && !approvalFlag.canFlag)} onClick={() => {
-        if (writing) cancel(); else { beforeFlag.current = latestLayout.current; setWriting(true); setRequest(value => value + 1); }
-      }}>{writing ? 'Cancel' : submitted || approvalFlag.flagged ? 'Approval flagged' : 'Flag approval'}</Button>}>
+      actions={approvalFlag && <div className="flex max-w-sm flex-col items-end gap-1"><Button variant={writing ? 'secondary' : 'danger'} size="sm" disabled={busy || flagDraft.busy || submitted || (!writing && (!approvalFlag.canFlag || !flagDraft.ready))} onClick={() => {
+        if (writing) void cancel(); else { beforeFlag.current = latestLayout.current; void flagDraft.begin().then(ok => { if (ok) setRequest(value => value + 1); }); }
+      }}>{writing ? 'Cancel' : submitted || approvalFlag.flagged ? 'Approval flagged' : flagDraft.status?.blocked ? 'Flag in progress' : 'Flag approval'}</Button><FlagDraftNotice draft={flagDraft} compact /></div>}>
       {CaseEvidenceSheets({ detailData: detail })}
       {related && <ReviewDocumentPage page={lastPage - Number(Boolean(recordedConcern)) - Number(hasRationalePage)} title="Related condition reviews" subtitle="Completed decisions for this case’s conditions">
         <RelatedConditionReviews detail={detail} saved={related} />
@@ -68,7 +72,8 @@ export default function SavedApprovalCanvas({ snapshot, approvalFlag, decisionId
         <p className="mb-6 text-sm">Submitting suspends this approval and meals that reused it. It does not flag the entire recipe.</p>
         <form className="space-y-6" onSubmit={event => { event.preventDefault(); void submit(); }}>
           <FlagReasonFields value={draft} onChange={setDraft} busy={busy} />
-          <Button variant="danger" type="submit" isLoading={busy} disabled={busy || !validFlagReason(draft)}>Submit approval flag</Button>
+          <FlagDraftNotice draft={flagDraft} />
+          <Button variant="danger" type="submit" isLoading={busy} disabled={busy || flagDraft.busy || Boolean(flagDraft.error) || !validFlagReason(draft)}>Submit approval flag</Button>
         </form>
       </ReviewDocumentPage>}
     </ReviewCanvas>

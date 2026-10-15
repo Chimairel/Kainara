@@ -20,6 +20,7 @@ import adminMealImagesRouter from '@/routes/admin-meal-images.routes';
 import adminMealsRouter from '@/routes/admin-meals.routes';
 import adminWebsiteContentRouter from '@/routes/admin-website-content.routes';
 import adminLibraryRouter from '@/routes/admin-library.routes';
+import { flagDraftRouter } from './flag-draft.routes';
 import adminAuditRouter from '@/routes/admin-audit.routes';
 import { adminMembershipHistoryRouter } from './membership-history.routes';
 import adminMealLogRouter from './admin-meal-log.routes';
@@ -32,6 +33,7 @@ const router = Router();
 // Apply auth + ADMIN role restriction
 router.use(authenticate);
 router.use(requireRole('ADMIN'));
+router.use('/flag-drafts', flagDraftRouter(true));
 router.use('/support', adminSupportRouter);
 router.use('/license-updates', nutritionistLicenseRouter('ADMIN'));
 router.use('/review-routing', adminReviewRoutingRouter);

@@ -13,8 +13,10 @@ export const mealFlagSubmissionSchema = z
   .object({
     expectedVersion: z.string().regex(/^[a-f0-9]{64}$/),
     notes: mealConcernSchema,
+    flagDraftId: z.string().uuid().optional(),
   })
   .strict();
+export const leasedMealFlagSubmissionSchema = mealFlagSubmissionSchema.extend({ flagDraftId: z.string().uuid() });
 export const mealReviewSubmissionSchema = z
   .object({
     evidenceReviewed: z.literal(true),

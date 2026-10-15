@@ -10,6 +10,7 @@ export const mealApprovalAuditActions = [
 ] as const;
 
 export const nutritionistAuditActions = [
+  'FLAG_DRAFT_STARTED', 'FLAG_DRAFT_CANCELLED', 'FLAG_DRAFT_EXPIRED', 'FLAG_DRAFT_SUBMITTED',
   'MEAL_PLAN_SLOT_REPLACED_PENDING_REVIEW',
   'CLINICAL_PROFILE_CLAIMED',
   'BASE_MEAL_VERIFIED',
@@ -53,6 +54,10 @@ export const nutritionistAuditActions = [
 
 export function auditActionLabel(action: string) {
   const labels: Record<string, string> = {
+    FLAG_DRAFT_STARTED: 'Started a flag draft',
+    FLAG_DRAFT_CANCELLED: 'Cancelled a flag draft',
+    FLAG_DRAFT_EXPIRED: 'Flag draft lock expired',
+    FLAG_DRAFT_SUBMITTED: 'Submitted a flag draft',
     MEAL_APPROVAL_REUSED: 'Reused a matching approval',
     MEAL_APPROVAL_REUSE_INVALIDATED: 'Matching approval needs a fresh review',
     BASE_MEAL_VERIFIED: 'Verified a meal',
@@ -120,6 +125,8 @@ export function auditActionLabel(action: string) {
 }
 
 export function auditOutcomeLabel(action: string) {
+  if (action === 'FLAG_DRAFT_STARTED') return 'Drafting';
+  if (action === 'FLAG_DRAFT_CANCELLED' || action === 'FLAG_DRAFT_EXPIRED') return 'Released';
   if (action === 'MEAL_APPROVAL_REUSE_INVALIDATED') return 'Needs attention';
   if (/REJECTED|UNUSABLE|SUSPENDED|FLAGGED|DISPUTED|UNVERIFIABLE|REVOKED|REVIEW_DUE|EXPIRED/.test(action))
     return 'Needs attention';
@@ -131,6 +138,7 @@ export function auditOutcomeLabel(action: string) {
 
 /** Summary only; this label never grants access to clinical case details. */
 export function auditTypeLabel(action: string, targetType: string) {
+  if (action.startsWith('FLAG_DRAFT_')) return 'Flag draft';
   if (targetType === 'MealPlanReviewDecision' || action === 'MEAL_CASE_FLAG_RESOLVED') return 'Meal approval';
   if (action.startsWith('CLINICAL_PROFILE_') || targetType === 'ClinicalProfileReview') return 'Profile verification';
   if (action.startsWith('CLINICAL_CLARIFICATION_')) return 'Profile clarification';
