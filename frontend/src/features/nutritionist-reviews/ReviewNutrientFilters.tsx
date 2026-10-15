@@ -3,6 +3,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { Select } from '@/components/ui/Select';
 import { X } from '@/components/ui/icons';
+import { formatNutritionNumber, roundNutritionNumber } from '@/lib/nutrition-number';
 export const REVIEW_NUTRIENT_FIELDS = [
   ['calories', 'Energy', 'kcal'],
   ['proteinG', 'Protein', 'g'],
@@ -20,10 +21,10 @@ export type NutrientFilters = Partial<Record<NutrientKey, { min?: number; max?: 
 export function nutrientFilterLabels(filters: NutrientFilters) {
   return REVIEW_NUTRIENT_FIELDS.flatMap(([key, label, unit]) => {
     const range = filters[key];
-    if (range?.min !== undefined && range.min === range.max && !range.minExclusive && !range.maxExclusive) return [`${label} = ${range.min} ${unit}`];
+    if (range?.min !== undefined && range.min === range.max && !range.minExclusive && !range.maxExclusive) return [`${label} = ${formatNutritionNumber(range.min)} ${unit}`];
     return !range ? [] : [
-      ...(range.min !== undefined ? [`${label} ${range.minExclusive ? '>' : '≥'} ${range.min} ${unit}`] : []),
-      ...(range.max !== undefined ? [`${label} ${range.maxExclusive ? '<' : '≤'} ${range.max} ${unit}`] : []),
+      ...(range.min !== undefined ? [`${label} ${range.minExclusive ? '>' : '≥'} ${formatNutritionNumber(range.min)} ${unit}`] : []),
+      ...(range.max !== undefined ? [`${label} ${range.maxExclusive ? '<' : '≤'} ${formatNutritionNumber(range.max)} ${unit}`] : []),
     ];
   });
 }
@@ -42,6 +43,8 @@ export function parseFilterDraft(draft: FilterDraft): NutrientFilters | null {
     if (draft[key]?.mode && (!Object.keys(range).length || (draft[key]?.mode === 'between' && (range.min === undefined || range.max === undefined)))) return null;
     if (draft[key]?.mode === 'exact' && range.min !== undefined) range.max = range.min;
     if (range.min !== undefined && range.max !== undefined && range.min > range.max) return null;
+    if (range.min !== undefined) range.min = roundNutritionNumber(range.min);
+    if (range.max !== undefined) range.max = roundNutritionNumber(range.max);
     if (Object.keys(range).length) filters[key] = range;
   }
   return filters;
@@ -51,8 +54,7 @@ export default function ReviewNutrientFilters({ draft, onChange, busy }: {
   draft: FilterDraft; onChange: (value: FilterDraft) => void; busy: boolean;
 }) {
   return <div className="space-y-3">
-    <p className="text-xs leading-5 text-brand-muted">All limits apply together to one meal, including rice. Meals missing a required value are excluded.</p>
-    {Object.values(draft).some(range => range?.mode === 'exact') && <p className="text-xs leading-5 text-brand-muted">Exactly matches the values shown to one decimal place. Entering more decimal places uses the stored precision.</p>}
+    <p className="text-xs leading-5 text-brand-muted">All limits apply together to one meal, including rice. Nutrition values and search amounts are rounded to one decimal place. Meals missing a required value are excluded.</p>
     <div className="max-h-40 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
       {REVIEW_NUTRIENT_FIELDS.filter(([key]) => draft[key]).map(([key, label, unit]) => {
         const range = draft[key]!;
@@ -71,8 +73,9 @@ export default function ReviewNutrientFilters({ draft, onChange, busy }: {
           <div className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-1">
             {(mode === 'between' ? ['min', 'max'] as const : [mode === 'max' ? 'max' : 'min'] as const).map(bound => <label key={bound} className="min-w-0 flex-1">
               <span className="sr-only">{`${label} ${mode === 'exact' ? 'exact amount' : bound === 'min' ? 'minimum' : 'maximum'} (${unit})`}</span>
-              <input type="number" min="0" max="1000000" step="any" disabled={busy} value={range[bound] ?? ''} placeholder={mode === 'between' ? (bound === 'min' ? 'Minimum' : 'Maximum') : 'Amount'}
+              <input type="number" min="0" max="1000000" step="0.1" disabled={busy} value={range[bound] ?? ''} placeholder={mode === 'between' ? (bound === 'min' ? 'Minimum' : 'Maximum') : 'Amount'}
                 onChange={event => update({ ...range, [bound]: event.target.value })}
+                onBlur={() => { const value = range[bound]?.trim(); if (value && Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 1000000) update({ ...range, [bound]: formatNutritionNumber(Number(value)) }); }}
                 className="h-10 w-full rounded-lg border border-brand-border bg-brand-surface px-3 text-sm tabular-nums outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:opacity-50" />
             </label>)}
           </div>

@@ -5,12 +5,16 @@ export const REVIEW_NUTRIENTS = ['calories', 'proteinG', 'carbsG', 'fatG', 'sodi
 export type ReviewNutrient = typeof REVIEW_NUTRIENTS[number];
 export type PlateNutrients = Record<ReviewNutrient, number | null>;
 const bound = z.number().finite().min(0).max(1000000);
+const roundNutrient = (value: number) => Math.round(value * 10) / 10;
 const range = z.object({ min: bound.optional(), max: bound.optional(), minExclusive: z.boolean().optional(), maxExclusive: z.boolean().optional() }).strict().refine(
   value => (value.min !== undefined || value.max !== undefined) &&
     (value.min === undefined || value.max === undefined || value.min <= value.max) &&
     (!value.minExclusive || value.min !== undefined) && (!value.maxExclusive || value.max !== undefined),
   'Provide a minimum or maximum, with minimum no greater than maximum.'
-);
+).transform(value => ({ ...value,
+  ...(value.min !== undefined ? { min: roundNutrient(value.min) } : {}),
+  ...(value.max !== undefined ? { max: roundNutrient(value.max) } : {}),
+}));
 export const reviewNutrientFiltersSchema = z.object({
   calories: range.optional(), proteinG: range.optional(), carbsG: range.optional(), fatG: range.optional(),
   sodiumMg: range.optional(), sugarG: range.optional(), fiberG: range.optional(), potassiumMg: range.optional(),
@@ -34,16 +38,13 @@ export function plateNutrients(base: Partial<PlateNutrients>, side: Partial<Plat
 export function evaluateNutrientFilters(nutrients: PlateNutrients, filters: ReviewNutrientFilters) {
   const unknown = REVIEW_NUTRIENTS.filter(key => filters[key] && !measured(nutrients[key]));
   const matches = !unknown.length && REVIEW_NUTRIENTS.every(key => {
-    const range = filters[key], value = nutrients[key];
-    // Exactly accepts a value copied from the one-decimal comparison table.
-    // More precise inputs and all inequality bounds retain stored precision.
-    if (range?.min !== undefined && range.min === range.max && !range.minExclusive && !range.maxExclusive &&
-      Number.isInteger(range.min * 10)) {
-      return measured(value) && Math.round(value * 10) / 10 === range.min;
-    }
-    return !range || (measured(value) &&
-      (range.min === undefined || (range.minExclusive ? value > range.min : value >= range.min)) &&
-      (range.max === undefined || (range.maxExclusive ? value < range.max : value <= range.max)));
+    const range = filters[key], raw = nutrients[key];
+    if (!range) return true;
+    if (!measured(raw)) return false;
+    // All search comparisons use the same precision as the displayed plate.
+    const value = roundNutrient(raw);
+    return (range.min === undefined || (range.minExclusive ? value > roundNutrient(range.min) : value >= roundNutrient(range.min))) &&
+      (range.max === undefined || (range.maxExclusive ? value < roundNutrient(range.max) : value <= roundNutrient(range.max)));
   });
   return { matches, unknown };
 }

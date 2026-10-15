@@ -110,7 +110,7 @@ it('removes applied chips and clears all search criteria with one request', () =
     filterDraft: { sodiumMg: { max: '500' } }, searchText: 'pork', applyFilters,
     data: { ...props.swap.data!, search: 'pork', filters: { sodiumMg: { max: 500 } } } }} />);
   const chips = screen.getByRole('list', { name: 'Applied replacement filters' });
-  expect(chips).toHaveTextContent('Sodium ≤ 500 mg');
+  expect(chips).toHaveTextContent('Sodium ≤ 500.0 mg');
   fireEvent.click(screen.getByRole('button', { name: 'Remove applied Sodium filter' }));
   expect(applyFilters).toHaveBeenLastCalledWith({}, 'pork');
   fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
@@ -152,14 +152,14 @@ it('compares the recorded meal and complete replacement serving without grocery 
   const comparison = screen.getByRole('region', { name: 'Meal nutrition comparison' });
   expect(within(comparison).getByRole('row', { name: 'Energy 1190.4 kcal 1040.4 kcal Not set' })).toBeInTheDocument();
   expect(within(comparison).getByRole('row', { name: 'Protein 38.6 g 37.6 g Not set' })).toBeInTheDocument();
-  expect(within(comparison).getByRole('row', { name: 'Sodium 1000 mg 500 mg Not set' })).toBeInTheDocument();
-  expect(within(comparison).getByRole('row', { name: 'Sugar 0 g 0 g Not set' })).toBeInTheDocument();
+  expect(within(comparison).getByRole('row', { name: 'Sodium 1000.0 mg 500.0 mg Not set' })).toBeInTheDocument();
+  expect(within(comparison).getByRole('row', { name: 'Sugar 0.0 g 0.0 g Not set' })).toBeInTheDocument();
   expect(
     within(comparison).getByRole('row', { name: 'Fiber Not recorded Not recorded Not set' })
   ).toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Grocery changes' })).not.toBeInTheDocument();
   expect(screen.queryByText(/No changes to remaining groceries/)).not.toBeInTheDocument();
-  expect(within(comparison).queryByText('999 kcal')).not.toBeInTheDocument();
+  expect(within(comparison).queryByText('999.0 kcal')).not.toBeInTheDocument();
 });
 
 it('updates the comparison for a new selection and removes it when selection clears', () => {
@@ -175,7 +175,7 @@ it('updates the comparison for a new selection and removes it when selection cle
     ingredients: [],
   } as unknown as NonNullable<Props['swap']['selected']>;
   const { rerender } = render(<ReviewSwapDialog {...props} meal={meal} swap={{ ...props.swap, selected }} />);
-  expect(screen.getByRole('row', { name: 'Energy 400 kcal 450 kcal Not set' })).toBeInTheDocument();
+  expect(screen.getByRole('row', { name: 'Energy 400.0 kcal 450.0 kcal Not set' })).toBeInTheDocument();
   rerender(
     <ReviewSwapDialog
       {...props}
@@ -183,7 +183,7 @@ it('updates the comparison for a new selection and removes it when selection cle
       swap={{ ...props.swap, selected: { ...selected, id: 'second', calories: 400 } }}
     />
   );
-  expect(screen.getByRole('row', { name: 'Energy 400 kcal 400 kcal Not set' })).toBeInTheDocument();
+  expect(screen.getByRole('row', { name: 'Energy 400.0 kcal 400.0 kcal Not set' })).toBeInTheDocument();
   rerender(<ReviewSwapDialog {...props} meal={meal} swap={{ ...props.swap, selected: null }} />);
   expect(screen.queryByRole('region', { name: 'Meal nutrition comparison' })).not.toBeInTheDocument();
 });
@@ -205,6 +205,6 @@ it('shows completed capstone nutrients normally without additional notices', () 
   render(<ReviewSwapDialog {...props} meal={{ ...props.meal, estimatedNutrientKeys: ['sodiumMg'] }} swap={{ ...props.swap, selected }} />);
   const comparison = screen.getByRole('region', { name: 'Meal nutrition comparison' });
   expect(comparison).not.toHaveTextContent(/estimated|approximations|demonstration recipe/i);
-  expect(comparison).toHaveTextContent('300 mg');
-  expect(comparison).toHaveTextContent('200 mg');
+  expect(comparison).toHaveTextContent('300.0 mg');
+  expect(comparison).toHaveTextContent('200.0 mg');
 });

@@ -10,7 +10,7 @@ test('complete-plate limits include scaled side nutrients in their recorded unit
   const plate = plateNutrients(base, { ...base, sodiumMg: 20, sugarG: 0 }, 150);
   assert.equal(plate.sodiumMg, 40); assert.equal(plate.sugarG, 10); assert.equal(plate.proteinG, 25);
   assert.deepEqual(evaluateNutrientFilters(plate, { sodiumMg: { min: 40, max: 40 }, sugarG: { max: 10 } }), { matches: true, unknown: [] });
-  assert.equal(evaluateNutrientFilters(plate, { sodiumMg: { max: 39.99999 } }).matches, false);
+  assert.equal(evaluateNutrientFilters(plate, { sodiumMg: { max: 39.9 } }).matches, false);
 });
 test('unknown base or side never becomes zero; zero is eligible at a zero maximum', () => {
   for (const key of REVIEW_NUTRIENTS) {
@@ -73,13 +73,15 @@ test('Exactly finds the complete-plate value shown to one decimal, including the
     assert.equal(evaluateNutrientFilters({ ...plate, [key]: 35.7001 }, { [key]: { min: 35.7, max: 35.7 } }).matches, true);
 });
 
-test('inequalities, explicit extra precision, missing values and combined rules remain strict', () => {
+test('all search bounds and values use one decimal while exclusions and combined rules remain enforced', () => {
   const plate = plateNutrients({ ...base, sodiumMg: 466.81 }, null, null);
-  assert.equal(evaluateNutrientFilters(plate, { sodiumMg: { max: 466.8 } }).matches, false);
-  assert.equal(evaluateNutrientFilters({ ...plate, sodiumMg: 466.79 }, { sodiumMg: { min: 466.8 } }).matches, false);
+  assert.equal(evaluateNutrientFilters(plate, { sodiumMg: { max: 466.8 } }).matches, true);
+  assert.equal(evaluateNutrientFilters({ ...plate, sodiumMg: 466.79 }, { sodiumMg: { min: 466.8 } }).matches, true);
+  assert.equal(evaluateNutrientFilters({ ...plate, sodiumMg: 466.85 }, { sodiumMg: { max: 466.8 } }).matches, false);
   assert.equal(evaluateNutrientFilters({ ...plate, sodiumMg: 466.8 }, { sodiumMg: { min: 466.8, max: 466.8, minExclusive: true } }).matches, false);
   assert.equal(evaluateNutrientFilters(plate, { sodiumMg: { min: 466.81, max: 466.81 } }).matches, true);
-  assert.equal(evaluateNutrientFilters({ ...plate, sodiumMg: 466.810001 }, { sodiumMg: { min: 466.81, max: 466.81 } }).matches, false);
-  assert.equal(evaluateNutrientFilters(plate, { sodiumMg: { min: 466.8, max: 466.8 }, sugarG: { max: 9.99 } }).matches, false);
+  assert.equal(evaluateNutrientFilters({ ...plate, sodiumMg: 466.810001 }, { sodiumMg: { min: 466.81, max: 466.81 } }).matches, true);
+  assert.equal(evaluateNutrientFilters(plate, { sodiumMg: { min: 466.8, max: 466.8 }, sugarG: { max: 9.9 } }).matches, false);
+  assert.deepEqual(reviewNutrientFiltersSchema.parse({ sodiumMg: { min: 466.781, max: 466.831 } }), { sodiumMg: { min: 466.8, max: 466.8 } });
   assert.deepEqual(evaluateNutrientFilters({ ...plate, sodiumMg: null }, { sodiumMg: { min: 0, max: 0 } }), { matches: false, unknown: ['sodiumMg'] });
 });

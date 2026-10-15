@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { formatNutritionNumber } from '@/lib/nutrition-number';
 
 export type SwapNutritionValues = Partial<Record<
   'calories' | 'proteinG' | 'carbsG' | 'fatG' | 'sodiumMg' | 'sugarG' | 'fiberG' |
@@ -28,9 +29,8 @@ export default function SwapNutritionTable({
   targetLabel?: string;
 }) {
   const recorded = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0;
-  const round = (value: number) => compact ? Math.round(value) : Math.round(value * 10) / 10;
   const amount = (value: number | null | undefined, unit: string) =>
-    recorded(value) ? `${round(value)} ${unit}` : 'Not recorded';
+    recorded(value) ? `${formatNutritionNumber(value)} ${unit}` : 'Not recorded';
   const cell = compact ? 'py-1' : 'py-2.5';
   return (
     <div className="overflow-x-auto mt-2">
@@ -48,7 +48,7 @@ export default function SwapNutritionTable({
         <tbody className="divide-y divide-brand-border/30">
           {fields.map(([key, label, unit]) => {
             const current = before[key], replacement = after[key];
-            const delta = recorded(current) && recorded(replacement) ? round(replacement - current) : null;
+            const delta = recorded(current) && recorded(replacement) ? replacement - current : null;
             return (
               <tr key={key} className="hover:bg-brand-bgAlt/40">
                 <th scope="row" className={`${cell} pr-3 font-semibold text-brand-text`}>{label}</th>
@@ -56,7 +56,7 @@ export default function SwapNutritionTable({
                 <td className={`${cell} whitespace-nowrap px-3 font-bold text-brand-text`}>{amount(replacement, unit)}</td>
                 {estimate && <td className={`${cell} whitespace-nowrap pl-3 text-brand-muted`}>{amount(estimate[key], unit)}</td>}
                 {showChange && <td className={`${cell} whitespace-nowrap pl-3 text-brand-muted`}>
-                  {delta === null ? 'Not recorded' : `${delta > 0 ? '+' : ''}${delta} ${unit}`}
+                  {delta === null ? 'Not recorded' : `${delta > 0 ? '+' : ''}${formatNutritionNumber(delta)} ${unit}`}
                 </td>}
                 {targets && <td className={`${cell} pl-3 text-brand-text`}>{targets[key] ?? 'Not set'}</td>}
               </tr>

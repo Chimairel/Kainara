@@ -1,8 +1,8 @@
 import type { SwapNutritionValues } from '@/features/meals/SwapNutritionTable';
 import type { ReviewNutritionTargets } from './review-nutrition-targets';
+import { formatNutritionNumber as amount } from '@/lib/nutrition-number';
 
 const fields = [['calories', 'Energy', 'kcal'], ['proteinG', 'Protein', 'g'], ['carbsG', 'Carbohydrates', 'g'], ['fatG', 'Fat', 'g']] as const;
-const amount = (value: number) => Math.round(value * 10) / 10;
 const recorded = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0;
 
 export default function ReviewDayProjection({ after, targets }: { after: SwapNutritionValues; targets?: ReviewNutritionTargets }) {

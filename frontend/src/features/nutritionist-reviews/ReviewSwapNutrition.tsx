@@ -3,11 +3,11 @@ import { REVIEW_NUTRIENT_FIELDS, type NutrientFilters } from './ReviewNutrientFi
 import ReviewDayProjection from './ReviewDayProjection';
 import type { ReviewNutritionTargets } from './review-nutrition-targets';
 import type { ReactNode } from 'react';
+import { formatNutritionNumber as amount } from '@/lib/nutrition-number';
 
 const operators: Record<string, string> = {
   LESS_THAN: '<', LESS_THAN_OR_EQUAL: '≤', GREATER_THAN: '>', GREATER_THAN_OR_EQUAL: '≥', EQUAL: '=',
 };
-const amount = (value: number) => Math.round(value * 10) / 10;
 /** Daily policy references and per-meal search limits are distinct from meal facts. */
 export default function ReviewSwapNutrition({ before, after, targets, filters = {} }: {
   before: SwapNutritionValues; after: SwapNutritionValues; targets?: ReviewNutritionTargets; filters?: NutrientFilters;
@@ -34,10 +34,10 @@ export default function ReviewSwapNutrition({ before, after, targets, filters = 
       </p> : <span className="text-brand-muted">Not set</span>)}
       {filter && <p className="text-brand-muted">
         Search: {filter.min !== undefined && filter.min === filter.max && !filter.minExclusive && !filter.maxExclusive
-          ? `= ${filter.min} ${unit}`
-          : <>{filter.min !== undefined && `${filter.minExclusive ? '>' : '≥'} ${filter.min} ${unit}`}
+          ? `= ${amount(filter.min)} ${unit}`
+          : <>{filter.min !== undefined && `${filter.minExclusive ? '>' : '≥'} ${amount(filter.min)} ${unit}`}
             {filter.min !== undefined && filter.max !== undefined && ' · '}
-            {filter.max !== undefined && `${filter.maxExclusive ? '<' : '≤'} ${filter.max} ${unit}`}</>} / meal
+            {filter.max !== undefined && `${filter.maxExclusive ? '<' : '≤'} ${amount(filter.max)} ${unit}`}</>} / meal
       </p>}
     </div>;
   }

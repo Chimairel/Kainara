@@ -14,7 +14,7 @@ it('shows a saved guidance reference with its basis without relabeling it as an 
   render(<ReviewSwapNutrition before={{ sodiumMg: 300 }} after={{ sodiumMg: 450 }} targets={{ daily: null, meal: null, rules: [],
     guidance: [{ nutrient: 'sodiumMg', value: '2,300 mg/day', explanation: 'The appropriate target requires individual selection.',
       sourceTitle: 'Saved DASH reference', sourceUrl: 'https://example.test/dash' }] }} />);
-  const sodium = screen.getByRole('row', { name: /Sodium 300 mg 450 mg/ });
+  const sodium = screen.getByRole('row', { name: /Sodium 300.0 mg 450.0 mg/ });
   expect(sodium).toHaveTextContent('2,300 mg/day');
   expect(sodium).toHaveTextContent('Guidance reference');
   expect(sodium).not.toHaveTextContent('Approved rule');
@@ -29,14 +29,14 @@ it('keeps per-meal macros, daily rules and search-only limits distinct', () => {
     filters={{ sodiumMg: { max: 500 }, sugarG: { max: 5, maxExclusive: true } }} />);
   expect(screen.getByRole('columnheader', { name: 'Meal planning range' })).toBeInTheDocument();
   expect(screen.getByRole('columnheader', { name: 'Target' })).toBeInTheDocument();
-  expect(screen.getByRole('row', { name: 'Energy 700 kcal 800 kcal 680–920 kcal' })).toBeInTheDocument();
-  const sodium = screen.getByRole('row', { name: /Sodium 400 mg 600 mg/ });
-  expect(sodium).toHaveTextContent('< 2000 mg/day');
-  expect(sodium).toHaveTextContent('Search: ≤ 500 mg / meal');
-  expect(sodium).not.toHaveTextContent('≤ 500 mg/day');
-  const sugar = screen.getByRole('row', { name: /Sugar 0 g 2 g/ });
+  expect(screen.getByRole('row', { name: 'Energy 700.0 kcal 800.0 kcal 680.0–920.0 kcal' })).toBeInTheDocument();
+  const sodium = screen.getByRole('row', { name: /Sodium 400.0 mg 600.0 mg/ });
+  expect(sodium).toHaveTextContent('< 2000.0 mg/day');
+  expect(sodium).toHaveTextContent('Search: ≤ 500.0 mg / meal');
+  expect(sodium).not.toHaveTextContent('≤ 500.0 mg/day');
+  const sugar = screen.getByRole('row', { name: /Sugar 0.0 g 2.0 g/ });
   expect(sugar).toHaveTextContent('Not set');
-  expect(sugar).toHaveTextContent('Search: < 5 g / meal');
+  expect(sugar).toHaveTextContent('Search: < 5.0 g / meal');
   expect(screen.getByRole('link', { name: 'Recorded source', hidden: true })).toHaveAttribute('href', 'https://example.test/source');
 });
 
@@ -44,8 +44,8 @@ it('keeps missing nutrients and targets unknown rather than inventing zeros or r
   render(<ReviewSwapNutrition before={{ calories: 400 }} after={{ calories: 500 }} />);
   const sodium = screen.getByRole('row', { name: 'Sodium Not recorded Not recorded Not set' });
   expect(within(sodium).getAllByText('Not recorded')).toHaveLength(2);
-  expect(sodium).not.toHaveTextContent('0 mg');
-  expect(screen.getByRole('row', { name: 'Energy 400 kcal 500 kcal Not set' })).toBeInTheDocument();
+  expect(sodium).not.toHaveTextContent('0.0 mg');
+  expect(screen.getByRole('row', { name: 'Energy 400.0 kcal 500.0 kcal Not set' })).toBeInTheDocument();
 });
 
 it('shows allocated meal ranges in the comparison and keeps daily ranges and planning points under details', () => {
@@ -60,12 +60,12 @@ it('shows allocated meal ranges in the comparison and keeps daily ranges and pla
         { nutrient: 'carbsG', value: '275–375 g/day', explanation: 'Saved carbohydrate range.', sourceTitle: 'Saved macro source', sourceUrl: 'https://example.test/macros' },
         { nutrient: 'fatG', value: '33.3–66.7 g/day', explanation: 'Saved fat range.', sourceTitle: 'Saved macro source', sourceUrl: 'https://example.test/macros' },
       ] }} />);
-  const protein = screen.getByRole('row', { name: /Protein 20 g 25 g/ });
-  expect(protein).toHaveTextContent('20–30 g');
+  const protein = screen.getByRole('row', { name: /Protein 20.0 g 25.0 g/ });
+  expect(protein).toHaveTextContent('20.0–30.0 g');
   expect(protein).not.toHaveTextContent('g/day');
   expect(protein).not.toHaveTextContent('Planning point');
-  expect(screen.getByRole('row', { name: /Carbohydrates 80 g 90 g/ })).toHaveTextContent('110–150 g');
-  expect(screen.getByRole('row', { name: /Fat 15 g 20 g/ })).toHaveTextContent('13.3–26.7 g');
+  expect(screen.getByRole('row', { name: /Carbohydrates 80.0 g 90.0 g/ })).toHaveTextContent('110.0–150.0 g');
+  expect(screen.getByRole('row', { name: /Fat 15.0 g 20.0 g/ })).toHaveTextContent('13.3–26.7 g');
   expect(screen.getByText(/50–75 g\/day: Saved population range/)).not.toBeVisible();
   expect(screen.getByText(/Meal planning point:/)).not.toBeVisible();
   expect(screen.getAllByRole('link', { name: 'Saved macro source', hidden: true })).toHaveLength(3);
@@ -75,8 +75,8 @@ it('preserves an approved protein limit alongside the saved reference and never 
   render(<ReviewSwapNutrition before={{ proteinG: 20 }} after={{ proteinG: 25 }} targets={{ daily: null,
     meal: { proteinG: 25, fatG: 22.2 }, rules: [{ nutrient: 'proteinG', value: 48, operator: 'LESS_THAN_OR_EQUAL', unit: 'g/day',
       basis: 'DAY', condition: 'KIDNEY_DISEASE', sourceTitle: 'Saved rule', sourceUrl: 'https://example.test/rule' }] }} />);
-  const protein = screen.getByRole('row', { name: /Protein 20 g 25 g/ });
+  const protein = screen.getByRole('row', { name: /Protein 20.0 g 25.0 g/ });
   expect(protein).toHaveTextContent('Not set');
-  expect(screen.getByRole('list', { name: 'Recorded macro limits' })).toHaveTextContent('Protein ≤ 48 g/day');
+  expect(screen.getByRole('list', { name: 'Recorded macro limits' })).toHaveTextContent('Protein ≤ 48.0 g/day');
   expect(screen.getByRole('row', { name: /Fat Not recorded Not recorded/ })).toHaveTextContent('Not set');
 });

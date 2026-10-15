@@ -59,9 +59,9 @@ describe('swap nutrition and shopping impact', () => {
       />
     );
     const table = screen.getByRole('table');
-    expect(within(table).getAllByText('2000 kcal')).toHaveLength(3);
-    expect(within(table).getByText('105 g')).toBeInTheDocument();
-    expect(within(table).getAllByText('120 g')).toHaveLength(2);
+    expect(within(table).getAllByText('2000.0 kcal')).toHaveLength(3);
+    expect(within(table).getByText('105.0 g')).toBeInTheDocument();
+    expect(within(table).getAllByText('120.0 g')).toHaveLength(2);
     expect(screen.getByText(/Rice, well-milled, boiled: \+75 g/)).toBeInTheDocument();
     expect(screen.getByText(/225 g left to buy/)).toBeInTheDocument();
     expect(screen.getByText('Pork: −100 g')).toBeInTheDocument();

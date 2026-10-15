@@ -12,8 +12,15 @@ it('accepts a number without a unit for exact sodium and explains display precis
   const change = vi.fn();
   render(<ReviewNutrientFilters draft={{ sodiumMg: { mode: 'exact', min: '466.8' } }} onChange={change} busy={false} />);
   expect(screen.getByLabelText('Sodium exact amount (mg)')).toHaveValue(466.8);
-  expect(screen.getByText(/Exactly matches the values shown to one decimal place/)).toBeVisible();
+  expect(screen.getByText(/Nutrition values and search amounts are rounded to one decimal place/)).toBeVisible();
   expect(parseFilterDraft({ sodiumMg: { mode: 'exact', min: '466.8' } })).toEqual({ sodiumMg: { min: 466.8, max: 466.8 } });
+});
+it('rounds extra decimal input on blur and in the submitted bounds', () => {
+  const change = vi.fn();
+  render(<ReviewNutrientFilters draft={{ sodiumMg: { mode: 'exact', min: '466.831' } }} onChange={change} busy={false} />);
+  fireEvent.blur(screen.getByLabelText('Sodium exact amount (mg)'));
+  expect(change).toHaveBeenCalledWith({ sodiumMg: { mode: 'exact', min: '466.8' } });
+  expect(parseFilterDraft({ sodiumMg: { mode: 'exact', min: '466.831' } })).toEqual({ sodiumMg: { min: 466.8, max: 466.8 } });
 });
 it('adds and removes only the requested nutrients with explicit comparisons and units', () => {
   const change = vi.fn();
