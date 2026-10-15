@@ -183,11 +183,13 @@ export default function AssistantConversation({ model, titleId, member, modal = 
       <form onSubmit={event => { event.preventDefault(); if (!sendBlocked) model.send(); }} className="nara-composer flex items-end gap-2 rounded-2xl border border-brand-border bg-brand-bg p-2 focus-within:border-brand-muted">
         <label htmlFor={`${titleId}-input`} className="sr-only">Message the assistant</label>
         <textarea data-nara-composer ref={input} id={`${titleId}-input`} value={model.draft} onChange={event => model.setDraft(event.target.value)} maxLength={1000} rows={2}
+          aria-describedby={`${titleId}-command-help`}
           placeholder="Ask about meals or your guidance…" disabled={disabled}
           onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); if (!sendBlocked) model.send(); } }}
           className="max-h-36 min-h-14 flex-1 resize-none border-0 bg-transparent p-2 text-sm leading-6 text-brand-text outline-none placeholder:text-brand-muted disabled:opacity-50" />
         <Button type="submit" size="sm" disabled={sendBlocked || model.cooldownBlocksDraft || !model.draft.trim()} aria-label="Send message" className="!h-10 !w-10 !min-w-10 !rounded-xl !p-0"><ArrowUp className="h-5 w-5" /></Button>
       </form>
+      <p id={`${titleId}-command-help`} className="mt-2 text-[11px] leading-4 text-brand-muted">Use /ai before your question for an AI reply. I’ll ask before using 1 credit.</p>
       <p className="mt-2 text-[11px] leading-4 text-brand-muted">AI replies depend on shared availability and can misinterpret requests. Your saved guidance and RND decisions still apply.</p>
     </footer>
   </div>;

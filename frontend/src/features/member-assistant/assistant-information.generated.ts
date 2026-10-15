@@ -69,9 +69,19 @@ export function normalizeAssistantQuestion(message: string) {
     .split(/\s+/u).map(word => corrections[word] ?? word).join(' ');
 }
 
+/** Per-message opt-in to AI routing; this is not consent to spend a credit. */
+export function assistantAiQuestion(message: string): string | null {
+  const text = message.trim();
+  return /^\/ai(?:\s|$)/i.test(text) ? text.slice(3).trim() : null;
+}
+
+const librarySuitability = /\b(?:can|may|could) i eat (?:every|any|all|everything)\b.*\blibrary\b|\blibrary\b.*\b(?:all|every|any)\b.*\b(?:safe|approved|eat)\b|\b(?:pwede|puwede)\b.*\b(?:lahat|kahit ano)\b.*\blibrary\b/;
+
 /** Shared by the server fallback and the generated browser guide. */
 export function assistantDirectAction(message: string): 'GREETING' | 'TODAY' | 'GUIDANCE' | 'VIEW_PLAN' | 'CREDITS' | 'CURRENT_MEALS' | 'GROCERIES' | 'PLAN_STATUS' | 'MEAL_STATUS' | null {
+  if (assistantAiQuestion(message) !== null) return null;
   const text = normalizeAssistantQuestion(message);
+  if (librarySuitability.test(text)) return null;
   if (/\b(can|may|could) i eat\b|\bis it safe (?:for me )?to eat\b|\b(is|are) .+ (safe|approved|cleared) for me\b|\b(pwede|puwede) (ba )?(akong |ako )?(kumain|kainin)\b|\b(pwede|puwede) ba (ang|sa akin|sakin)\b/.test(text)
     || /\b(can|may|could) i have\b/.test(text) && !/\b(membership|subscription|lifestyle|health plan|free plan)\b/.test(text)) return 'MEAL_STATUS';
   if (/\b(check|show|explain) my (planning|plan|meal) (status|hold)\b|\bwhy (am i|is my plan|is my meal) (blocked|locked|pending|held)\b|\bwhat is (blocking|holding) my plan\b|\b(ano|bakit).*(status ng plan ko|pending ang meal ko|locked ang plan ko)\b/.test(text)) return 'PLAN_STATUS';
@@ -96,6 +106,10 @@ export function assistantDirectAction(message: string): 'GREETING' | 'TODAY' | '
 
 /** No member facts or balance are inferred here. Dynamic shortcuts return null. */
 export function assistantStaticReply(message: string, action?: string): AssistantInformation | null {
+  const aiQuestion = assistantAiQuestion(message);
+  if (aiQuestion !== null) return aiQuestion ? null : {
+    text: 'Type /ai followed by your question, for example “/ai why do I need a weekly check-in?” This asks for AI instead of a prepared reply. I’ll still ask before using 1 credit. KAINARA, food, nutrition and related health-education limits still apply. The command applies only to that message.', links: [],
+  };
   const direct = action ?? assistantDirectAction(message);
   if (['TODAY', 'GUIDANCE', 'CURRENT_MEALS', 'GROCERIES', 'PLAN_STATUS', 'MEAL_STATUS'].includes(direct ?? '')) return null;
   if (direct === 'CREDITS') return {
@@ -272,6 +286,10 @@ function workflowInformation(text: string): AssistantInformation | null {
   const weekly = /\b(weekly|every week|each week|check in|checkin|linggo|lingguhan)\b/.test(text);
   const why = /\b(why|purpose|reason|bakit|para saan)\b/.test(text);
   const requirement = /\b(must|required|mandatory|have to|need to|nothing changed|no change|unchanged|kailangan|walang nagbago|pareho)\b/.test(text);
+  if (librarySuitability.test(text)) return result(
+    'The Meal library is a recipe catalogue, not blanket permission to eat every recipe. Recipe verification and member-specific meal clearance are different. Check the ingredients, serving and your saved restrictions; use Meal plan for the status of an exact scheduled serving. A recipe being visible does not establish suitability for your condition or allergy. Ask your RND about individual concerns.',
+    'Recipe catalogue ang Meal library, hindi automatic permiso na kainin ang lahat. Magkaiba ang recipe verification at clearance ng meal para sa iyo. Suriin ang sangkap, serving at saved restrictions; tingnan sa Meal plan ang status ng eksaktong scheduled serving. Hindi personal clearance ang pagiging visible ng recipe. Para sa indibidwal na concern, magtanong sa RND.',
+    [...meals, { label: 'Meal library', href: '/meals?tab=library' }, { label: 'Health & goals', href: '/profile/health' }]);
   if ((weight && (weekly || /\b(log|record|update|itala)\b/.test(text)) && (why || requirement))
     || weekly && /\b(check in|checkin)\b/.test(text) && (why || requirement)) return result(
     'Weekly check-ins help confirm whether the information used for planning has changed. Weight is one input to the energy estimate and weight history; it is not a test you must pass or a requirement to lose weight. The check-in has an unchanged-details option, so you do not have to invent a new measurement every week. If details changed, enter accurate updates and review any new Nutrition guidance before applying it to planning. Use the Dashboard check-in notice; ordinary weight entries are in Progress. A missed check-in is not automatically proof that all existing meals are blocked.',

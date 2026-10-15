@@ -14,7 +14,8 @@ import { resolvePlanningProfile } from '@/domain/planning-report.policy';
 import { NutritionReportService } from './nutrition-report.service';
 import { MemberAssistantUsageService as Usage } from './member-assistant-usage.service';
 import { queryEligibleLibraryPage, type EligibleLibraryMeal } from './meal-library-candidate-query.service';
-import { assistantStaticReply } from '@/domain/member-assistant-information';
+import { assistantAiQuestion, assistantStaticReply } from '@/domain/member-assistant-information';
+import { MemberAssistantSystemService } from './member-assistant-system.service';
 import { MemberAssistantNutritionService } from './member-assistant-nutrition.service';
 import { MemberAssistantPlanService } from './member-assistant-plan.service';
 
@@ -60,7 +61,8 @@ export class MemberAssistantService {
 
   static async message(userId: string, input: AssistantInput) {
     if (!assistantEnabled()) throw new AppError('The assistant is not enabled.', 404, 'ASSISTANT_DISABLED');
-    const direct = input.action ?? assistantDirectAction(input.message);
+    const aiQuestion = assistantAiQuestion(input.message);
+    const direct = aiQuestion !== null ? null : input.action ?? assistantDirectAction(input.message);
     if (direct === 'TODAY' || direct === 'GUIDANCE' || direct === 'CURRENT_MEALS' || direct === 'GROCERIES' || direct === 'PLAN_STATUS' || direct === 'MEAL_STATUS') {
       const reply = await this.direct(userId, direct, input.message);
       return { confirmationRequired: false as const, reply, allowance: await Usage.allowance(userId) };
@@ -84,8 +86,10 @@ export class MemberAssistantService {
       allowance: await Usage.allowance(userId), replayed: true,
     };
     try {
+      // Keep the original command in receipt identity; strip it only from provider data.
+      const question = aiQuestion !== null ? { ...input, message: aiQuestion } : input;
       const criteria = await generateGenerativeJSON(
-        JSON.stringify({ message: input.message, recentConversation: input.context }),
+        JSON.stringify({ message: question.message, recentConversation: question.context }),
         assistantParserInstruction, assistantInterpretationSchema,
         { operation: 'MEMBER_ASSISTANT', purpose: 'MEMBER_ASSISTANT_INTERPRET', maxOutputTokens: 700, maxAttempts: 1 },
       );
@@ -95,9 +99,10 @@ export class MemberAssistantService {
         const fnri = /\bFNRI\b/i.test(input.message), usda = /\bUSDA\b/i.test(input.message);
         reply = await MemberAssistantNutritionService.facts(criteria.search, fnri !== usda ? fnri ? 'FNRI' : 'USDA_FDC' : undefined, userId);
       }
-      else if (criteria.intent === 'NUTRITION_QUESTION') reply = await MemberAssistantNutritionService.explain(input);
+      else if (criteria.intent === 'NUTRITION_QUESTION') reply = await MemberAssistantNutritionService.explain(question);
+      else if (criteria.intent === 'SYSTEM_QUESTION') reply = await MemberAssistantSystemService.explain(question);
       else if (criteria.intent === 'TODAY') reply = await this.today(userId);
-      else if (criteria.intent === 'GUIDANCE') reply = await this.guidance(userId, input);
+      else if (criteria.intent === 'GUIDANCE') reply = await this.guidance(userId, question);
       else if (criteria.intent === 'CLARIFY') reply = {
         text: criteria.clarification || 'Which meal or numeric nutrition limit would you like me to search for?', source: 'AI', creditsUsed: 1,
       };

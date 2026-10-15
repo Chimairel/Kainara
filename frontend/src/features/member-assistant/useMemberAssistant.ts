@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import api, { type ApiRequestConfig } from '@/lib/axios';
 import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error';
 import type { AssistantAction, AssistantAllowance, AssistantInput, AssistantResult, AssistantReply, ChatEntry } from './types';
-import { assistantDirectAction, assistantStaticReply } from './assistant-information.generated';
+import { assistantAiQuestion, assistantDirectAction, assistantStaticReply } from './assistant-information.generated';
 import { readAssistantSession, saveAssistantSession, type AssistantSession } from '@/lib/assistant-session';
 import { useAssistantTyping } from './useAssistantTyping';
 
@@ -56,6 +56,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     return () => window.clearInterval(timer);
   }, [open, cooldownUntil]);
   const freeRequest = (text: string, action?: AssistantAction) => {
+    if (assistantAiQuestion(text)) return false;
     const direct = action ?? assistantDirectAction(text);
     return Boolean(assistantStaticReply(text, action)) || ['TODAY', 'GUIDANCE', 'CURRENT_MEALS', 'GROCERIES', 'PLAN_STATUS', 'MEAL_STATUS'].includes(direct ?? '');
   };

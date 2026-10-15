@@ -15,6 +15,14 @@ beforeEach(() => {
 });
 afterEach(() => { vi.restoreAllMocks(); });
 
+it('restores /ai confirmation with its original command and never auto-confirms after refresh', async () => {
+  saveAssistantSession(session({ open: false, messages: [], pending: { requestKey, allowAi: false,
+    message: '/ai why weekly weight?', context: [] } }));
+  const { result } = renderHook(() => useMemberAssistant(true, 'owner'));
+  await waitFor(() => expect(result.current.pending?.message).toBe('/ai why weekly weight?'));
+  expect(api.post).not.toHaveBeenCalled(); expect(result.current.pending?.allowAi).toBe(false);
+});
+
 it('restores conversation, draft and open state after remount without posting or reusing a balance', async () => {
   const first = renderHook(() => useMemberAssistant(true, 'owner'));
   await waitFor(() => expect(first.result.current.enabled).toBe(true));

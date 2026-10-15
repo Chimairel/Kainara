@@ -14,6 +14,19 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
+it('/ai cannot reuse a free-help phrase to bypass the AI cooldown', async () => {
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await act(async () => {});
+  act(() => result.current.setDraft('/ai how do I log weight?'));
+  expect(result.current.cooldownBlocksDraft).toBe(true);
+  await act(async () => result.current.send());
+  expect(api.post).not.toHaveBeenCalled(); expect(result.current.messages).toHaveLength(0);
+  act(() => result.current.setDraft('how do I log weight?'));
+  expect(result.current.cooldownBlocksDraft).toBe(false);
+  await act(async () => result.current.send());
+  expect(result.current.messages.at(-1)?.text).toContain('Log today’s weight');
+});
+
 it('free current meal and day ingredients remain sendable at zero credits during cooldown', async () => {
   const exhausted = { ...allowance, remaining: 0, used: 5, nextAiRequestAt: '2026-10-15T14:01:00Z' };
   vi.mocked(api.get).mockResolvedValue({ data: { data: { enabled: true, allowance: exhausted } } });

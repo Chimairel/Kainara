@@ -16,6 +16,40 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
+it('/ai bypasses prepared replies, asks for consent, and applies to one message only', async () => {
+  vi.mocked(api.post).mockImplementation(async (_url, body) => {
+    const input = body as { requestKey: string; message: string; allowAi: boolean };
+    return { data: { data: input.allowAi
+      ? { confirmationRequired: false, reply: { text: 'AI explanation', source: 'AI', creditsUsed: 1 }, allowance: { ...allowance, remaining: 4 } }
+      : { confirmationRequired: true, cost: 1, requestKey: input.requestKey, allowance } } };
+  });
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await waitFor(() => expect(result.current.enabled).toBe(true));
+  await act(async () => result.current.send(undefined, '/ai why do I need to log my weight every week?'));
+  expect(result.current.pending?.message).toMatch(/^\/ai /);
+  expect(result.current.messages).toHaveLength(1);
+  expect(vi.mocked(api.post).mock.calls[0][1]).toMatchObject({ allowAi: false });
+  await act(async () => result.current.confirm());
+  expect(result.current.messages.at(-1)?.text).toBe('AI explanation');
+  expect(vi.mocked(api.post).mock.calls[1][1]).toMatchObject({ allowAi: true, message: '/ai why do I need to log my weight every week?' });
+  act(() => result.current.send(undefined, 'why do I need to log my weight every week?'));
+  expect(result.current.messages.at(-1)?.text).toContain('unchanged-details option');
+  expect(api.post).toHaveBeenCalledTimes(2);
+});
+
+it('bare /ai explains the command and broad Library questions answer locally without a scheduled-meal lookup', async () => {
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await waitFor(() => expect(result.current.enabled).toBe(true));
+  act(() => result.current.send(undefined, '/ai'));
+  expect(result.current.messages.at(-1)?.text).toContain('only to that message');
+  act(() => result.current.send(undefined, 'can I eat every meal in the library?'));
+  expect(result.current.messages.at(-1)?.text).toContain('not blanket permission');
+  expect(api.post).not.toHaveBeenCalled();
+  render(<AssistantConversation model={result.current} titleId="command-test" />);
+  expect(screen.getByLabelText('Message the assistant')).toHaveAttribute('aria-describedby', 'command-test-command-help');
+  expect(screen.getByText(/Use \/ai before your question/)).toBeInTheDocument();
+});
+
 it('answers blocking and starter help locally and distinguishes why from how without message API calls', async () => {
   const { result } = renderHook(() => useMemberAssistant(true));
   await waitFor(() => expect(result.current.enabled).toBe(true));
