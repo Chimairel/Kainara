@@ -37,6 +37,10 @@ export function mealReviewRouter(role: 'admin' | 'rnd') {
     respond((req) => MealReviewService.detail(req.params.id, role === 'rnd' ? req.nutritionistProfileId : undefined))
   );
   if (role === 'rnd') {
+    router.post('/:id/reject', validateZodBody(mealReviewActionSchema),
+      respond(req => MealReviewService.reject(req.nutritionistProfileId!, req.params.id, req.body.expectedVersion, req.body.rationale)));
+    router.post('/:id/release', validateZodBody(z.object({ expectedVersion: z.string().regex(/^[a-f0-9]{64}$/) }).strict()),
+      respond(req => MealReviewService.release(req.nutritionistProfileId!, req.params.id, req.body.expectedVersion)));
     router.post(
       '/:id/claim',
       validateZodBody(z.object({ expectedVersion: z.string().regex(/^[a-f0-9]{64}$/) }).strict()),

@@ -10,7 +10,6 @@ import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutri
 import { useReviewWorkCounts } from '@/features/nutritionist-reviews/useReviewWorkCounts';
 import OutsideMealReviewsPanel from '../outside-meals/OutsideMealReviewsPanel';
 import MealVerificationPanel from './MealVerificationPanel';
-import PendingMealRereviews from '@/features/nutritionist-reviews/PendingMealRereviews';
 import ProfileWorkPanel from './ProfileWorkPanel';
 import WorkspaceTabs, { type ReviewWorkspace } from './WorkspaceTabs';
 import CaseReviewFilters from '@/features/nutritionist-reviews/CaseReviewFilters';
@@ -31,7 +30,9 @@ function ReviewsWorkspace() {
   const [expanded, setExpanded] = useState(false);
   const review = useNutritionistReviews(workspace === 'case' && caseFilter === 'pending');
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get('caseId');
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('workspace') === 'meal') setWorkspace('meal');
+    const id = params.get('caseId');
     if (id && id.length <= 191) void review.handleSelectMeal(id);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -69,7 +70,6 @@ function ReviewsWorkspace() {
             description="Audit AI-generated meal plans, approve health profiles, and verify base recipes."
           />
           {navigation}
-          <PendingMealRereviews />
           <MealVerificationPanel />
         </div>
       </div>

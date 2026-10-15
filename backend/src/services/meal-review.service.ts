@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
+import { assertRecipeClaimCapacity } from './recipe-claim-capacity.service';
 import {
   canAcquireReviewClaim,
   isReviewClaimActive,
@@ -206,6 +207,7 @@ export class MealReviewService {
     const userId = await rndUserId(profileId);
     return prisma.$transaction(async (tx) => {
       const actor = await reviewActor(tx, userId, profileId);
+      await assertRecipeClaimCapacity(tx, profileId, { kind: 'FLAGGED_RECIPE', id: mealId });
       const context = await reviewContext(tx, mealId, true);
       const incident = active(context);
       if (incident.state === 'QUARANTINED')
@@ -268,6 +270,38 @@ export class MealReviewService {
       },
       { maxWait: 10_000, timeout: 30_000 }
     );
+  }
+
+  /** Rejecting a challenged recipe records findings and keeps the original hold in place. */
+  static async reject(profileId: string, mealId: string, version: string, rationale: string) {
+    const userId = await rndUserId(profileId);
+    return prisma.$transaction(async tx => {
+      const actor = await reviewActor(tx, userId, profileId);
+      const context = await reviewContext(tx, mealId, true), incident = active(context);
+      if (incident.state !== 'PENDING_REREVIEW') throw new AppError('Quarantine requires an administrative decision.', 409, 'QUARANTINE_ADMIN_REQUIRED');
+      assertVersion(context.reviewVersion, version); assertIndependent(context, profileId, userId);
+      if (incident.claimedByNutritionistId !== profileId || !isReviewClaimActive(incident))
+        throw new AppError('Claim this recipe before recording a decision.', 409, 'REVIEW_CLAIM_REQUIRED');
+      if (rationale.trim().length < 20 || rationale.length > 3000)
+        throw new AppError('Explain the decision in 20 to 3000 characters.', 400, 'VALIDATION_ERROR');
+      await recordReviewDecision(tx, context, actor, 'REJECTED', rationale.trim());
+      await tx.mealReviewIncident.update({ where: { id: incident.id }, data: { claimedByNutritionistId: null, claimedAt: null } });
+      return { state: 'PENDING_REREVIEW', withheld: true };
+    });
+  }
+
+  static async release(profileId: string, mealId: string, version: string) {
+    const userId = await rndUserId(profileId);
+    return prisma.$transaction(async tx => {
+      const actor = await reviewActor(tx, userId, profileId);
+      const context = await reviewContext(tx, mealId, true), incident = active(context);
+      assertVersion(context.reviewVersion, version);
+      if (incident.claimedByNutritionistId !== profileId)
+        throw new AppError('This recipe is not claimed by you.', 409, 'REVIEW_CLAIM_REQUIRED');
+      await tx.mealReviewIncident.update({ where: { id: incident.id }, data: { claimedByNutritionistId: null, claimedAt: null } });
+      await recordReviewDecision(tx, context, actor, 'CLAIM_RELEASED', 'Released recipe review claim.');
+      return { released: true };
+    });
   }
 
   static async adminAction(

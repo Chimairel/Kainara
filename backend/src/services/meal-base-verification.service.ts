@@ -5,6 +5,7 @@ import { MealVerificationStatus, MealVerificationTargetKind, Prisma } from '@pri
 import { buildMealLibraryRecipeSignature } from '@/domain/meal-library-signature.policy';
 import { persistDeterministicLibraryClassification } from './meal-library-publication.service';
 import { admittedLibraryBaseIds, libraryBaseRevisionKey } from './meal-base-admission.service';
+import { assertRecipeClaimCapacity } from './recipe-claim-capacity.service';
 
 const CLAIM_MS = 30 * 60 * 1000;
 
@@ -55,7 +56,8 @@ async function requireReviewer(profileId: string) {
 
 async function target(kind: MealVerificationTargetKind, id: string) {
   if (kind === 'LIBRARY_MEAL') {
-    const meal = await prisma.mealLibrary.findUnique({
+    // Prisma 5 can panic when parallel findUnique batches mix nested relation shapes.
+    const meal = await prisma.mealLibrary.findFirst({
       where: { id },
       include: {
         sourceRawRecipeCandidate: { select: { sourceName: true, status: true, contentSignature: true } },
@@ -132,7 +134,7 @@ async function target(kind: MealVerificationTargetKind, id: string) {
       source: 'GEMINI_GENERATED',
     };
   }
-  const recipe = await prisma.rawRecipeCandidate.findUnique({
+  const recipe = await prisma.rawRecipeCandidate.findFirst({
     where: { id },
     include: { observedSubmissions: { where: { status: 'ADMITTED_RECIPE' }, select: { id: true }, take: 1 } },
   });
@@ -324,31 +326,34 @@ export class MealBaseVerificationService {
     const row = await target(kind, id);
     if ('authorId' in row) assertIndependentRecipeReviewer(row.authorId, profileId);
     const key = { targetKind_targetId_revisionKey: { targetKind: kind, targetId: id, revisionKey: row.revisionKey } };
-    await prisma.mealBaseVerification.upsert({
-      where: key,
-      create: {
-        targetKind: kind,
-        targetId: id,
-        revisionKey: row.revisionKey,
-      },
-      update: {},
+    return prisma.$transaction(async tx => {
+      await assertRecipeClaimCapacity(tx, profileId, { kind, id });
+      await tx.mealBaseVerification.upsert({
+        where: key,
+        create: {
+          targetKind: kind,
+          targetId: id,
+          revisionKey: row.revisionKey,
+        },
+        update: {},
+      });
+      const updated = await tx.mealBaseVerification.updateMany({
+        where: {
+          targetKind: kind,
+          targetId: id,
+          revisionKey: row.revisionKey,
+          status: { in: [MealVerificationStatus.PENDING, MealVerificationStatus.REJECTED] },
+          OR: [
+            { claimedByNutritionistId: null },
+            { claimedAt: { lt: new Date(Date.now() - CLAIM_MS) } },
+            { claimedByNutritionistId: profileId },
+          ],
+        },
+        data: { claimedByNutritionistId: profileId, claimedAt: new Date() },
+      });
+      if (updated.count !== 1) throw new Error('This recipe is already claimed or verified.');
+      return row;
     });
-    const updated = await prisma.mealBaseVerification.updateMany({
-      where: {
-        targetKind: kind,
-        targetId: id,
-        revisionKey: row.revisionKey,
-        status: { in: [MealVerificationStatus.PENDING, MealVerificationStatus.REJECTED] },
-        OR: [
-          { claimedByNutritionistId: null },
-          { claimedAt: { lt: new Date(Date.now() - CLAIM_MS) } },
-          { claimedByNutritionistId: profileId },
-        ],
-      },
-      data: { claimedByNutritionistId: profileId, claimedAt: new Date() },
-    });
-    if (updated.count !== 1) throw new Error('This recipe is already claimed or verified.');
-    return row;
   }
 
   static async release(profileId: string, kind: MealVerificationTargetKind, id: string) {

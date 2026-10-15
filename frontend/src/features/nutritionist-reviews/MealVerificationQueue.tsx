@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { QueueHeader, QueueList, QueueRow, QueueSkeleton, queueLabel } from '@/components/shared/WorkspaceQueue';
 
 export type MealCandidate = {
-  kind: 'LIBRARY_MEAL' | 'RAW_RECIPE' | 'GENERATED_RECIPE';
+  kind: 'LIBRARY_MEAL' | 'RAW_RECIPE' | 'GENERATED_RECIPE' | 'FLAGGED_RECIPE';
   id: string;
   revisionKey: string;
   name: string;
@@ -17,7 +17,9 @@ export type MealCandidate = {
   carbsG: number | null;
   fatG: number | null;
   ingredients: unknown;
-  status: 'PENDING' | 'REJECTED';
+  status: 'PENDING' | 'REJECTED' | 'FLAGGED';
+  reviewerInvolved?: boolean;
+  incidentNumber?: number;
   authoredByMe?: boolean;
   imageUrl?: string | null;
   riceRole?: string | null;
@@ -48,9 +50,9 @@ export default function MealVerificationQueue({
 }) {
   const [search, setSearch] = useState('');
   const query = search.trim().toLowerCase();
-  const visible = queue.filter((item) =>
+  const visible = queue.filter((item) => item.claimedByMe ||
     [item.name, item.mealType, item.source, item.status].some((value) => queueLabel(value).includes(query))
-  );
+  ).sort((a,b) => Number(b.claimedByMe) - Number(a.claimedByMe));
 
   return (
     <aside
@@ -63,7 +65,7 @@ export default function MealVerificationQueue({
         search={search}
         onSearch={setSearch}
         searchLabel="Search recipes"
-        description="Verify base recipes. Member health approvals are reviewed separately."
+        description="Inspect new recipes and resolve flagged recipes in one queue."
       />
       {error && (
         <FeedbackNotice className="my-3">
@@ -96,11 +98,11 @@ export default function MealVerificationQueue({
                 <span
                   className={`block font-semibold ${item.status === 'REJECTED' ? 'text-red-700 dark:text-red-400' : 'text-[#8c3b00] dark:text-[#ff8a3d]'}`}
                 >
-                  {queueLabel(item.status)}
+                  {item.kind === 'FLAGGED_RECIPE' ? 'Flagged' : item.status === 'PENDING' ? 'New' : 'Rejected'}
                 </span>
                 {item.claimedByOther && <span className="block text-brand-muted">Being reviewed by another RND</span>}
                 {item.claimedByMe && <span className="block text-brand-green">Claimed by you</span>}
-                {item.authoredByMe && <span className="block text-brand-muted">Independent reviewer required</span>}
+                {(item.authoredByMe || item.reviewerInvolved) && <span className="block text-brand-muted">Independent RND needed</span>}
               </QueueRow>
             );
           })}

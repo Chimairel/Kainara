@@ -5,6 +5,7 @@ import { mealReviewRouter } from './meal-review.routes';
 import { Router, Response } from 'express';
 import { flagDraftRouter } from './flag-draft.routes';
 import { leasedMealFlagSubmissionSchema } from '@/validation/meal-review.schemas';
+import { MealVerificationWorkspaceService } from '@/services/meal-verification-workspace.service';
 import { AppError } from '@/errors/AppError';
 import { z } from 'zod';
 import authenticate from '@/middleware/auth';
@@ -317,7 +318,7 @@ router.post(
 router.get(
   '/meal-verification',
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const data = await MealBaseVerificationService.list(req.nutritionistProfileId!);
+    const data = await MealVerificationWorkspaceService.list(req.nutritionistProfileId!);
     res.json({ success: true, data });
   })
 );

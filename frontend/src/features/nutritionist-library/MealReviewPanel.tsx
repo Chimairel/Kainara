@@ -3,6 +3,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
@@ -61,79 +62,29 @@ export default function MealReviewPanel({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [rationale, setRationale] = useState('');
-  const [evidenceReviewed, setEvidenceReviewed] = useState(false);
-  const [resolutions, setResolutions] = useState<Record<string, string>>({});
-  const [resolved, setResolved] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState(false);
   const [resolutionOpen, setResolutionOpen] = useState(false);
-  const [savedVersion, setSavedVersion] = useState<string | null>(null);
   const data = query.data;
   const flagDraft = useFlagDraft(isCanvasOpen ? { kind: 'MEAL', targetId: meal.id } : null, data?.recipeVersion, isAdmin);
   const { category, affectedFields: affected, explanation, reference, proposedCorrection: correction } = flagDraft.notes;
   useEffect(() => {
     setResolutionOpen(false);
-    setEvidenceReviewed(false);
-    setResolutions({});
-    setResolved({});
     setRationale('');
   }, [data?.reviewVersion, data?.claimStatus?.claimedByMe]);
   const held = data?.state === 'PENDING_REREVIEW' || data?.state === 'QUARANTINED';
-  const decisionControls =
-    data && held && (isAdmin || data.state !== 'QUARANTINED') ? (
-      <div className="flex flex-wrap gap-3">
-        {isAdmin ? (
-          <>
-            <Button
-              disabled={busy || !data.canAdminRelease || rationale.trim().length < 20}
-              onClick={() => void mutate('release')}
-            >
-              Release quarantine
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={busy || rationale.trim().length < 20}
-              onClick={() => void mutate('archive')}
-            >
-              Archive unresolved recipe
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button
-              variant="secondary"
-              disabled={busy || data.claimStatus?.reviewerInvolved || data.claimStatus?.claimedByMe || data.claimStatus?.claimedByOther}
-              onClick={() => void mutate('claim')}
-            >
-              Claim re-review
-            </Button>
-            <Button
-              disabled={
-                busy ||
-                savedVersion === data.reviewVersion ||
-                !data.claimStatus?.claimedByMe ||
-                !evidenceReviewed ||
-                rationale.trim().length < 20 ||
-                data.incident?.reports.some(
-                  (report) => !resolved[report.id] || (resolutions[report.id]?.trim().length ?? 0) < 20
-                )
-              }
-              onClick={() => void mutate('confirm')}
-            >
-              Re-verify recipe
-            </Button>
-            {data.claimStatus?.reviewerInvolved && <p className="w-full text-sm text-brand-muted">An independent RND must review this meal. Its previous verifier, author and flagger cannot claim it.</p>}
-          </>
-        )}
-      </div>
-    ) : undefined;
-  async function mutate(action: 'flag' | 'claim' | 'confirm' | 'release' | 'archive') {
-    if (!data || submitting.current || busy || (action === 'confirm' && savedVersion === data.reviewVersion)) return;
+  const decisionControls = data && held && isAdmin ? (
+    <div className="flex flex-wrap gap-3">
+      <Button disabled={busy || !data.canAdminRelease || rationale.trim().length < 20} onClick={() => void mutate('release')}>
+        Release quarantine
+      </Button>
+      <Button variant="secondary" disabled={busy || rationale.trim().length < 20} onClick={() => void mutate('archive')}>
+        Archive unresolved recipe
+      </Button>
+    </div>
+  ) : undefined;
+  async function mutate(action: 'flag' | 'release' | 'archive') {
+    if (!data || submitting.current || busy) return;
     if (action === 'flag' && (!flagDraft.draftId || !affected.trim() || explanation.trim().length < 20 || reference.trim().length < 10 || correction.trim().length < 10 || data.state === 'ARCHIVED')) return;
-    if (
-      action === 'confirm' &&
-      (!data.claimStatus?.claimedByMe || data.incident?.reports.some((report) => !resolved[report.id]))
-    )
-      return;
     submitting.current = true;
     setBusy(true);
     setError(null);
@@ -158,20 +109,7 @@ export default function MealReviewPanel({
                 proposedCorrection: correction,
               },
             }
-          : {
-              expectedVersion: data.reviewVersion,
-              ...(action !== 'claim' ? { rationale } : {}),
-              ...(action === 'confirm'
-                ? {
-                    evidenceReviewed,
-                    riceRoleReviewed: evidenceReviewed,
-                    resolutions: (data.incident?.reports ?? []).map((report) => ({
-                      reportId: report.id,
-                      rationale: resolutions[report.id] ?? '',
-                    })),
-                  }
-                : {}),
-            };
+          : { expectedVersion: data.reviewVersion, rationale };
       const response = await api.post(url, payload);
       if (response.data?.success !== true) throw new Error('Unconfirmed review action');
       if (action === 'flag') {
@@ -179,9 +117,8 @@ export default function MealReviewPanel({
         flagDraft.completed();
         toast.success(held ? 'Additional evidence recorded.' : 'Meal flagged for review.');
       }
-      if (action === 'confirm') setSavedVersion(data.reviewVersion);
       setMessage(
-        action === 'flag' ? '' : action === 'claim' ? 'Claimed for 30 minutes. Review every concern before confirming.' : 'Decision recorded.'
+        action === 'flag' ? '' : 'Decision recorded.'
       );
       const showRefreshWarning = () => {
         const warning = 'Decision recorded. Reload the history to see the current review state.';
@@ -237,7 +174,17 @@ export default function MealReviewPanel({
               : 'A flag immediately withholds this recipe and its serving variants from member use.'}{' '}
             Profile and condition approval concerns are handled separately.
           </p>
-          {held && data.incident && (
+          {held && !isAdmin && data.incident && <div className="space-y-6">
+            {data.state === 'QUARANTINED' && <p className="text-sm">Only an admin can release or archive this quarantined recipe.</p>}
+            {data.incident.reports.map(report => <ConcernResolution key={report.id} concern={report}
+              note="" resolved={false} canWrite={false} onNote={() => {}} onResolve={() => {}} />)}
+          </div>}
+          {held && !isAdmin && data.state === 'PENDING_REREVIEW' && <Link
+            className="inline-flex min-h-11 items-center rounded-full bg-brand-green px-5 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-green"
+            href={`/nutritionist/reviews?workspace=meal&recipeId=${encodeURIComponent(meal.id)}`}>
+            Open meal verification
+          </Link>}
+          {held && isAdmin && data.incident && (
             <>
             <RndQueueDocument
               title={`Recipe re-review · ${formatMealTitle(meal.mealName)}`}
@@ -246,7 +193,7 @@ export default function MealReviewPanel({
               onExpandedChange={setExpanded}
               onBack={() => setExpanded(false)}
               actions={null}
-              tools={<CanvasToolButton disabled={busy || (!isAdmin && (data.state === 'QUARANTINED' || !data.claimStatus?.claimedByMe))} onClick={() => setResolutionOpen(true)}>Resolve concerns</CanvasToolButton>}
+              tools={<CanvasToolButton disabled={busy} onClick={() => setResolutionOpen(true)}>Resolve concerns</CanvasToolButton>}
               decision={decisionControls}
             >
               <ReviewDocumentPage page={1} title="Recipe evidence" subtitle={formatMealTitle(meal.mealName)}>
@@ -298,14 +245,11 @@ export default function MealReviewPanel({
                     <ConcernResolution
                       key={report.id}
                       concern={report}
-                      note={resolutions[report.id] ?? ''}
-                      resolved={Boolean(resolved[report.id])}
+                      note=""
+                      resolved={false}
                       canWrite={false}
-                      onNote={(value) => {
-                        setResolutions({ ...resolutions, [report.id]: value });
-                        setResolved({ ...resolved, [report.id]: false });
-                      }}
-                      onResolve={() => setResolved({ ...resolved, [report.id]: true })}
+                      onNote={() => {}}
+                      onResolve={() => {}}
                     />
                   ))}
                   <p className="text-xs text-brand-muted">
@@ -317,28 +261,23 @@ export default function MealReviewPanel({
               </ReviewDocumentPage>
             </RndQueueDocument>
             <Modal isOpen={resolutionOpen} onClose={() => { if (!busy) setResolutionOpen(false); }} layer="canvas" size="xl"
-              title={isAdmin ? 'Administrative resolution' : 'Resolve recipe concerns'} footer={decisionControls}>
+              title="Administrative resolution" footer={decisionControls}>
               <div className="space-y-6">
                   {data.incident.reports.map((report) => (
                     <ConcernResolution
                       key={report.id}
                       concern={report}
-                      note={resolutions[report.id] ?? ''}
-                      resolved={Boolean(resolved[report.id])}
-                      canWrite={
-                        !isAdmin && data.state !== 'QUARANTINED' && Boolean(data.claimStatus?.claimedByMe) && !busy
-                      }
-                      onNote={(value) => {
-                        setResolutions({ ...resolutions, [report.id]: value });
-                        setResolved({ ...resolved, [report.id]: false });
-                      }}
-                      onResolve={() => setResolved({ ...resolved, [report.id]: true })}
+                      note=""
+                      resolved={false}
+                      canWrite={false}
+                      onNote={() => {}}
+                      onResolve={() => {}}
                     />
                   ))}
                   {(isAdmin || data.state !== 'QUARANTINED') && (
                     <>
                       <label className="block text-sm font-semibold">
-                        {isAdmin ? 'Administrative rationale' : 'Independent review findings'}
+                        Administrative rationale
                         <textarea
                           className={`${field} mt-2`}
                           minLength={20}
@@ -348,17 +287,6 @@ export default function MealReviewPanel({
                           onChange={(event) => setRationale(event.target.value)}
                         />
                       </label>
-                      {!isAdmin && (
-                        <label className="flex min-h-11 items-center gap-3 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={evidenceReviewed}
-                            onChange={(event) => setEvidenceReviewed(event.target.checked)}
-                          />
-                          I reviewed the nutrition evidence, measured ingredients, preparation and rice role for every
-                          serving variant.
-                        </label>
-                      )}
                     </>
                   )}
               </div>

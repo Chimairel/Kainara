@@ -75,7 +75,7 @@ export default function ConcernResolution({
             />
           </label>
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="secondary" size="sm" disabled={resolved || note.trim().length < 20} onClick={onResolve}>
+            <Button type="button" variant="secondary" size="sm" disabled={resolved || note.trim().length < 20} onClick={onResolve}>
               {resolved ? 'Resolved for this review' : 'Mark resolved'}
             </Button>
             <p className="text-xs text-brand-muted">

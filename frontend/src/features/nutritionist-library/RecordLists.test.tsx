@@ -1,6 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
-import PendingMealRereviews from '../nutritionist-reviews/PendingMealRereviews';
 import QuarantinedMeals from './QuarantinedMeals';
 import ObservedMealCorpusSection from '../nutritionist-outside-meals/ObservedMealCorpusSection';
 import { clearSessionResourceCache } from '@/lib/session-resource-cache';
@@ -68,16 +67,4 @@ it('keeps observation selection separate from admitting a reference and labels u
   fireEvent.click(within(table).getByRole('button', { name: 'Classify' }));
   expect(selectObserved).toHaveBeenCalledWith(observation);
   expect(admitObserved).not.toHaveBeenCalled();
-});
-
-it('routes first-incident re-review to Reviews and excludes quarantined records there', async () => {
-  mocks.get.mockResolvedValue({ data: { success: true, data: [
-    { id: 'pending/meal', mealName: 'First incident meal', state: 'PENDING_REREVIEW', incidentCount: 1 },
-    { id: 'quarantine', mealName: 'Quarantined meal', state: 'QUARANTINED', incidentCount: 2 },
-  ] } });
-  render(<PendingMealRereviews />);
-  await screen.findByText('First incident meal');
-  expect(screen.queryByText('Quarantined meal')).not.toBeInTheDocument();
-  expect(mocks.get).toHaveBeenCalledWith('/nutritionist/meal-review-cases', { params: { state: 'PENDING_REREVIEW' } });
-  expect(screen.getByRole('link', { name: 'Review meal' })).toHaveAttribute('href', '/nutritionist/library?mealId=pending%2Fmeal');
 });

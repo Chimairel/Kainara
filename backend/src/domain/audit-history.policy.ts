@@ -10,6 +10,7 @@ export const mealApprovalAuditActions = [
 ] as const;
 
 export const nutritionistAuditActions = [
+  'MEAL_REVIEW_REJECTED', 'MEAL_REVIEW_CLAIM_RELEASED',
   'FLAG_DRAFT_STARTED', 'FLAG_DRAFT_CANCELLED', 'FLAG_DRAFT_EXPIRED', 'FLAG_DRAFT_SUBMITTED',
   'MEAL_PLAN_SLOT_REPLACED_PENDING_REVIEW',
   'CLINICAL_PROFILE_CLAIMED',
@@ -54,6 +55,8 @@ export const nutritionistAuditActions = [
 
 export function auditActionLabel(action: string) {
   const labels: Record<string, string> = {
+    MEAL_REVIEW_REJECTED: 'Kept a flagged recipe withheld',
+    MEAL_REVIEW_CLAIM_RELEASED: 'Released a recipe review claim',
     FLAG_DRAFT_STARTED: 'Started a flag draft',
     FLAG_DRAFT_CANCELLED: 'Cancelled a flag draft',
     FLAG_DRAFT_EXPIRED: 'Flag draft lock expired',

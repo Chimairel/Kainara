@@ -15,6 +15,7 @@ import MealVerificationQueue, { type MealCandidate } from '@/features/nutritioni
 import { ChefHat, ShieldCheck, Check, X, LogOut } from '@/components/ui/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import FlaggedRecipeCanvas from '@/features/nutritionist-reviews/FlaggedRecipeCanvas';
 
 export default function MealVerificationPanel() {
   const ownerId = useAuth().user?.userId;
@@ -28,13 +29,18 @@ export default function MealVerificationPanel() {
   const [decisionAction, setDecisionAction] = useState<'approve' | 'reject' | null>(null);
   useEffect(() => setDecisionAction(null), [selectedId]);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('recipeId');
+    if (id && id.length <= 191) setSelectedId(`FLAGGED_RECIPE:${id}`);
+  }, []);
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
       try {
         const response = await api.get('/nutritionist/meal-verification', signal ? { signal } : undefined);
         if (signal?.aborted) return;
-        const next = response.data.data ?? [];
+        const next = response.data.data;
+        if (!Array.isArray(next)) throw new Error('The recipe queue returned an invalid response. Please retry.');
         setQueue(next);
         writeSessionResource(ownerId, 'nutritionist-meal-verification-queue', next);
         setError(null);
@@ -58,6 +64,7 @@ export default function MealVerificationPanel() {
   }, [load]);
 
   const selected = queue.find((item) => `${item.kind}:${item.id}` === selectedId);
+  const hasOtherClaim = queue.some(item => item.claimedByMe && `${item.kind}:${item.id}` !== selectedId);
 
   const act = async (action: 'claim' | 'release' | 'decision', decision?: 'VERIFIED' | 'REJECTED') => {
     if (!selected) return;
@@ -100,11 +107,11 @@ export default function MealVerificationPanel() {
     ) : (
       <Button size="sm" aria-label={selected.authoredByMe ? 'Independent reviewer required' : 'Claim verification'}
         title={selected.authoredByMe ? 'Independent reviewer required' : 'Claim verification'}
-        disabled={busy || selected.claimedByOther || selected.authoredByMe}
+        disabled={busy || selected.claimedByOther || selected.authoredByMe || hasOtherClaim}
         onClick={() => void act('claim')}
       >
         <ChefHat aria-hidden="true" className="mr-2 h-4 w-4" />
-        {selected.authoredByMe ? 'Independent reviewer required' : 'Claim verification'}
+        {selected.authoredByMe ? 'Independent reviewer required' : hasOtherClaim ? 'Finish current review first' : 'Claim verification'}
       </Button>
     )
   ) : null;
@@ -192,6 +199,10 @@ export default function MealVerificationPanel() {
               </div>
             </div>
           </ExpandableCasePanel>
+        ) : selected.kind === 'FLAGGED_RECIPE' ? (
+          <FlaggedRecipeCanvas key={selectedId} mealId={selected.id} expanded={expanded} onExpandedChange={setExpanded}
+            hasOtherClaim={hasOtherClaim} onBack={() => { setSelectedId(null); setExpanded(false); }} onClaimChange={load}
+            onComplete={async () => { setSelectedId(null); setExpanded(false); await load(); }} />
         ) : (
           <div className="space-y-4">
             <RndQueueDocument

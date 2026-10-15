@@ -15,8 +15,10 @@ test('work counts include current queues without reading historical disputed pla
     prisma.mealConditionClearance.count,
     prisma.mealLibraryProfileApproval.count,
     prisma.mealPlan.count,
+    prisma.mealReviewLineage.count,
   ] as const;
   MealBaseVerificationService.count = async () => 4;
+  prisma.mealReviewLineage.count = (async (args: any) => { assert.equal(args.where.state, 'PENDING_REREVIEW'); return 2; }) as never;
   Object.defineProperty(NutritionistService, 'getReviewQueueCount', { value: async () => 8, configurable: true });
   NutritionistProfileWorkService.queue = (async () => [{ profileStatus: 'PENDING', documentCount: 2 }]) as never;
   prisma.outsideMealReview.count = (async () => 3) as never;
@@ -29,7 +31,7 @@ test('work counts include current queues without reading historical disputed pla
     throw new Error('Historical disputes must not inflate active work');
   }) as never;
   try {
-    assert.deepEqual(await NutritionistWorkCountsService.get('rnd'), { meal: 4, case: 11, pending: 8, outside: 3, profile: 3, audit: 3 });
+    assert.deepEqual(await NutritionistWorkCountsService.get('rnd'), { meal: 6, case: 11, pending: 8, outside: 3, profile: 3, audit: 3 });
   } finally {
     MealBaseVerificationService.count = restore[0];
     NutritionistProfileWorkService.queue = restore[2];
@@ -37,6 +39,7 @@ test('work counts include current queues without reading historical disputed pla
     prisma.mealConditionClearance.count = restore[4];
     prisma.mealLibraryProfileApproval.count = restore[5];
     prisma.mealPlan.count = restore[6];
+    prisma.mealReviewLineage.count = restore[7];
     Object.defineProperty(NutritionistService, 'getReviewQueueCount', { value: restore[1], configurable: true });
   }
 });

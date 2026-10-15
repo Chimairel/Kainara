@@ -6,7 +6,7 @@ import { NutritionistService } from '@/services/nutritionist.service';
 /** Counts the work shown in review workspaces and the separate Audit page. */
 export class NutritionistWorkCountsService {
   static async get(nutritionistProfileId: string) {
-    const [mealVerifications, caseReviews, profiles, outside, dueAudit, dueProfileApprovals] = await Promise.all([
+    const [mealVerifications, caseReviews, profiles, outside, dueAudit, dueProfileApprovals, flaggedRecipes] = await Promise.all([
       MealBaseVerificationService.count(),
       NutritionistService.getReviewQueueCount(nutritionistProfileId),
       NutritionistProfileWorkService.queue(nutritionistProfileId),
@@ -27,9 +27,10 @@ export class NutritionistWorkCountsService {
           flaggedAt: { not: null },
         },
       }),
+      prisma.mealReviewLineage.count({ where: { state: 'PENDING_REREVIEW', meals: { some: { status: 'FLAGGED' } } } }),
     ]);
     return {
-      meal: mealVerifications,
+      meal: mealVerifications + flaggedRecipes,
       case: caseReviews + outside,
       pending: caseReviews,
       outside,

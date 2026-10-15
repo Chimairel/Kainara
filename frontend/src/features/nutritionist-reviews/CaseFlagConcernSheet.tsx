@@ -52,9 +52,9 @@ export default function CaseFlagConcernSheet({
               {concern.mealLibraryId && (
                 <Link
                   className="font-semibold underline underline-offset-4"
-                  href={`/nutritionist/library?mealId=${encodeURIComponent(concern.mealLibraryId)}`}
+                  href={`/nutritionist/reviews?workspace=meal&recipeId=${encodeURIComponent(concern.mealLibraryId)}`}
                 >
-                  Open recipe re-review canvas
+                  Open meal verification
                 </Link>
               )}
             </p>

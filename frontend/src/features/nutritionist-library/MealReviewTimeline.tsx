@@ -62,6 +62,8 @@ const actionLabel = (action: string) =>
     WITHHELD: 'Recipe withheld',
     FLAGGED: 'Flag recorded',
     CLAIMED: 'Independent re-review claimed',
+    CLAIM_RELEASED: 'Recipe review claim released',
+    REJECTED: 'Recipe kept withheld',
     CORRECTION_BEFORE: 'Before correction',
     CORRECTED: 'Recipe corrected',
     CONFIRMED: 'Independent confirmation',
