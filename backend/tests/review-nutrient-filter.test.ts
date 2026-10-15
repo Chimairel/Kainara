@@ -56,5 +56,30 @@ test('meal search combines name and ingredient terms with validated numeric boun
   assert.equal(reviewSwapQuerySchema.safeParse({ search: 'pork', filters: JSON.stringify(filters) }).success, true);
   assert.equal(reviewSwapQuerySchema.safeParse({ search: 'x'.repeat(101) }).success, false);
   assert.equal(evaluateNutrientFilters(plateNutrients({ ...base, proteinG: 35.7, fatG: 14.6 }, null, null), filters).matches, true);
-  assert.equal(evaluateNutrientFilters(plateNutrients({ ...base, proteinG: 35.7001, fatG: 14.6 }, null, null), filters).matches, false);
+  assert.equal(evaluateNutrientFilters(plateNutrients({ ...base, proteinG: 35.7001, fatG: 14.6 }, null, null), filters).matches, true);
+});
+
+test('Exactly finds the complete-plate value shown to one decimal, including the reported sodium case', () => {
+  const filters = { sodiumMg: { min: 466.8, max: 466.8 } };
+  const plate = plateNutrients({ ...base, sodiumMg: 444.2819 }, { ...base, sodiumMg: 10 }, 225);
+  assert.equal(plate.sodiumMg, 466.7819);
+  assert.equal(Math.round(plate.sodiumMg! * 10) / 10, 466.8);
+  assert.equal(evaluateNutrientFilters(plate, filters).matches, true);
+  for (const value of [466.75, 466.799999, 466.8, 466.849999])
+    assert.equal(evaluateNutrientFilters({ ...plate, sodiumMg: value }, filters).matches, true);
+  for (const value of [466.749999, 466.85, 466.9, null])
+    assert.equal(evaluateNutrientFilters({ ...plate, sodiumMg: value }, filters).matches, false);
+  for (const key of REVIEW_NUTRIENTS)
+    assert.equal(evaluateNutrientFilters({ ...plate, [key]: 35.7001 }, { [key]: { min: 35.7, max: 35.7 } }).matches, true);
+});
+
+test('inequalities, explicit extra precision, missing values and combined rules remain strict', () => {
+  const plate = plateNutrients({ ...base, sodiumMg: 466.81 }, null, null);
+  assert.equal(evaluateNutrientFilters(plate, { sodiumMg: { max: 466.8 } }).matches, false);
+  assert.equal(evaluateNutrientFilters({ ...plate, sodiumMg: 466.79 }, { sodiumMg: { min: 466.8 } }).matches, false);
+  assert.equal(evaluateNutrientFilters({ ...plate, sodiumMg: 466.8 }, { sodiumMg: { min: 466.8, max: 466.8, minExclusive: true } }).matches, false);
+  assert.equal(evaluateNutrientFilters(plate, { sodiumMg: { min: 466.81, max: 466.81 } }).matches, true);
+  assert.equal(evaluateNutrientFilters({ ...plate, sodiumMg: 466.810001 }, { sodiumMg: { min: 466.81, max: 466.81 } }).matches, false);
+  assert.equal(evaluateNutrientFilters(plate, { sodiumMg: { min: 466.8, max: 466.8 }, sugarG: { max: 9.99 } }).matches, false);
+  assert.deepEqual(evaluateNutrientFilters({ ...plate, sodiumMg: null }, { sodiumMg: { min: 0, max: 0 } }), { matches: false, unknown: ['sodiumMg'] });
 });

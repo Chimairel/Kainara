@@ -35,13 +35,19 @@ export function evaluateNutrientFilters(nutrients: PlateNutrients, filters: Revi
   const unknown = REVIEW_NUTRIENTS.filter(key => filters[key] && !measured(nutrients[key]));
   const matches = !unknown.length && REVIEW_NUTRIENTS.every(key => {
     const range = filters[key], value = nutrients[key];
+    // Exactly accepts a value copied from the one-decimal comparison table.
+    // More precise inputs and all inequality bounds retain stored precision.
+    if (range?.min !== undefined && range.min === range.max && !range.minExclusive && !range.maxExclusive &&
+      Number.isInteger(range.min * 10)) {
+      return measured(value) && Math.round(value * 10) / 10 === range.min;
+    }
     return !range || (measured(value) &&
       (range.min === undefined || (range.minExclusive ? value > range.min : value >= range.min)) &&
       (range.max === undefined || (range.maxExclusive ? value < range.max : value <= range.max)));
   });
   return { matches, unknown };
 }
-/** Includes unrounded nutrient totals: display rounding cannot admit a value just outside a bound. */
+/** Serving identity always binds unrounded totals, independently of search display precision. */
 export function replacementServingKey(input: {
   recipeSignature: string | null; evidenceRevision: number; nutrients: PlateNutrients;
   riceFoodId: string | null; riceRevision: number | null; pairedRiceG: number | null;

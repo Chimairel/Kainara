@@ -52,6 +52,7 @@ export default function ReviewNutrientFilters({ draft, onChange, busy }: {
 }) {
   return <div className="space-y-3">
     <p className="text-xs leading-5 text-brand-muted">All limits apply together to one meal, including rice. Meals missing a required value are excluded.</p>
+    {Object.values(draft).some(range => range?.mode === 'exact') && <p className="text-xs leading-5 text-brand-muted">Exactly matches the values shown to one decimal place. Entering more decimal places uses the stored precision.</p>}
     <div className="max-h-40 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
       {REVIEW_NUTRIENT_FIELDS.filter(([key]) => draft[key]).map(([key, label, unit]) => {
         const range = draft[key]!;

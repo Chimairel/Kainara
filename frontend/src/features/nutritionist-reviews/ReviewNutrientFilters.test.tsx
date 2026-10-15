@@ -8,6 +8,13 @@ it('keeps a recorded zero, validates bounds, and does not invent defaults or med
   for (const max of ['-1', 'Infinity', 'NaN', '1000001']) expect(parseFilterDraft({ sugarG: { max } })).toBeNull();
   expect(parseFilterDraft({ sugarG: { min: '37', max: '36' } })).toBeNull();
 });
+it('accepts a number without a unit for exact sodium and explains display precision', () => {
+  const change = vi.fn();
+  render(<ReviewNutrientFilters draft={{ sodiumMg: { mode: 'exact', min: '466.8' } }} onChange={change} busy={false} />);
+  expect(screen.getByLabelText('Sodium exact amount (mg)')).toHaveValue(466.8);
+  expect(screen.getByText(/Exactly matches the values shown to one decimal place/)).toBeVisible();
+  expect(parseFilterDraft({ sodiumMg: { mode: 'exact', min: '466.8' } })).toEqual({ sodiumMg: { min: 466.8, max: 466.8 } });
+});
 it('adds and removes only the requested nutrients with explicit comparisons and units', () => {
   const change = vi.fn();
   const { rerender } = render(<ReviewNutrientFilters draft={{ sugarG: { min: '37', max: '36' } }} onChange={change} busy={false} />);

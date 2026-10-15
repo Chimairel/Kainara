@@ -33,9 +33,11 @@ export default function ReviewSwapNutrition({ before, after, targets, filters = 
         <span className="block text-brand-muted">Guidance reference</span>
       </p> : <span className="text-brand-muted">Not set</span>)}
       {filter && <p className="text-brand-muted">
-        Search: {filter.min !== undefined && `${filter.minExclusive ? '>' : '≥'} ${filter.min} ${unit}`}
-        {filter.min !== undefined && filter.max !== undefined && ' · '}
-        {filter.max !== undefined && `${filter.maxExclusive ? '<' : '≤'} ${filter.max} ${unit}`} / meal
+        Search: {filter.min !== undefined && filter.min === filter.max && !filter.minExclusive && !filter.maxExclusive
+          ? `= ${filter.min} ${unit}`
+          : <>{filter.min !== undefined && `${filter.minExclusive ? '>' : '≥'} ${filter.min} ${unit}`}
+            {filter.min !== undefined && filter.max !== undefined && ' · '}
+            {filter.max !== undefined && `${filter.maxExclusive ? '<' : '≤'} ${filter.max} ${unit}`}</>} / meal
       </p>}
     </div>;
   }

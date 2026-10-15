@@ -2,6 +2,14 @@ import { render, screen, within } from '@testing-library/react';
 import { expect, it } from 'vitest';
 import ReviewSwapNutrition from './ReviewSwapNutrition';
 
+it('labels exact sodium as equality while displaying the rounded stored meal value', () => {
+  render(<ReviewSwapNutrition before={{ sodiumMg: 986.3 }} after={{ sodiumMg: 466.831 }}
+    filters={{ sodiumMg: { min: 466.8, max: 466.8 } }} />);
+  const sodium = screen.getByRole('row', { name: /Sodium 986.3 mg 466.8 mg/ });
+  expect(sodium).toHaveTextContent('Search: = 466.8 mg / meal');
+  expect(sodium).not.toHaveTextContent('≥');
+});
+
 it('shows a saved guidance reference with its basis without relabeling it as an approved rule', () => {
   render(<ReviewSwapNutrition before={{ sodiumMg: 300 }} after={{ sodiumMg: 450 }} targets={{ daily: null, meal: null, rules: [],
     guidance: [{ nutrient: 'sodiumMg', value: '2,300 mg/day', explanation: 'The appropriate target requires individual selection.',
