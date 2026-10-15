@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { WorkspaceListPane } from '@/components/shared/SplitWorkspace';
 import { QueueHeader, QueueList, QueueRow, QueueSkeleton, queueLabel } from '@/components/shared/WorkspaceQueue';
 import Button from '@/components/ui/Button';
+import { Clock, Lock, ShieldCheck } from '@/components/ui/icons';
 import { formatPhilippineDate, formatPhilippineDateTime } from '@/lib/formatters';
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
 
@@ -20,7 +21,7 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
   const [search, setSearch] = useState('');
   const query = search.trim().toLowerCase();
   const visibleQueue = queue.filter((meal) => meal.claimStatus.claimedByMe ||
-    [meal.mealName, meal.user.name, meal.mealType].some((value) => queueLabel(value).includes(query))
+    [meal.mealName, meal.user.name].some((value) => queueLabel(value).includes(query))
   ).sort((a, b) => Number(b.claimStatus.claimedByMe) - Number(a.claimStatus.claimedByMe));
 
   return (
@@ -63,7 +64,12 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
         </div>
       ) : (
         <QueueList label="Meals awaiting case approval">
-          {visibleQueue.map((meal) => (
+          {visibleQueue.map((meal) => {
+            const claimLabel = meal.claimStatus.claimedByMe ? 'Claimed by you'
+              : meal.claimStatus.claimedByOther ? 'Being reviewed'
+              : meal.claimStatus.coolingDownForMe ? `Your claim expired. Available after ${meal.claimStatus.cooldownUntil && Number.isFinite(new Date(meal.claimStatus.cooldownUntil).getTime()) ? formatPhilippineDateTime(meal.claimStatus.cooldownUntil) : 'the cooldown'}.` : null;
+            const ClaimIcon = meal.claimStatus.claimedByMe ? ShieldCheck : meal.claimStatus.claimedByOther ? Lock : Clock;
+            return (
             <QueueRow
               key={meal.id}
               title={formatMealTitle(meal.mealName)}
@@ -73,43 +79,17 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
                 if (!meal.claimStatus.claimedByOther && !meal.claimStatus.coolingDownForMe) handleSelectMeal(meal.id);
               }}
             >
-              <span className="block break-words text-brand-muted">
-                {meal.user.name} · {queueLabel(meal.mealType)} · {recordedDate(meal.scheduledDate)}
+              <span className="flex items-center gap-2 text-brand-muted">
+                <span className="min-w-0 break-words">{meal.user.name}</span>
+                {claimLabel && <span role="img" aria-label={claimLabel} title={claimLabel} className={`shrink-0 ${meal.claimStatus.claimedByMe ? 'text-brand-green' : ''}`}><ClaimIcon aria-hidden="true" className="h-3.5 w-3.5" /></span>}
               </span>
-              <span className="block font-semibold text-[#8c3b00] dark:text-[#ff8a3d]">
-                {meal.requiresSafetyRevalidation ? 'Updated review needed' : 'Awaiting review'}
-                {meal.highRiskReviewRequired && <span className="block">Review health context</span>}
+              <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-brand-text">
+                <span className="whitespace-nowrap">Shop by {recordedDate(meal.shoppingDeadlineAt)}</span>
+                <span className="whitespace-nowrap">Cook {recordedDate(meal.cookDeadlineAt)}</span>
               </span>
-              <span className="block text-brand-text">
-                Shop by {recordedDate(meal.shoppingDeadlineAt)} · Cook {recordedDate(meal.cookDeadlineAt)}
-              </span>
-              <span className="block text-brand-muted">
-                {meal.calories != null ? `${Math.round(meal.calories)} kcal · ` : ''}
-                {queueLabel(meal.sourceProvenance)}
-                {meal.coalescedDependentCount > 1 ? ` · ${meal.coalescedDependentCount} matching slots` : ''}
-              </span>
-              <span className="block text-[11px] text-brand-muted">One RND approval required</span>
-              <span className="block text-[11px] text-brand-muted">
-                {queueLabel(meal.assuranceTier)} assurance · {meal.remainingReviewers} review
-                {meal.remainingReviewers === 1 ? '' : 's'} remaining
-              </span>
-              {meal.claimStatus.claimedByMe && (
-                <span className="block font-semibold text-brand-green">Claimed by you</span>
-              )}
-              {meal.claimStatus.claimedByOther && (
-                <span className="block font-semibold text-brand-muted">Being reviewed</span>
-              )}
-              {meal.claimStatus.coolingDownForMe && (
-                <span className="block text-[#8c3b00] dark:text-[#ff8a3d]">
-                  Your claim expired. Available to other RNDs; you can retry after{' '}
-                  {meal.claimStatus.cooldownUntil && Number.isFinite(new Date(meal.claimStatus.cooldownUntil).getTime())
-                    ? formatPhilippineDateTime(meal.claimStatus.cooldownUntil)
-                    : 'the cooldown'}
-                  .
-                </span>
-              )}
             </QueueRow>
-          ))}
+            );
+          })}
         </QueueList>
       )}
     </WorkspaceListPane>

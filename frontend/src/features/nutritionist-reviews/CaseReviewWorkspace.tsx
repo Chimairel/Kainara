@@ -156,6 +156,8 @@ export default function CaseReviewWorkspace({
                   ))}
                 </ol>
               </section>
+            ) : detailLoading ? (
+              <ReviewDetailSkeleton />
             ) : (
               <ExpandableCasePanel
                 expanded={expanded && selectedMealId !== null}
@@ -172,10 +174,6 @@ export default function CaseReviewWorkspace({
                     <p className="leading-6 text-brand-muted">Previous reviewers and the flagger cannot claim this case.</p>
                     <Button variant="secondary" size="sm" onClick={() => setSelectedMealId(null)}>Back to queue</Button>
                   </section>
-                ) : detailLoading ? (
-                  <div className="flex-1">
-                    <ReviewDetailSkeleton />
-                  </div>
                 ) : errorMsg && !detailData ? (
                   <FeedbackNotice className="max-w-lg mx-auto mt-12">
                     <div className="space-y-1">

@@ -13,6 +13,7 @@ describe('single RND case queue', () => {
     render(<CaseReviewQueue review={review} caseFilter="pending" expanded={false} />);
     const rows = screen.getAllByRole('button').filter(button => button.getAttribute('aria-pressed') !== null);
     expect(rows[0]).toHaveTextContent('My claimed meal');
+    expect(screen.getByRole('img', { name: 'Claimed by you' })).toBeVisible();
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'no match' } });
     expect(screen.getByRole('button', { name: /My claimed meal/ })).toBeVisible();
     expect(screen.queryByRole('button', { name: /Available meal/ })).not.toBeInTheDocument();
@@ -72,8 +73,12 @@ describe('single RND case queue', () => {
     expect(select).toHaveBeenCalledWith('partial');
     expect(screen.getByRole('button', { name: /Adobo/ })).toBeDisabled();
     expect(screen.queryByText(/second review/i)).not.toBeInTheDocument();
-    expect(screen.getAllByText('One RND approval required')).toHaveLength(2);
-    expect(screen.getAllByText('Updated review needed')).toHaveLength(2);
+    expect(screen.queryByText('One RND approval required')).not.toBeInTheDocument();
+    expect(screen.queryByText('Updated review needed')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Synthetic Member')).toHaveLength(2);
+    expect(screen.getAllByText('Shop by Oct 3, 2026')).toHaveLength(2);
+    expect(screen.getAllByText('Cook Oct 3, 2026')).toHaveLength(2);
+    expect(screen.queryByText(/600 kcal|raw recipe corpus|enhanced assurance/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/recheck/i)).not.toBeInTheDocument();
   });
 });

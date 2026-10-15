@@ -57,8 +57,7 @@ describe('Skeleton', () => {
     const { container, getByLabelText } = render(<NutritionistReviewsSkeleton />);
     const region = getByLabelText('Loading RND review workspace');
     expect(region).toBeInTheDocument();
-    const pulseElements = container.querySelectorAll('.animate-pulse');
-    expect(pulseElements.length).toBeGreaterThan(10);
+    expect(container.querySelectorAll('[data-loader-skeleton]').length).toBeGreaterThan(10);
   });
 
   it('renders RNDLibrarySkeleton with search bar and catalog card placeholders', () => {

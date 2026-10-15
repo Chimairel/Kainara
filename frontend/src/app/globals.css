@@ -31,6 +31,7 @@
 
   /* ─── Skeleton Loading Tokens ─── */
   --skeleton-bg: rgba(13, 40, 32, 0.075);
+  --skeleton-highlight: rgba(255, 255, 255, 0.6);
   --skeleton-border: rgba(13, 40, 32, 0.04);
 
   /* ─── Grid Line Accent ─── */
@@ -100,6 +101,7 @@ html.dark {
 
   /* ─── Skeleton Loading Tokens ─── */
   --skeleton-bg: rgba(23, 62, 51, 0.6);
+  --skeleton-highlight: rgba(142, 169, 159, 0.14);
   --skeleton-border: rgba(23, 62, 51, 0.3);
 
   /* ─── Grid Line Accent ─── */

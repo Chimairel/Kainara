@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { ChevronRight, Loader2, Search } from '@/components/ui/icons';
-import Skeleton from '@/components/ui/Skeleton';
+import { LoaderSkeleton } from '@/components/ui/loaders-skeleton';
 
 /** Task navigation for split workspaces. Callers retain ordering, eligibility and actions. */
 export function QueueHeader({
@@ -103,10 +103,13 @@ export function QueueSkeleton({ count = 5, label = 'Loading review queue items' 
   return (
     <div aria-label={label} aria-busy="true" className="divide-y divide-brand-border/60">
       {Array.from({ length: count }, (_, index) => (
-        <div key={index} className="space-y-2 px-3 py-4">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-1/2" />
+        <div key={index} className="space-y-2 px-3 py-3">
+          <LoaderSkeleton height={16} width="74%" />
+          <LoaderSkeleton height={12} width="45%" />
+          <div className="flex gap-3">
+            <LoaderSkeleton height={12} width="42%" />
+            <LoaderSkeleton height={12} width="36%" />
+          </div>
         </div>
       ))}
     </div>
