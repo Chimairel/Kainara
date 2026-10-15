@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { assertProductionConfig } from '@/domain/production-config.policy';
 import { membershipLimits } from '@/domain/membership.policy';
+import { assistantLimits } from '@/domain/member-assistant.policy';
 
 const booleanFromString = z
   .enum(['true', 'false'])
@@ -17,6 +18,7 @@ const runtimeEnvironmentSchema = z.object({
   SMTP_VERIFY_ON_STARTUP: booleanFromString,
   API_DOCS_ENABLED: booleanFromString,
   MEMBERSHIP_ENABLED: booleanFromString,
+  MEMBER_ASSISTANT_ENABLED: booleanFromString,
   CLINICAL_CLARIFICATIONS_ENABLED: booleanFromString,
   FRONTEND_URL: optionalUrl.default('http://localhost:3000'),
   CORS_ORIGINS: z.string().default(''),
@@ -49,6 +51,9 @@ export function parseRuntimeEnvironment(source: NodeJS.ProcessEnv): RuntimeEnvir
 
   assertProductionConfig(source);
   if (result.data.MEMBERSHIP_ENABLED) membershipLimits(source);
+  if (result.data.MEMBER_ASSISTANT_ENABLED) {
+    for (const tier of ['FREE', 'LIFESTYLE', 'HEALTH'] as const) assistantLimits(tier, source);
+  }
   const configuredOrigins = result.data.CORS_ORIGINS.split(',')
     .map((origin) => origin.trim().replace(/\/$/, ''))
     .filter(Boolean);

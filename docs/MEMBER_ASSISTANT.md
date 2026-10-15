@@ -1,0 +1,68 @@
+# Member assistant
+
+Branch: `codex/member-assistant`. Status: implemented on this feature branch; shared/hosted activation is separate.
+
+## Accepted design
+
+- Member portal only. An icon button floats at the bottom right and clears the mobile bottom navigation. Its accessible name and tooltip are **Open assistant**.
+- At desktop widths (1280 CSS pixels and above), a 420 px panel docks on the right and the existing workspace reflows. Smaller widths use a full-screen dialog with keyboard focus containment. The header and composer stay fixed while messages scroll.
+- KAINARA's current light/dark tokens, fonts, shared buttons and Solar icons are reused. No new dependencies, illustrations, vector database or duplicated food catalogue.
+- The panel contains New chat, Close, free shortcuts, bounded conversation history, meal details, saved-guidance references, AI consent and recoverable errors. Closing/navigation preserve draft and conversation in the authenticated layout. Reload ends that in-memory conversation; signing out/account changes unmount it and abort pending browser requests. New chat clears context, never usage.
+- Internal result links dismiss the covering dialog below 1280 CSS pixels so members can read the destination. Desktop navigation preserves the dock; both retain conversation state.
+
+## Hybrid routing and credit consent
+
+`GET /api/user/assistant` reports rollout status and the authenticated member's current allowance. `POST /api/user/assistant/messages` accepts a UUID request key, message (1000 characters maximum), optional fixed action, `allowAi` (false by default), and at most six context messages of 500 characters each. No caller-supplied owner, membership, tool names or arbitrary URLs are accepted.
+
+Free shortcuts: Find a meal (opens the search conversation), Today's nutrition, My nutrition guidance, and View my plan. Narrow greetings/help/credit FAQs and equivalent direct commands also return prepared system responses. **Free requests have no confirmation prompt and never call Gemini.**
+
+Unrecognized text first returns an inline confirmation: **This request uses 1 AI credit**, current balance, Continue and Cancel. This preflight does not reserve a credit or call Gemini. Only explicit `allowAi: true` proceeds. Cancel does not create a receipt or call the provider. A completed-response retry is recovered before asking for another credit.
+
+| Current entitlement | Weekly AI credits |
+| --- | ---: |
+| Free / trial not yet started / membership rollout disabled | 5 |
+| Lifestyle | 20 |
+| Health / active Health trial | 40 |
+
+No member daily reply cap. Weekly windows run Monday 00:00 to Monday 00:00 Asia/Manila. Credits do not roll over. Existing usage is retained across upgrades/downgrades. One successful AI-assisted request spends one credit, including requests where AI asks a clarification or identifies unsupported scope. Failed/expired attempts do not spend member credits. A guidance explanation can make two bounded provider calls for that one member credit. Provider attempts still consume shared capacity even when member work fails.
+
+## Data and safety boundaries
+
+- Natural language is interpreted into a strict intent/filter schema. Existing code performs retrieval, eligibility and arithmetic. Supported recipe filters: name, meal type, included/excluded ingredient keywords, protein minimum, energy maximum, fat maximum. Ambiguous qualitative limits and other nutrient operators require clarification; no guessed numeric thresholds.
+- Results use the existing compatible certified library query with its base verification, current profile, allergy, condition, flag and clearance gates. This first version searches that compatible library; the wider browse-only raw-source catalogue is still available in the existing Meal Library screen. AI cannot add a source meal or grant approval. Displayed recipe-serving nutrition excludes separately paired rice.
+- Numeric recipe filters compare at the same one-decimal precision displayed in chat. Existing medical admission checks and stored measurements retain their authoritative values.
+- Today's totals use owned, non-voided DONE logs and the existing nutrition eligibility predicate, with Asia/Manila day bounds. Missing logs are not inferred; incomplete entries are explicitly described as partial.
+- Guidance comes from the member's acknowledged active planning report and preserves the current policy/safety revision checks. Direct guidance is free. AI explanations receive only bounded saved guidance and recent conversation; external source links come from saved references, never model-created citations.
+- No chat action changes meals, logs, targets, profile or RND decisions. Links open existing screens. Clinical advice/diagnosis/clearance requests are outside scope.
+
+## Persistence and abuse controls
+
+Additive migration `20261015100000_member_assistant` adds the `MEMBER_ASSISTANT` usage operation and `AssistantRequest` receipts. Receipts contain owner, request key, payload digest, state, times and bounded result payload for retries. Full prompts and chat transcripts are not stored in this table or browser storage. Personalization is per authenticated request.
+
+A PostgreSQL advisory transaction lock per member serializes admission across API instances. Active reservations consume available credits until completed, failed or expired (90 seconds). One active AI request per member; at most three AI admissions per rolling minute. A separate 30 requests/minute route limiter bounds direct/preflight traffic, in addition to the existing API limiter. Request keys bind to the payload and authenticated owner; changed-payload reuse is rejected.
+
+Receipts older than eight days are removed on the member's next AI admission and by the daily check-in cron while the feature is enabled. Operate that existing cron to enforce cleanup for inactive users. Export includes retained receipts when enabled; account deletion cascades them. Disabling the rollout pauses its cron cleanup too; purge retained receipts before a prolonged shutdown if required.
+
+Each provider call passes through existing project-wide capacity admission. Chat additionally defaults to **10 provider attempts per rolling 24 hours**, capped so **20 project requests remain outside chat** under the default 40-request project limit. Member credits do not guarantee immediate provider capacity. Each model call has a single attempt, the existing 15-second provider timeout and an explicit output-token ceiling; no hidden fallback cascade or automatic browser retry. At most two calls per assistant request.
+
+## Rollout
+
+1. Review/apply the additive migration to a confirmed target, using `prisma migrate deploy`; regenerate Prisma clients for all API/worker instances. Do not use `db push`.
+2. Deploy the compatible code with the assistant disabled, then enable after all readers support the new enum value. Default: disabled. Existing portals continue operating without the new table when disabled.
+3. Set `MEMBER_ASSISTANT_ENABLED=true`. Optional settings:
+   - `MEMBER_ASSISTANT_FREE_WEEKLY_CREDITS=5`
+   - `MEMBER_ASSISTANT_LIFESTYLE_WEEKLY_CREDITS=20`
+   - `MEMBER_ASSISTANT_HEALTH_WEEKLY_CREDITS=40`
+   - `MEMBER_ASSISTANT_PROJECT_RPD=10`
+   - `MEMBER_ASSISTANT_CORE_RESERVE_RPD=20`
+4. Verify normal member login, free action without consent, AI consent/cancel, one confirmed response, idempotent retry, current membership allowance and cleanup scheduling. Existing Gemini credentials/capacity configuration apply.
+
+This feature branch has not applied its migration to Neon, changed hosted secrets, or deployed the assistant. Isolated tests use synthetic data and stubbed provider responses; these do not establish real-model language quality or clinical validation.
+
+## Verification
+
+- Focused backend policy/service tests cover consent default, strict inputs/context, direct routing, weekly boundaries, tier caps/upgrades, combined recipe constraints, disabled rollout, provider faults, shared capacity and replay.
+- Frontend tests cover free actions, confirmation, duplicate clicks, cancellation, draft/history lifetime, new chat, account unmount cancellation and exhausted credits.
+- `backend/scripts/member-assistant-local-acceptance.ts` refuses all targets except the named task-owned loopback database. It tests real HTTP/auth, PostgreSQL entitlements/receipts, concurrency and authoritative meal admission using provider stubs and blocks external fetches.
+- Run it with `npm run test:acceptance:member-assistant` only against a fresh migrated `127.0.0.1:55432/kainara_assistant_20261015`, `NODE_ENV=test`, `MEMBER_ASSISTANT_ENABLED=true`, `MEMBERSHIP_ENABLED=true`, local JWT secrets and `GEMINI_API_KEY=isolated-provider-stub` (not a real key). This fixture key enables the stubbed SDK path; outbound provider traffic is forbidden. Synthetic browser accounts remain only in that disposable database.
+- Browser captures and final verification results are recorded in the engineering record. No production member data or provider quota is needed for these tests.

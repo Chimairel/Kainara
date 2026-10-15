@@ -33,6 +33,7 @@ import notificationsRouter from '@/routes/notifications.routes';
 import supportRouter from '@/routes/support.routes';
 import mealReminderRouter from '@/routes/meal-reminder.routes';
 import membershipRouter from '@/routes/membership.routes';
+import memberAssistantRouter from '@/routes/member-assistant.routes';
 import membershipPaymentRouter from '@/routes/membership-payment.routes';
 import { MEMBERSHIP_PRICES, testCheckoutConfig } from '@/domain/membership-checkout.policy';
 
@@ -117,6 +118,7 @@ app.get('/api/membership/plans', (_req, res) => {
 app.use('/api/user/progress', progressRouter);
 app.use('/api/user/meal-reminders', mealReminderRouter);
 app.use('/api/user/membership', membershipRouter);
+app.use('/api/user/assistant', memberAssistantRouter);
 app.use('/api/user/meals', mealsRouter);
 app.use('/api/user/grocery', groceryRouter);
 app.use('/api/user', userRouter);

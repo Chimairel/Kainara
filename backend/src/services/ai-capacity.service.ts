@@ -62,6 +62,19 @@ export class AiCapacityService {
         });
         const minuteStart = new Date(now.getTime() - MINUTE_MS);
         const dayStart = new Date(now.getTime() - DAY_MS);
+        if (input.operation === 'MEMBER_ASSISTANT') {
+          // Chat gets only a sub-budget; preserve capacity for estimation and planning.
+          const configured = Number(process.env.MEMBER_ASSISTANT_PROJECT_RPD ?? 10);
+          const coreReserve = positiveLimit('MEMBER_ASSISTANT_CORE_RESERVE_RPD', 20);
+          const chatCap = Math.max(0, Math.min(Number.isSafeInteger(configured) ? configured : 10, rpd - coreReserve));
+          const chatCount = await tx.aiQuotaReservation.count({ where: {
+            provider: PROVIDER, operation: input.operation, reservedAt: { gt: dayStart },
+          } });
+          if (chatCount >= chatCap) throw new AiCapacityDeferredError(
+            'AI chat has reached its shared capacity. Direct actions are still available.',
+            new Date(+now + 60000), 'ASSISTANT_SHARED_CAPACITY'
+          );
+        }
         const [
           minuteCount,
           dayCount,

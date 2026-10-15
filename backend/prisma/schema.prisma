@@ -344,6 +344,7 @@ enum MealCandidateProvenance {
 }
 
 enum AiUsageOperation {
+  MEMBER_ASSISTANT
   MEAL_PLAN_CORPUS_LOOKUP
   MEAL_PLAN_GENERATION
   MEAL_REPLACEMENT
@@ -868,6 +869,7 @@ model MealBatchImport {
 }
 
 model User {
+  assistantRequests AssistantRequest[]
   supportRequests SupportRequest[]
   supportReplies SupportReply[] @relation("SupportReplyAuthor")
   licenseUpdatesReviewed NutritionistLicenseUpdate[] @relation("LicenseUpdateReviewer")
@@ -967,6 +969,24 @@ model User {
   clinicalContextResponses         ClinicalContextResponse[]
   clinicalFacts                    ClinicalFact[]
   reviewRoutingEpisodes           ReviewRoutingEpisode[]
+}
+
+// Bounded idempotency/allowance receipts, not a transcript store. Purged after 8 days.
+model AssistantRequest {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestKey  String   @db.VarChar(36)
+  payloadHash String   @db.VarChar(64)
+  state       String   @db.VarChar(12)
+  createdAt   DateTime @default(now())
+  leaseUntil  DateTime
+  completedAt DateTime?
+  response    Json?
+
+  @@unique([userId, requestKey])
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 // Membership is separate from archived billing tables. Test payment evidence cannot create paid grants.

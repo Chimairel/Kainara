@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
+import { assistantEnabled } from '@/domain/member-assistant.policy';
 
 type AccountDeletionCredential = {
   password?: string;
@@ -37,6 +38,7 @@ export class UserPrivacyService {
         dailyNutritionLogs: true,
         groceryLists: { include: { groceryItems: true } },
         notifications: true,
+        ...(assistantEnabled() ? { assistantRequests: true } : {}),
         mealReminderSettings: true,
         webPushSubscriptions: { select: { id: true, createdAt: true } },
         weeklyCheckins: true,

@@ -6,6 +6,8 @@ import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.po
 import { enforceClearanceCircuitBreakers } from './condition-clearance.service';
 import { resolvePlanTargetCalories } from '@/domain/plan-cycle-target.policy';
 import { UpcomingPlanPreparationService } from './upcoming-plan-preparation.service';
+import { assistantEnabled } from '@/domain/member-assistant.policy';
+import { MemberAssistantUsageService } from './member-assistant-usage.service';
 
 export class CronService {
   static async retrySafetyRevalidation(now: Date = new Date()) {
@@ -44,6 +46,7 @@ export class CronService {
    * calculates clinical calorie adherence, and logs daily performance metrics.
    */
   static async runDailyCheckin(now: Date = new Date()) {
+    if (assistantEnabled()) await MemberAssistantUsageService.purgeExpired(now);
     console.log('[CronService] Initiating daily nutrition check-in aggregates...');
 
     // 1. Resolve 'yesterday' time bounds
