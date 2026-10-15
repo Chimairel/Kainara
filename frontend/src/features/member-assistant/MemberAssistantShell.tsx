@@ -5,10 +5,18 @@ import dynamic from 'next/dynamic';
 import * as Dialog from '@radix-ui/react-dialog';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react';
 import { useAuth } from '@/hooks/useAuth';
-import NaraPortrait from './NaraPortrait';
+import NaraLauncher from './NaraLauncher';
 import { useMemberAssistant, type MemberAssistantModel } from './useMemberAssistant';
 
 const AssistantConversation = dynamic(() => import('./AssistantConversation'));
+
+function restoreLauncherFocus(id: string) {
+  const trigger = document.getElementById(id);
+  if (!trigger) return;
+  trigger.setAttribute('data-nara-restoring-focus', '');
+  trigger.focus({ preventScroll: true });
+  trigger.removeAttribute('data-nara-restoring-focus');
+}
 
 type MemberPortrait = { name: string; image?: string | null };
 export function DesktopAssistantPanel({ model, titleId, member, width, onWidthChange }: {
@@ -77,7 +85,7 @@ export default function MemberAssistantShell({ ready, children }: { ready: boole
   const [width, setWidth] = useState(420);
   const wasOpen = useRef(false);
   useEffect(() => {
-    if (wasOpen.current && !model.open) document.getElementById(`${titleId}-trigger`)?.focus();
+    if (wasOpen.current && !model.open) restoreLauncherFocus(`${titleId}-trigger`);
     wasOpen.current = model.open;
   }, [model.open, titleId]);
   useEffect(() => {
@@ -91,7 +99,7 @@ export default function MemberAssistantShell({ ready, children }: { ready: boole
     const close = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) {
         setOpen(false);
-        document.getElementById(`${titleId}-trigger`)?.focus();
+        restoreLauncherFocus(`${titleId}-trigger`);
       }
     };
     document.addEventListener('keydown', close);
@@ -100,11 +108,8 @@ export default function MemberAssistantShell({ ready, children }: { ready: boole
   const opened = model.enabled && model.open;
   return <div className="portal-shell flex h-screen w-full p-0 md:p-4">
     {children}
-    {model.enabled && !opened ? <button id={`${titleId}-trigger`} type="button" aria-label="Open Nara chat" aria-expanded={false} aria-controls={`${titleId}-panel`}
-      title="Chat with Nara" onClick={() => { model.setOpen(true); model.refreshAllowance(); }}
-      className="fixed bottom-[calc(100px+env(safe-area-inset-bottom))] right-5 z-40 flex h-24 w-24 items-center justify-center rounded-full border-0 bg-transparent transition-transform hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-green md:bottom-7 md:right-7 motion-reduce:transform-none">
-      <span className="inline-flex drop-shadow-[0_4px_7px_rgba(7,25,20,0.22)]"><NaraPortrait mood="follow" size={88} /></span>
-    </button> : null}
+    {model.enabled && !opened ? <NaraLauncher id={`${titleId}-trigger`} panelId={`${titleId}-panel`}
+      onOpen={() => { model.setOpen(true); model.refreshAllowance(); }} /> : null}
     <AnimatePresence initial={false}>
       {opened && docked ? <DesktopAssistantPanel key="desktop-assistant" model={model} titleId={titleId} member={user ?? undefined} width={width} onWidthChange={setWidth} /> : null}
     </AnimatePresence>

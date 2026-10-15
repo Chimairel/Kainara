@@ -5,7 +5,7 @@ import { useReducedMotion } from 'motion/react';
 import { Mascot } from '@/components/auth/NaraSprite';
 import { authMascotAssets } from '@/components/auth/AuthMascot';
 
-export type NaraMood = 'follow' | 'front' | 'thinking' | 'failed';
+export type NaraMood = 'follow' | 'front' | 'thinking' | 'failed' | 'smile';
 const thinkingGaze = ['up-left', 'center', 'up-right'] as const;
 
 /** One active portrait; message avatars stay still and install no pointer listeners. */
@@ -30,7 +30,7 @@ export default function NaraPortrait({ mood = 'front', size = 40 }: { mood?: Nar
       <Mascot directions={authMascotAssets.directions} reactions={authMascotAssets.reactions}
         size={size * 1.7} interactive={false} trackPointer={mood === 'follow' && !reducedMotion}
         direction={mood === 'follow' && !reducedMotion ? undefined : mood === 'thinking' && !reducedMotion ? thinkingGaze[step] : 'center'}
-        reaction={mood === 'failed' ? 'dizzy' : undefined} />
+        reaction={mood === 'failed' ? 'dizzy' : mood === 'smile' ? 'delighted' : undefined} />
     </span>
   </span>;
 }

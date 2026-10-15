@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import NaraPortrait from './NaraPortrait';
+import NaraLauncher from './NaraLauncher';
 import AssistantConversation from './AssistantConversation';
 import { DesktopAssistantPanel } from './MemberAssistantShell';
 import type { MemberAssistantModel } from './useMemberAssistant';
@@ -109,4 +110,42 @@ it('tracks the mouse only for the launcher, with no nested interactive portrait'
   expect(view.container.querySelector('button')).toBeNull();
   view.rerender(<NaraPortrait mood="front" />);
   expect(remove).toHaveBeenCalledWith('pointermove', expect.any(Function));
+});
+
+it('varies greetings on re-entry and clears the greeting and smile on activation', () => {
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false })));
+  const onOpen = vi.fn();
+  render(<NaraLauncher id="nara" panelId="chat" onOpen={onOpen} />);
+  const button = screen.getByRole('button', { name: 'Open Nara chat' });
+  fireEvent.pointerEnter(button.parentElement!);
+  const firstGreeting = screen.getByRole('tooltip').textContent;
+  expect(button.querySelector('[data-nara-mood]')).toHaveAttribute('data-nara-mood', 'smile');
+  fireEvent.pointerLeave(button.parentElement!);
+  expect(screen.queryByRole('tooltip')).toBeNull();
+  expect(button.querySelector('[data-nara-mood]')).toHaveAttribute('data-nara-mood', 'follow');
+  fireEvent.pointerEnter(button.parentElement!);
+  expect(screen.getByRole('tooltip').textContent).not.toBe(firstGreeting);
+  fireEvent.click(button);
+  expect(onOpen).toHaveBeenCalledOnce();
+  expect(screen.queryByRole('tooltip')).toBeNull();
+  expect(button.querySelector('[data-nara-mood]')).toHaveAttribute('data-nara-mood', 'follow');
+});
+
+it('does not reopen the tooltip or smile when the closed chat restores launcher focus', () => {
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false })));
+  render(<NaraLauncher id="nara" panelId="chat" onOpen={vi.fn()} />);
+  const button = screen.getByRole('button', { name: 'Open Nara chat' });
+  // jsdom does not model the browser's keyboard focus-visible heuristic.
+  const matches = button.matches.bind(button);
+  vi.spyOn(button, 'matches').mockImplementation(selector => selector === ':focus-visible' || matches(selector));
+  button.setAttribute('data-nara-restoring-focus', '');
+  act(() => button.focus());
+  button.removeAttribute('data-nara-restoring-focus');
+  expect(document.activeElement).toBe(button);
+  expect(screen.queryByRole('tooltip')).toBeNull();
+  expect(button.querySelector('[data-nara-mood]')).toHaveAttribute('data-nara-mood', 'follow');
+  act(() => { button.blur(); button.focus(); });
+  expect(screen.getByRole('tooltip')).toBeInTheDocument();
+  fireEvent.keyDown(button, { key: 'Escape' });
+  expect(screen.queryByRole('tooltip')).toBeNull();
 });
