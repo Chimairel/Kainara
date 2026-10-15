@@ -140,7 +140,7 @@ it('shows a timer, keeps typing available, and disables AI send and confirmation
     error: null, cooldownSeconds: 42, cooldownBlocksDraft: true, setDraft: vi.fn() } as unknown as MemberAssistantModel;
   const view = render(<AssistantConversation model={model} titleId="cooldown" />);
   expect(screen.getByRole('timer')).toHaveTextContent('0:42');
-  expect(screen.getByRole('textbox', { name: 'Message the assistant' })).toBeEnabled();
+  expect(screen.getByRole('combobox', { name: 'Message the assistant' })).toBeEnabled();
   expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled();
   expect(screen.getByText('Free system help is still available.')).toBeVisible();
   view.rerender(<AssistantConversation model={{ ...model, cooldownSeconds: 7205 }} titleId="cooldown" />);

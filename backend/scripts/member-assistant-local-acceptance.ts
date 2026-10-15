@@ -128,11 +128,13 @@ async function main() {
     const publicPlans = await (await fetch(`${origin}/api/membership/plans`)).json() as any;
     assert.deepEqual(publicPlans.data.assistant, { enabled: true, weeklyCredits: { FREE: 5, LIFESTYLE: 15, HEALTH: 30 } });
     pass('public plans expose enabled configured Nara benefits without private member usage');
-    const raw = { requestKey: randomUUID(), message: '/ai Chicken lunch under 500 kcal with at least 25 g protein' };
+    let raw = { requestKey: randomUUID(), message: 'Chicken lunch under 500 kcal with at least 25 g protein' };
     const preflight = await request(member, '/messages', raw);
     assert.equal(preflight.body.data.confirmationRequired, true);
     assert.equal(providerCalls, 0); assert.equal(await prisma.assistantRequest.count(), 0);
     pass('preflight and cancellation leave provider and credit ledger untouched');
+    // Composer canonicalizes only before admission; confirm/replay must use that same identity.
+    raw = { ...raw, message: `/ai ${raw.message}` };
     const forcedHelp = await request(member, '/messages', { requestKey: randomUUID(), message: '/ai why do I need to log my weight every week?' });
     assert.equal(forcedHelp.status, 200); assert.equal(forcedHelp.body.data.confirmationRequired, true);
     assert.equal(providerCalls, 0); assert.equal(await prisma.assistantRequest.count(), 0);

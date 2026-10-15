@@ -121,7 +121,7 @@ it('keeps the full accessible answer, withholds partial links/facts and blocks E
   expect(screen.getByRole('status').querySelectorAll('[data-nara-typing-dot]')).toHaveLength(3);
   expect(screen.queryByRole('link', { name: 'Help' })).not.toBeInTheDocument();
   expect(screen.queryByText('100 kcal')).not.toBeInTheDocument();
-  const input = screen.getByRole('textbox'); expect(input).toBeEnabled();
+  const input = screen.getByRole('combobox'); expect(input).toBeEnabled();
   fireEvent.keyDown(input, { key: 'Enter' }); fireEvent.submit(input.closest('form')!);
   expect(model.send).not.toHaveBeenCalled();
   expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled();

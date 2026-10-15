@@ -6,7 +6,8 @@ import * as Dialog from '@radix-ui/react-dialog';
 import Button from '@/components/ui/Button';
 import Avatar from '@/components/ui/Avatar';
 import NaraPortrait from './NaraPortrait';
-import { ArrowUp, ArrowUpRight, BookOpen, MessageSquare, Plus, Soup, X } from '@/components/ui/icons';
+import { ArrowUpRight, BookOpen, MessageSquare, Plus, Soup, X } from '@/components/ui/icons';
+import AssistantComposer from './AssistantComposer';
 import type { MemberAssistantModel } from './useMemberAssistant';
 import type { AssistantReply } from './types';
 
@@ -85,7 +86,6 @@ export default function AssistantConversation({ model, titleId, member, modal = 
   model: MemberAssistantModel; titleId: string; member?: { name: string; image?: string | null }; modal?: boolean;
 }) {
   const end = useRef<HTMLDivElement>(null);
-  const input = useRef<HTMLTextAreaElement>(null);
   const confirmation = useRef<HTMLElement>(null);
   const followReply = useRef(true);
   useEffect(() => {
@@ -95,10 +95,10 @@ export default function AssistantConversation({ model, titleId, member, modal = 
   useEffect(() => {
     if (followReply.current) end.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
   }, [model.typingReply]);
-  useEffect(() => { input.current?.focus(); }, []);
   useEffect(() => { if (model.pending && !model.busy) confirmation.current?.focus(); }, [model.pending, model.busy]);
   const reset = model.allowance ? new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(model.allowance.resetsAt)) : '';
   const disabled = model.busy || Boolean(model.pending) || Boolean(model.recoveryKey);
+  const composerDisabled = model.busy || Boolean(model.recoveryKey);
   const sendBlocked = disabled || Boolean(model.typingReply);
   const mood = model.busy ? 'thinking' : model.error || (model.pending && model.allowance?.remaining === 0) ? 'failed' : 'front';
   return <div className="flex h-full min-h-0 flex-col bg-brand-surface text-brand-text">
@@ -119,12 +119,11 @@ export default function AssistantConversation({ model, titleId, member, modal = 
       onScroll={event => { const node = event.currentTarget; followReply.current = node.scrollHeight - node.scrollTop - node.clientHeight < 48; }}>
       {!model.messages.length ? <div className="flex min-h-60 flex-col justify-center pb-8">
         <h3 className="font-display text-2xl font-semibold leading-tight">What would help<br />with your next meal?</h3>
-        <p className="mt-3 text-sm leading-6 text-brand-muted">Find meals, check what you’ve logged, or understand your saved nutrition guidance.</p>
+        <p className="mt-3 text-sm leading-6 text-brand-muted">App help and saved-information shortcuts are free. For an AI reply, type /ai, select it with Tab or Enter, then write your question. I’ll ask before using 1 credit.</p>
         <div className="mt-6 flex flex-col gap-2">{quickActions.map(({ action, label, icon: Icon }) => <button key={label} type="button" disabled={sendBlocked}
           onClick={() => model.send(action, label)} className="flex min-h-12 items-center gap-3 rounded-xl border border-brand-border px-4 py-3 text-left text-sm font-semibold transition-colors hover:bg-brand-bgAlt focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-40">
           <Icon className="h-4 w-4 text-brand-green" />{label}<ArrowUpRight className="ml-auto h-4 w-4 text-brand-muted" />
         </button>)}</div>
-        <p className="mt-4 text-xs leading-5 text-brand-muted">These shortcuts are free. I’ll ask before a request uses an AI credit.</p>
       </div> : <>
         <div role="log" aria-label="Assistant conversation" aria-live="polite" aria-relevant="additions" className="space-y-6">
           {model.messages.map(message => <div key={message.id} className={`flex items-end gap-2 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -160,7 +159,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
         <h3 className="text-sm font-semibold">This request uses 1 AI credit</h3>
         <p className="mt-2 text-xs leading-5 text-brand-muted">{model.allowance?.remaining ?? 0} credits remaining this week. AI replies depend on shared availability. Failed requests won’t spend a credit.</p>
         <div className="mt-4 flex gap-2">
-          <Button size="sm" onClick={model.confirm} disabled={!model.allowance?.remaining || model.cooldownSeconds > 0}>Continue</Button>
+          <Button size="sm" onClick={model.confirm} disabled={!model.allowance?.remaining || model.cooldownSeconds > 0 || model.draft.length > 1000}>Continue</Button>
           <Button size="sm" variant="secondary" onClick={model.cancel}>Cancel</Button>
         </div>
         {!model.allowance?.remaining ? <p className="mt-3 text-xs leading-5 text-brand-muted">Credits reset {reset}. Free shortcuts are still available after cancelling.</p> : null}
@@ -180,16 +179,8 @@ export default function AssistantConversation({ model, titleId, member, modal = 
         </div>
         <p className="mt-1 text-xs leading-5 text-brand-muted">Free system help is still available.</p>
       </div> : null}
-      <form onSubmit={event => { event.preventDefault(); if (!sendBlocked) model.send(); }} className="nara-composer flex items-end gap-2 rounded-2xl border border-brand-border bg-brand-bg p-2 focus-within:border-brand-muted">
-        <label htmlFor={`${titleId}-input`} className="sr-only">Message the assistant</label>
-        <textarea data-nara-composer ref={input} id={`${titleId}-input`} value={model.draft} onChange={event => model.setDraft(event.target.value)} maxLength={1000} rows={2}
-          aria-describedby={`${titleId}-command-help`}
-          placeholder="Ask about meals or your guidance…" disabled={disabled}
-          onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); if (!sendBlocked) model.send(); } }}
-          className="max-h-36 min-h-14 flex-1 resize-none border-0 bg-transparent p-2 text-sm leading-6 text-brand-text outline-none placeholder:text-brand-muted disabled:opacity-50" />
-        <Button type="submit" size="sm" disabled={sendBlocked || model.cooldownBlocksDraft || !model.draft.trim()} aria-label="Send message" className="!h-10 !w-10 !min-w-10 !rounded-xl !p-0"><ArrowUp className="h-5 w-5" /></Button>
-      </form>
-      <p id={`${titleId}-command-help`} className="mt-2 text-[11px] leading-4 text-brand-muted">Use /ai before your question for an AI reply. I’ll ask before using 1 credit.</p>
+      <AssistantComposer id={titleId} draft={model.draft} onChange={model.setDraft} onSend={() => model.send()}
+        disabled={composerDisabled} sendBlocked={sendBlocked} cooldownBlocked={model.cooldownBlocksDraft} />
       <p className="mt-2 text-[11px] leading-4 text-brand-muted">AI replies depend on shared availability and can misinterpret requests. Your saved guidance and RND decisions still apply.</p>
     </footer>
   </div>;

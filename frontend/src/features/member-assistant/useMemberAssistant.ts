@@ -7,6 +7,7 @@ import type { AssistantAction, AssistantAllowance, AssistantInput, AssistantResu
 import { assistantAiQuestion, assistantDirectAction, assistantStaticReply } from './assistant-information.generated';
 import { readAssistantSession, saveAssistantSession, type AssistantSession } from '@/lib/assistant-session';
 import { useAssistantTyping } from './useAssistantTyping';
+import { formatAiDraft } from './assistant-composer.policy';
 
 export const ASSISTANT_BALANCE_MAX_AGE_MS = 60_000;
 
@@ -17,6 +18,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
   const typing = useAssistantTyping(open);
   const finishTyping = typing.finish;
   const [draft, setDraft] = useState('');
+  const [draftEntryId, setDraftEntryId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatEntry[]>([]);
   const [allowance, setAllowance] = useState<AssistantAllowance | null>(null);
   const [pending, setPending] = useState<AssistantInput | null>(null);
@@ -43,7 +45,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
   const recoveryController = useRef<AbortController | null>(null);
   const recovering = useRef(false);
   const snapshot = useRef<AssistantSession | null>(null);
-  snapshot.current = ownerId ? { version: 1, owner: ownerId, createdAt: createdAt.current, open, draft, messages, pending, recoveryKey } : null;
+  snapshot.current = ownerId ? { version: 1, owner: ownerId, createdAt: createdAt.current, open, draft, messages, pending, recoveryKey, draftEntryId } : null;
 
   // Purely local countdown: no per-second status reads or automatic AI retry.
   useEffect(() => {
@@ -67,21 +69,29 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     const saved = readAssistantSession(ownerId);
     if (saved) {
       createdAt.current = saved.createdAt;
-      setMessages(saved.messages.map(item => ({ ...item, restored: true })));
-      setDraft(saved.draft); setOpen(saved.open); setPending(saved.pending); setRecoveryKey(saved.recoveryKey);
+      const restoredPending = saved.pending ? { ...saved.pending, message: formatAiDraft(saved.pending.message), action: undefined } : null;
+      const storedEntry = saved.messages.find(item => item.id === saved.draftEntryId && item.role === 'user');
+      const legacyEntry = saved.pending && !saved.recoveryKey ? saved.messages.filter(item => item.role === 'user').at(-1) : null;
+      const matchingLegacy = legacyEntry && formatAiDraft(legacyEntry.text) === restoredPending?.message ? legacyEntry : null;
+      const entryId = storedEntry?.id ?? matchingLegacy?.id ?? null;
+      setDraftEntryId(entryId);
+      setMessages(saved.messages.map(item => ({ ...item, restored: true,
+        ...(restoredPending && item.id === entryId ? { text: restoredPending.message } : {}) })));
+      setDraft(restoredPending?.message ?? saved.draft); setOpen(saved.open);
+      setPending(restoredPending && restoredPending.message.length <= 1000 ? restoredPending : null); setRecoveryKey(saved.recoveryKey);
       restoreRecovery.current = saved.recoveryKey;
     }
     setHydrated(true);
   }, [ready, ownerId]);
   useEffect(() => {
     if (hydrated && !storageBlocked.current && snapshot.current) saveAssistantSession(snapshot.current);
-  }, [hydrated, messages, draft, open, pending, recoveryKey]);
+  }, [hydrated, messages, draft, open, pending, recoveryKey, draftEntryId]);
   useEffect(() => {
     const clear = () => {
       storageBlocked.current = true;
       finishTyping();
       controller.current?.abort(); recoveryController.current?.abort();
-      setMessages([]); setDraft(''); setPending(null); setRecoveryKey(null); setRecoveryStatus(null); setOpen(false);
+      setMessages([]); setDraft(''); setDraftEntryId(null); setPending(null); setRecoveryKey(null); setRecoveryStatus(null); setOpen(false);
       setRetryUntil(0);
     };
     window.addEventListener('kainara:nara-session-cleared', clear);
@@ -143,7 +153,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     };
   }, [open, allowance, refreshAllowance]);
 
-  const request = async (input: AssistantInput) => {
+  const request = async (input: AssistantInput, entryId = draftEntryId) => {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusy(true); setError(null); setFailed(null);
@@ -153,7 +163,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     if (input.allowAi) {
       setRecoveryKey(input.requestKey); setPending(null);
       // Persist the key before starting paid work. Refresh may then recover it via GET, never replay POST.
-      if (!storageBlocked.current && snapshot.current) saveAssistantSession({ ...snapshot.current, recoveryKey: input.requestKey, pending: null });
+      if (!storageBlocked.current && snapshot.current) saveAssistantSession({ ...snapshot.current, recoveryKey: input.requestKey, pending: null, draftEntryId: null });
     }
     try {
       const config: ApiRequestConfig = { signal: abort.signal, skipTransientRetry: true, timeout: 90000 };
@@ -163,8 +173,15 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
       balanceRevision.current++;
       balance.current = { value: result.allowance, checkedAt: Date.now() };
       setAllowance(result.allowance);
-      if (result.confirmationRequired) { setPending({ ...input, requestKey: result.requestKey }); return; }
-      setPending(null); setRecoveryKey(null); setRecoveryStatus(null);
+      if (result.confirmationRequired) {
+        const message = formatAiDraft(input.message);
+        setDraft(message); setDraftEntryId(entryId);
+        setMessages(current => current.map(item => item.id === entryId ? { ...item, text: message } : item));
+        // Preflight admitted no work. Canonicalize before consent; never rewrite an admitted receipt.
+        setPending(message.length <= 1000 ? { ...input, message, action: undefined, allowAi: false, requestKey: result.requestKey } : null);
+        return;
+      }
+      setPending(null); setDraft(''); setDraftEntryId(null); setRecoveryKey(null); setRecoveryStatus(null);
       typing.start(`${input.requestKey}:reply`, result.reply.text);
       setMessages(current => [...current.slice(-39), {
         id: `${input.requestKey}:reply`, role: 'assistant', text: result.reply.text, reply: result.reply, createdAt: Date.now(),
@@ -183,6 +200,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
       // behind a receipt that will never exist after a known pre-admission rejection.
       if (response?.status === 429 || ['ASSISTANT_DISABLED', 'ASSISTANT_TOO_FAST', 'ASSISTANT_CREDITS_EXHAUSTED'].includes(getApiErrorCode(cause) ?? '')) {
         setRecoveryKey(null); setRecoveryStatus(null);
+        setDraftEntryId(entryId);
       } else if (input.allowAi) recoverAfterFailure = true;
       const errorCode = getApiErrorCode(cause);
       if (response?.status === 429) setDraft(input.message);
@@ -219,7 +237,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
           id: `${key}:reply`, role: 'assistant', text: reply.text, reply, restored: true,
           createdAt: result.completedAt && Number.isFinite(Date.parse(result.completedAt)) ? Date.parse(result.completedAt) : Date.now(),
         }]);
-        setRecoveryKey(null); setRecoveryStatus(null);
+        setRecoveryKey(null); setRecoveryStatus(null); setDraft(''); setDraftEntryId(null);
       } else if (result.status === 'RUNNING' || result.status === 'NOT_FOUND') {
         setRecoveryStatus(result.status === 'RUNNING'
           ? 'Your previous request is still running. Check its reply shortly; this will not call AI again.'
@@ -244,17 +262,22 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
 
   const send = (action?: AssistantAction, label?: string) => {
     const text = (label ?? draft).trim();
-    if (!text || text.length > 1000 || inFlight.current || pending || recoveryKey || typing.active.current) return;
+    if (!text || assistantAiQuestion(text) === '' || text.length > 1000 || inFlight.current || pending || recoveryKey || typing.active.current) return;
     if (cooldownUntil > Date.now() && !freeRequest(text, action)) return;
     const input: AssistantInput = {
       requestKey: crypto.randomUUID(), message: text, action, allowAi: false,
-      context: messages.slice(-6).map(item => ({ role: item.role, content: item.text.slice(0, 500) })),
+      context: messages.filter(item => item.id !== draftEntryId).slice(-6).map(item => ({ role: item.role, content: item.text.slice(0, 500) })),
     };
-    setMessages(current => [...current.slice(-39), { id: input.requestKey, role: 'user', text, createdAt: Date.now() }]);
+    const entryId = draftEntryId ?? input.requestKey;
+    setDraftEntryId(entryId);
+    setMessages(current => current.some(item => item.id === entryId)
+      ? current.map(item => item.id === entryId ? { ...item, text } : item)
+      : [...current.slice(-39), { id: entryId, role: 'user', text, createdAt: Date.now() }]);
     setDraft('');
     const information = assistantStaticReply(text, action);
     if (information) {
       setError(null); setFailed(null);
+      setDraftEntryId(null);
       typing.start(`${input.requestKey}:reply`, information.text);
       setMessages(current => [...current.slice(-39), {
         id: `${input.requestKey}:reply`, role: 'assistant', text: information.text,
@@ -263,18 +286,28 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
       }]);
       return;
     }
-    void request(input);
+    void request(input, entryId);
   };
 
   return {
-    enabled: enabled && ready, open, setOpen, draft, setDraft, messages, allowance, pending, error, busy, failed,
+    enabled: enabled && ready, open, setOpen, draft, setDraft: (value: string) => {
+      if (inFlight.current || recoveryKey) return;
+      if (value !== draft) { setPending(null); setFailed(null); setError(null); }
+      setDraft(value);
+    }, messages, allowance, pending, error, busy, failed,
     recoveryKey, recoveryStatus, checkRecovery: () => { void checkRecovery(); }, typingReply: typing.reply,
     cooldownSeconds, cooldownBlocksDraft: cooldownSeconds > 0 && !freeRequest(draft),
     send,
-    confirm: () => { if (pending && !inFlight.current && !typing.active.current && cooldownUntil <= Date.now()) void request({ ...pending, allowAi: true }); },
+    confirm: () => {
+      if (pending && pending.message === draft && draft.length <= 1000 && !inFlight.current && !typing.active.current && cooldownUntil <= Date.now()) {
+        const entryId = draftEntryId; setDraftEntryId(null); void request({ ...pending, allowAi: true }, entryId);
+      }
+    },
     cancel: () => {
+      if (!pending || inFlight.current) return;
       setPending(null);
-      setMessages(current => [...current.slice(-39), { id: crypto.randomUUID(), role: 'assistant', text: 'Cancelled. No AI credit was used.', createdAt: Date.now() }]);
+      setDraftEntryId(null);
+      setMessages(current => [...current.filter(item => item.id !== draftEntryId).slice(-39), { id: crypto.randomUUID(), role: 'assistant', text: 'Cancelled. No AI credit was used.', createdAt: Date.now() }]);
     },
     retry: () => {
       if (recoveryKey) { void checkRecovery(); return; }
@@ -285,7 +318,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     },
     newChat: () => {
       if (inFlight.current || recovering.current || typing.active.current) return;
-      setMessages([]); setDraft(''); setError(null); setPending(null); setFailed(null);
+      setMessages([]); setDraft(''); setDraftEntryId(null); setError(null); setPending(null); setFailed(null);
       setRecoveryKey(null); setRecoveryStatus(null); createdAt.current = Date.now();
     },
     refreshAllowance,

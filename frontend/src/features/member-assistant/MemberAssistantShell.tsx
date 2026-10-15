@@ -7,6 +7,7 @@ import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/
 import { useAuth } from '@/hooks/useAuth';
 import NaraLauncher from './NaraLauncher';
 import { useMemberAssistant, type MemberAssistantModel } from './useMemberAssistant';
+import { preserveComposerEscape } from './assistant-composer.policy';
 
 const AssistantConversation = dynamic(() => import('./AssistantConversation'));
 
@@ -116,7 +117,7 @@ export default function MemberAssistantShell({ ready, children }: { ready: boole
     <Dialog.Root open={opened && !docked} onOpenChange={model.setOpen}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[70] bg-brand-bg" />
-        <Dialog.Content id={`${titleId}-panel`} className="fixed inset-0 z-[71] h-dvh outline-none" aria-describedby={undefined}>
+        <Dialog.Content id={`${titleId}-panel`} className="fixed inset-0 z-[71] h-dvh outline-none" aria-describedby={undefined} onEscapeKeyDown={preserveComposerEscape}>
           <AssistantConversation model={model} titleId={titleId} member={user ?? undefined} modal />
         </Dialog.Content>
       </Dialog.Portal>

@@ -37,17 +37,17 @@ it('/ai bypasses prepared replies, asks for consent, and applies to one message 
   expect(api.post).toHaveBeenCalledTimes(2);
 });
 
-it('bare /ai explains the command and broad Library questions answer locally without a scheduled-meal lookup', async () => {
+it('bare /ai cannot be sent and broad Library questions answer locally without a scheduled-meal lookup', async () => {
   const { result } = renderHook(() => useMemberAssistant(true));
   await waitFor(() => expect(result.current.enabled).toBe(true));
   act(() => result.current.send(undefined, '/ai'));
-  expect(result.current.messages.at(-1)?.text).toContain('only to that message');
+  expect(result.current.messages).toHaveLength(0);
   act(() => result.current.send(undefined, 'can I eat every meal in the library?'));
   expect(result.current.messages.at(-1)?.text).toContain('not blanket permission');
   expect(api.post).not.toHaveBeenCalled();
   render(<AssistantConversation model={result.current} titleId="command-test" />);
   expect(screen.getByLabelText('Message the assistant')).toHaveAttribute('aria-describedby', 'command-test-command-help');
-  expect(screen.getByText(/Use \/ai before your question/)).toBeInTheDocument();
+  expect(screen.getByText(/Type \/ for commands/)).toBeInTheDocument();
 });
 
 it('answers blocking and starter help locally and distinguishes why from how without message API calls', async () => {
@@ -260,7 +260,7 @@ it('renders an inline confirmation only for paid AI requests and disables Contin
   expect(model.cancel).toHaveBeenCalledOnce();
   view.rerender(<AssistantConversation model={{ ...model, pending: null }} titleId="chat" />);
   expect(screen.queryByRole('region', { name: 'Confirm AI credit use' })).not.toBeInTheDocument();
-  expect(screen.getByRole('textbox', { name: 'Message the assistant' })).toBeEnabled();
+  expect(screen.getByRole('combobox', { name: 'Message the assistant' })).toBeEnabled();
 });
 
 it('mobile internal result links close the covering panel so the destination can be read', () => {

@@ -21,13 +21,14 @@ const pending = z.object({ requestKey: z.uuid(), message: z.string().min(1).max(
   context: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(500) }).strict()).max(6),
 }).strict();
 const schema = z.object({ version: z.literal(1), owner: z.string().min(1).max(200), createdAt: z.number().finite(),
-  open: z.boolean(), draft: z.string().max(1000), recoveryKey: z.uuid().nullable(), pending: pending.nullable(),
+  open: z.boolean(), draft: z.string().max(1004), recoveryKey: z.uuid().nullable(), pending: pending.nullable(),
+  draftEntryId: z.string().max(150).nullable().optional(),
   messages: z.array(z.object({ id: z.string().max(150), role: z.enum(['user', 'assistant']), text: z.string().max(8000),
     createdAt: z.number().finite().optional(), reply: reply.optional(),
   }).strict()).max(40),
 }).strict();
 export type AssistantSession = { version: 1; owner: string; createdAt: number; open: boolean; draft: string;
-  messages: ChatEntry[]; recoveryKey: string | null; pending: AssistantInput | null };
+  messages: ChatEntry[]; recoveryKey: string | null; pending: AssistantInput | null; draftEntryId?: string | null };
 const key = (owner: string) => `${ASSISTANT_SESSION_PREFIX}${encodeURIComponent(owner)}`;
 
 export function readAssistantSession(owner: string, now = Date.now()): AssistantSession | null {
