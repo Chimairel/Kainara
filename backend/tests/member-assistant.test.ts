@@ -113,6 +113,16 @@ test('parser rejects invented intents and invalid limits', () => {
   assert.equal(assistantInterpretationSchema.safeParse({ ...criteria, intent: 'UPDATE_PROFILE' }).success, false);
   assert.equal(assistantInterpretationSchema.safeParse({ ...criteria, minProteinG: -1 }).success, false);
 });
+test('parser accepts null unused text without relaxing requested meal constraints', () => {
+  const parsed = assistantInterpretationSchema.parse({ ...criteria, clarification: null, search: null,
+    mealType: 'DINNER', include: ['chicken'], minProteinG: 25 });
+  assert.equal(parsed.clarification, ''); assert.equal(parsed.search, '');
+  assert.equal(parsed.mealType, 'DINNER'); assert.equal(parsed.minProteinG, 25);
+  assert.deepEqual(parsed.include, ['chicken']);
+  for (const extra of [{ clarification: 123 }, { search: [] }, { minProteinG: '25' }, { include: null }, { maxFatG: -1 }]) {
+    assert.equal(assistantInterpretationSchema.safeParse({ ...criteria, ...extra }).success, false);
+  }
+});
 test('all meal constraints apply together and named pork exclusion catches bacon', () => {
   const meal = { mealName: 'Chicken with bacon', proteinG: 30, calories: 450, fatG: 15,
     ingredients: [{ ingredientName: 'chicken breast', foodItem: null }, { ingredientName: 'bacon', foodItem: null }] };

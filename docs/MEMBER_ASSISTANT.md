@@ -92,6 +92,12 @@ This feature branch has not applied its migration to Neon, changed hosted secret
 
 ## Verification
 
+### Provider null-field failure and immediate receipt recovery — October 15, 2026
+
+The local API recorded repeated `AI_INVALID_RESPONSE` / HTTP 502 failures because Gemini returned `clarification: null` for a meal search. The parser now normalizes null `clarification` and `search` to empty strings; all other intent, ingredient, enum and numeric checks remain strict, and the prompt explicitly requests empty strings for unused text. A paid POST failure triggers one owned receipt GET after the in-flight guard clears. Confirmed failures unlock the composer and state that no member credit was spent; running or uncertain delivery remains recoverable without replaying POST or polling. Admission rejections continue to unlock immediately.
+
+Verification: 26 backend assistant tests and 34 frontend assistant tests pass; backend build, frontend typecheck and scoped lint pass. A single confirmed real-provider browser request on the synthetic local member, “Chicken dinner with at least 25 g protein”, completed in 2,394 ms with HTTP 200 and a validated Gemini interpretation. It rendered the legitimate empty result for that fixture’s eligible catalogue, left the composer enabled, and changed its balance from 40 to 39. This verifies successful interpretation/rendering, not a positive recipe match or general model quality. Failure unlock and uncertain-delivery behavior are regression-tested with mocks. Screenshot: `codex_outputs/nara-search-fixed-20261015.png`. Local API restarted through the loopback guard. No Neon change, new migration or demo release.
+
 ### Browser help and balance cache — October 15, 2026
 
 23 focused frontend assistant tests and 16 backend tests pass. New coverage asserts zero POSTs for repeated help/navigation messages, a single initial status read, TTL reuse, concurrent refresh sharing, weekly reset, membership invalidation, stale-read protection, unmount cancellation and fresh-account isolation. Guide parity/CI checks, both production builds, backend test typecheck and scoped lint pass. Isolated browser checks answered system/weight questions and retained conversation on close/reopen; the local API's message POST count remained zero throughout those checks. Existing inline links still render and the Health balance remains 40/40. Screenshot: `codex_outputs/nara-browser-help-cache-20261015.png`. No real provider request, hosted query, migration or deployment was made.

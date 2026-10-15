@@ -124,6 +124,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     setBusy(true); setError(null); setFailed(null);
     const abort = new AbortController();
     controller.current = abort;
+    let recoverAfterFailure = false;
     if (input.allowAi) {
       setRecoveryKey(input.requestKey); setPending(null);
       // Persist the key before starting paid work. Refresh may then recover it via GET, never replay POST.
@@ -149,14 +150,17 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
       // behind a receipt that will never exist after a known pre-admission rejection.
       if (['ASSISTANT_DISABLED', 'ASSISTANT_TOO_FAST', 'ASSISTANT_CREDITS_EXHAUSTED'].includes(getApiErrorCode(cause) ?? '')) {
         setRecoveryKey(null); setRecoveryStatus(null);
-      }
+      } else if (input.allowAi) recoverAfterFailure = true;
       setError(getApiErrorMessage(cause, 'The assistant could not respond. Please try again.'));
       setFailed(input);
       setPending(null);
-      void refreshAllowance(true);
+      if (!recoverAfterFailure) void refreshAllowance(true);
     } finally {
       inFlight.current = false;
       if (alive.current) setBusy(false);
+      // A provider/HTTP failure may already have a final receipt. Check once
+      // immediately, unlocking known failures without replaying paid work.
+      if (recoverAfterFailure && alive.current && !abort.signal.aborted) void checkRecovery(input.requestKey);
     }
   };
 

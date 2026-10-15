@@ -128,3 +128,37 @@ it('a definite credit admission rejection unlocks free help instead of waiting f
   expect(result.current.messages.at(-1)?.text).toContain('Contact Support');
   expect(api.post).toHaveBeenCalledTimes(2);
 });
+
+it('a failed paid HTTP request checks its receipt once and unlocks a confirmed failure without another AI POST', async () => {
+  vi.mocked(api.post).mockResolvedValueOnce({ data: { data: { confirmationRequired: true, requestKey, cost: 1, allowance } } })
+    .mockRejectedValueOnce({ response: { status: 502, data: { error: 'AI could not return usable results.', errorCode: 'AI_INVALID_RESPONSE' } } });
+  vi.mocked(api.get).mockImplementation(async path => ({ data: { data: String(path).includes('/requests/')
+    ? { status: 'FAILED', allowance } : { enabled: true, allowance } } }));
+  const { result } = renderHook(() => useMemberAssistant(true, 'owner'));
+  await waitFor(() => expect(result.current.enabled).toBe(true));
+  act(() => result.current.send(undefined, 'Chicken dinner with at least 25 g protein'));
+  await waitFor(() => expect(result.current.pending).not.toBeNull());
+  act(() => result.current.confirm());
+  await waitFor(() => expect(result.current.messages.at(-1)?.text).toContain('No credit was spent'));
+  expect(result.current.recoveryKey).toBeNull(); expect(result.current.busy).toBe(false);
+  expect(vi.mocked(api.get).mock.calls.filter(([path]) => String(path).includes('/requests/'))).toHaveLength(1);
+  expect(api.post).toHaveBeenCalledTimes(2);
+  act(() => result.current.send(undefined, 'how to report issue?'));
+  expect(result.current.messages.at(-1)?.text).toContain('Contact Support');
+});
+
+it('uncertain delivery checks once but never replays or charges for a still-running request', async () => {
+  vi.mocked(api.post).mockResolvedValueOnce({ data: { data: { confirmationRequired: true, requestKey, cost: 1, allowance } } })
+    .mockRejectedValueOnce(new Error('Network error'));
+  vi.mocked(api.get).mockImplementation(async path => ({ data: { data: String(path).includes('/requests/')
+    ? { status: 'RUNNING', allowance } : { enabled: true, allowance } } }));
+  const { result } = renderHook(() => useMemberAssistant(true, 'owner'));
+  await waitFor(() => expect(result.current.enabled).toBe(true));
+  act(() => result.current.send(undefined, 'What is protein?'));
+  await waitFor(() => expect(result.current.pending).not.toBeNull());
+  act(() => result.current.confirm());
+  await waitFor(() => expect(result.current.recoveryStatus).toContain('still running'));
+  expect(result.current.recoveryKey).toBe(requestKey); expect(result.current.busy).toBe(false);
+  expect(api.post).toHaveBeenCalledTimes(2);
+  expect(vi.mocked(api.get).mock.calls.filter(([path]) => String(path).includes('/requests/'))).toHaveLength(1);
+});

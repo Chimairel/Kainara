@@ -16,8 +16,10 @@ const word = z.string().trim().min(1).max(60);
 const amount = z.number().finite().min(0).max(10000).nullable();
 export const assistantInterpretationSchema = z.object({
   intent: z.enum(['FIND_MEAL', 'FOOD_FACTS', 'NUTRITION_QUESTION', 'TODAY', 'GUIDANCE', 'CLARIFY', 'UNSUPPORTED']),
-  clarification: z.string().max(350),
-  search: z.string().max(80),
+  // Models commonly emit null for unused descriptive text. Normalize only this
+  // inert metadata; constraints, intent and ingredient lists remain strict.
+  clarification: z.string().max(350).nullable().transform(value => value ?? ''),
+  search: z.string().max(80).nullable().transform(value => value ?? ''),
   mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER']).nullable(),
   include: z.array(word).max(5),
   exclude: z.array(word).max(5),
@@ -49,4 +51,4 @@ No diagnosis, medical clearance, changes to targets, logging, meal generation, p
 Understand English, Tagalog and Bisaya. Normalize baboy to pork, manok to chicken, kamunggay to malunggay; use English ingredient search terms. Interpret negation carefully. include/exclude are ingredient keywords, not health/allergy profile edits.
 For FIND_MEAL use CLARIFY for ambiguous high/low/light filters without numeric amounts or unsupported nutrient filters (only protein minimum, calorie maximum and fat maximum are supported). This rule does not prohibit general explanations of high/low nutrients. Ask one short relevant question; do not guess limits.
 Preserve all requested criteria. For FIND_MEAL, search is a recipe-name phrase or empty; ingredient terms belong in include/exclude. Recipe filters are per recorded serving, excluding separately paired rice. For FOOD_FACTS, search is the named food identity for composition lookup, not a recipe filter.
-Return only JSON with EVERY field: intent, clarification, search, mealType (BREAKFAST/LUNCH/DINNER/null), include (array), exclude (array), minProteinG (number/null), maxCalories (number/null), maxFatG (number/null). Never invent nutrition or record IDs.`;
+Return only JSON with EVERY field: intent, clarification (string; use "" when not asking a question), search (string; use "" when unused), mealType (BREAKFAST/LUNCH/DINNER/null), include (array; [] when unused), exclude (array; [] when unused), minProteinG (number/null), maxCalories (number/null), maxFatG (number/null). Never invent nutrition or record IDs.`;

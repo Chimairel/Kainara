@@ -116,7 +116,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
         <div className="mt-6 flex flex-wrap gap-2">{quickActions.map(({ action, label }) => <button key={label} type="button" disabled={disabled} onClick={() => model.send(action, label)}
           className="min-h-9 rounded-lg border border-brand-border px-2.5 text-xs text-brand-muted hover:bg-brand-bgAlt focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-40">{label}</button>)}</div>
       </>}
-      {model.busy ? <p role="status" className="mt-5 text-sm text-brand-muted">Nara is thinking…</p> : null}
+      {model.busy ? <p role="status" className="mt-5 text-sm text-brand-muted">{model.recoveryStatus ? 'Checking your previous reply…' : 'Nara is thinking…'}</p> : null}
       {model.recoveryKey && !model.busy ? <section aria-label="Recover previous reply" className="mt-5 border-t border-brand-border pt-4 text-sm leading-6">
         <p>{model.recoveryStatus ?? 'Recover your previous reply without calling AI again.'}</p>
         <Button size="sm" variant="secondary" onClick={model.checkRecovery} className="mt-3">Check reply</Button>
