@@ -69,8 +69,11 @@ export function normalizeAssistantQuestion(message: string) {
 }
 
 /** Shared by the server fallback and the generated browser guide. */
-export function assistantDirectAction(message: string): 'GREETING' | 'TODAY' | 'GUIDANCE' | 'VIEW_PLAN' | 'CREDITS' | 'CURRENT_MEALS' | 'GROCERIES' | null {
+export function assistantDirectAction(message: string): 'GREETING' | 'TODAY' | 'GUIDANCE' | 'VIEW_PLAN' | 'CREDITS' | 'CURRENT_MEALS' | 'GROCERIES' | 'PLAN_STATUS' | 'MEAL_STATUS' | null {
   const text = normalizeAssistantQuestion(message);
+  if (/\b(can|may|could) i eat\b|\bis it safe (?:for me )?to eat\b|\b(is|are) .+ (safe|approved|cleared) for me\b|\b(pwede|puwede) (ba )?(akong |ako )?(kumain|kainin)\b|\b(pwede|puwede) ba (ang|sa akin|sakin)\b/.test(text)
+    || /\b(can|may|could) i have\b/.test(text) && !/\b(membership|subscription|lifestyle|health plan|free plan)\b/.test(text)) return 'MEAL_STATUS';
+  if (/\b(check|show|explain) my (planning|plan|meal) (status|hold)\b|\bwhy (am i|is my plan|is my meal) (blocked|locked|pending|held)\b|\bwhat is (blocking|holding) my plan\b|\b(ano|bakit).*(status ng plan ko|pending ang meal ko|locked ang plan ko)\b/.test(text)) return 'PLAN_STATUS';
   if (/^(hi|hello|hey|yo|yow|wassup|wazzup|whats up|whatsup|wzp|sup|kumusta|kamusta|musta|thanks|thank you|salamat|maayong (adlaw|buntag)|magandang (umaga|hapon|gabi)|good (morning|afternoon|evening))(?: nara)?$/u.test(text)) return 'GREETING';
   if (['help', 'what can you do'].includes(text)) return 'GREETING';
   if (['credits', 'my credits', 'ai credits'].includes(text) || /\bcredits?\b/.test(text) && /\b(how|what|when|balance|remaining|reset|used|renew|weekly|ilan|paano|kailan|ano|natitira)\b/.test(text)
@@ -93,7 +96,7 @@ export function assistantDirectAction(message: string): 'GREETING' | 'TODAY' | '
 /** No member facts or balance are inferred here. Dynamic shortcuts return null. */
 export function assistantStaticReply(message: string, action?: string): AssistantInformation | null {
   const direct = action ?? assistantDirectAction(message);
-  if (['TODAY', 'GUIDANCE', 'CURRENT_MEALS', 'GROCERIES'].includes(direct ?? '')) return null;
+  if (['TODAY', 'GUIDANCE', 'CURRENT_MEALS', 'GROCERIES', 'PLAN_STATUS', 'MEAL_STATUS'].includes(direct ?? '')) return null;
   if (direct === 'CREDITS') return {
     text: usesTagalog(normalizeAssistantQuestion(message))
       ? 'Isang Nara credit ang gamit ng bawat matagumpay na AI-assisted request. Hiwalay ang allowance para sa outside-food AI estimates. Libre ang app instructions, greetings at free shortcuts. Nagre-reset ang credits tuwing Lunes, 12:00 AM sa Pilipinas; hindi naiipon ang hindi nagamit. Ang balance sa ibaba ay huling na-check na balance. Maaaring pansamantalang unavailable ang AI dahil sa shared limits kahit may credits pa. Walang member credit na nagagastos sa failed request. Muling chine-check ng server ang allowance bago ang AI request.'
@@ -207,6 +210,8 @@ function needsAi(text: string) {
 
 export function assistantInformationReply(message: string): AssistantInformation | null {
   const text = normalizeAssistantQuestion(message);
+  const workflow = workflowInformation(text);
+  if (workflow) return workflow;
   // A question about personal dietary amounts is not app-calculation help.
   if (/\b(should|safe|allowed|prescribe|treat)\b/.test(text)
     && /\b(eat|consume|take|protein|carbs|fat|sodium|potassium|calories)\b/.test(text)
@@ -252,6 +257,66 @@ export function assistantInformationReply(message: string): AssistantInformation
   // and the server rejects unrelated scope. Explicit app-help ambiguities stay free above.
   if (/^(?:what is|whats|what are|tell me about|can you tell me about|could you explain|explain|how does|why|ano ang|unsa ang)\b/u.test(text)) return null;
   return fallbackInformation(text);
+}
+
+/** Specific purpose/requirement/troubleshooting intents precede broad navigation keywords. */
+function workflowInformation(text: string): AssistantInformation | null {
+  const tl = usesTagalog(text);
+  const result = (en: string, tagalog: string, links: AssistantInformation['links']) => ({ text: tl ? tagalog : en, links });
+  const progress = [{ label: 'Progress', href: '/progress' }, { label: 'Dashboard', href: '/dashboard' }];
+  const report = [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }];
+  const meals = [{ label: 'Meal plan', href: '/meals' }];
+  const questions = [...meals, { label: 'Health details', href: '/profile/clinical-evidence' }];
+  const weight = /\b(weight|timbang)\b/.test(text);
+  const weekly = /\b(weekly|every week|each week|check in|checkin|linggo|lingguhan)\b/.test(text);
+  const why = /\b(why|purpose|reason|bakit|para saan)\b/.test(text);
+  const requirement = /\b(must|required|mandatory|have to|need to|nothing changed|no change|unchanged|kailangan|walang nagbago|pareho)\b/.test(text);
+  if ((weight && (weekly || /\b(log|record|update|itala)\b/.test(text)) && (why || requirement))
+    || weekly && /\b(check in|checkin)\b/.test(text) && (why || requirement)) return result(
+    'Weekly check-ins help confirm whether the information used for planning has changed. Weight is one input to the energy estimate and weight history; it is not a test you must pass or a requirement to lose weight. The check-in has an unchanged-details option, so you do not have to invent a new measurement every week. If details changed, enter accurate updates and review any new Nutrition guidance before applying it to planning. Use the Dashboard check-in notice; ordinary weight entries are in Progress. A missed check-in is not automatically proof that all existing meals are blocked.',
+    'Kinukumpirma ng weekly check-in kung nagbago ang impormasyong gamit sa planning. Isa lang ang timbang sa inputs ng energy estimate; hindi ito pagsusulit o obligasyong pumayat. May opsyong walang nagbago, kaya hindi kailangang mag-imbento ng bagong timbang bawat linggo. Kung may pagbabago, ilagay ang tamang detalye at basahin ang bagong Nutrition guidance kung kailangan. Buksan ang check-in sa Dashboard; nasa Progress ang weight history. Hindi awtomatikong ibig sabihin ng missed check-in na locked ang lahat ng dating meals.',
+    [...progress, ...report]);
+  if (weekly && /\b(miss|missed|skip|forgot|late|nakalimutan|hindi)\b/.test(text)) return result(
+    'A missed check-in is recorded as missed, not silently treated as unchanged. Open the Dashboard check-in notice and confirm your current details when available, then review any new guidance. A check-in does not restart your trial. Whether planning or a particular meal is held depends on its current report, access and review status; do not assume every existing meal was cancelled. Ask “check my planning status” or open Meal plan for the current notices.',
+    'Ang missed check-in ay hindi itinuturing na sagot na walang nagbago. Buksan ang check-in sa Dashboard at kumpirmahin ang kasalukuyang detalye kapag available, saka basahin ang bagong guidance kung mayroon. Hindi nito nire-restart ang trial. Nakadepende ang hold sa report, access at review status. Puwedeng itanong ang “check my planning status”.', [...progress, ...meals]);
+  if (weight && /\b(cant|cannot|wont|failed|not saving|not save|error|hindi.*save|ayaw)\b/.test(text)) return result(
+    'Check the weight value and any validation message in Progress, then save it through the form. A weekly check-in that is not due is a different action from recording weight. Do not repeatedly submit if the first save may have completed; check the weight history first. If it still fails, send the page and error through Help. I have not saved a weight from chat.',
+    'Suriin ang timbang at validation message sa Progress. Magkaiba ang pag-log ng timbang at check-in na hindi pa due. Tingnan muna ang history bago paulit-ulit na mag-save. Kung ayaw pa rin, ipadala ang pahina at error sa Help. Walang na-save na timbang mula sa chat.', [...progress, { label: 'Help', href: '/help' }]);
+  if (/\b(acknowledge|acknowledgment|acknowledgement|acknowledged|acknowledging|apply|applying|accept|confirm|read|basahin|nabasa|iacknowledge)\b/.test(text)
+    && /\b(report|guidance|nutrition|planning)\b/.test(text)) return result(
+    'Nutrition guidance records the dated inputs and estimates used for planning. Reading it, acknowledging it, choosing “Use this report for meal planning”, and RND approval are different steps. Open Nutrition guidance and follow the available action for the correct version. A newer report or changed profile can need attention even if you acknowledged an older version. Ordinary planning changes may require Lifestyle, while case planning requires Health and required clearance. Acknowledging is not permission for a pending meal, and chat does not acknowledge or apply a report for you. If you are still blocked, ask “check my planning status”.',
+    'Magkaiba ang pagbasa, pag-acknowledge, pagpili ng “Use this report for meal planning”, at RND approval. Buksan ang Nutrition guidance at sundin ang action para sa tamang version. Maaaring may bagong report o profile update kahit na-acknowledge ang luma. Maaaring kailangan ang Lifestyle para sa ordinaryong pagbabago, o Health at clearance para sa case planning. Hindi nito inaaprubahan ang pending meal. Walang ina-apply na report mula sa chat. Para sa current status, itanong ang “check my planning status”.', report);
+  if (/\b(starter|bridge)\b/.test(text) && /\b(plan|plans|day|days|week|weekly|start|end|trial|bakit|ano|araw)\b/.test(text)
+    || /\b(plan|meals)\b/.test(text) && /\b(only one day|only three days|not seven days|not 7 days|isang araw|ilang araw)\b/.test(text)) return result(
+    'A starter plan bridges the days from when you begin until the next regular cycle. The regular seven-day cycle starts the day after your configured shopping day, so a starter can be as short as one day. Starter and weekly plans are separate selections, not a copy of the same day. Check the dates in Meal plan and your shopping settings in Food & planning. Preparing the next cycle still depends on current guidance, access and required reviews; it does not restart the trial or clear pending meals.',
+    'Ang starter plan ay para sa mga araw bago ang susunod na regular cycle. Nagsisimula ang regular na seven-day cycle sa araw pagkatapos ng nakatakdang shopping day, kaya puwedeng isang araw lang ang starter. Magkahiwalay ang starter at weekly selections. Tingnan ang dates sa Meal plan at shopping settings sa Food & planning. Kailangan pa rin ang current guidance, access at reviews; hindi nito nire-restart ang trial o inaaprubahan ang pending meals.', [...meals, { label: 'Food & planning', href: '/profile/planning' }]);
+  if (/\b(question|questions|clarification|clarify|answer|answered|tanong|sagot|nasagot)\b/.test(text)
+    && /\b(rnd|nutritionist|meal|profile|review|pending|health|saan|where)\b/.test(text)) return result(
+    'Answer a meal question in Meal plan and a profile question in Health details. They are separate workflows: a meal question pauses that meal; a profile clarification concerns the saved health context. After submitting, an RND still needs to review and resolve the answer—it is not automatically an approval or rejection. Check the form’s current status; do not delete your account to clear a hold. For a specific concern, contact support through Help.',
+    'Sagutin ang meal question sa Meal plan at profile question sa Health details. Magkahiwalay ang mga ito. Pagkasagot, kailangan pang i-review at i-resolve ng RND; hindi ito automatic approval o rejection. Tingnan ang form status. Hindi kailangang burahin ang account para mawala ang hold. Para sa concern, pumunta sa Help.', [...questions, { label: 'Help', href: '/help' }]);
+  if (/\b(profile|health details|health information|kondisyon)\b/.test(text)
+    && /\b(pending|review|approved|blocked|locked|again|still|bakit)\b/.test(text)) return result(
+    'Profile review confirms the recorded health context; it is separate from base recipe verification and each meal’s required case clearance. Changes to conditions, allergies or the review context can require another check. Open Health details for requested profile clarifications and Nutrition guidance for report actions. I cannot infer a reviewer’s private notes or promise a completion time. Ask “check my planning status” for the current public planning notice.',
+    'Magkaiba ang profile review, recipe verification at clearance ng meal. Maaaring kailanganin ang bagong review kapag may pagbabago sa kondisyon, allergy o review context. Tingnan ang Health details para sa profile questions at Nutrition guidance para sa report action. Hindi ko ipinapalagay ang private notes o oras ng approval. Puwedeng itanong ang “check my planning status”.', [...questions, ...report]);
+  if (/\b(pending|awaiting|waiting|flagged|approved|verified|cleared)\b/.test(text)
+    && /\b(meals?|recipe|eat|eaten|food|pagkain|ulam)\b/.test(text)) return result(
+    'Recipe verification, profile review and member-specific meal clearance are separate checks. A recipe marked verified is not automatically cleared for your profile. A pending or flagged meal must not be presented as approved; an older approval can stop matching after profile, ingredient, serving or evidence changes. Open Meal plan for its current notice. Ask “check my planning status”, or “can I eat [exact meal name]?” to inspect recorded plan status. Nara cannot approve a meal or promise when the RND will finish.',
+    'Magkaiba ang recipe verification, profile review at clearance ng meal para sa iyo. Hindi automatic personal approval ang verified recipe. Ang pending o flagged meal ay hindi pa cleared; puwedeng kailanganin ang bagong review kapag nagbago ang profile, sangkap, serving o evidence. Tingnan ang current notice sa Meal plan, o itanong ang “check my planning status”. Hindi ako nag-aapprove ng meal o nangangako ng oras ng RND review.', meals);
+  if (/\b(no meals|no meal|empty plan|missing meals|still preparing|next week|next cycle|walang meals|walang pagkain)\b/.test(text)
+    && /\b(why|where|when|how|cant|cannot|bakit|kailan|saan|prepare|loading)\b/.test(text)) return result(
+    'A plan or slot may still be preparing, waiting for required review, or missing an eligible candidate. Current and upcoming cycles have separate dates and clearance. Check Meal plan and use only the retry or preparation action offered there; repeated generation is not a way around a hold. An empty slot is a system limitation, not an instruction to skip eating. Ask “check my planning status” for current planning notices. For a persistent failure, send the date and error through Help.',
+    'Maaaring naghahanda pa ang plan, naghihintay ng review o walang eligible candidate. Magkahiwalay ang current at upcoming cycle. Tingnan ang Meal plan at gamitin lang ang available retry action; hindi nalalampasan ang hold sa paulit-ulit na generate. Hindi utos na huwag kumain ang empty slot. Para sa paulit-ulit na failure, ipadala ang date at error sa Help.', [...meals, { label: 'Help', href: '/help' }]);
+  if (/\b(swaps?|swapping|replace|replacement|palitan)\b/.test(text) && /\b(cant|cannot|why|no|none|empty|limit|failed|bakit|wala|ayaw)\b/.test(text)) return result(
+    'Swaps depend on remaining cycle allowance, the meal/cycle state and eligible replacement evidence. No results can mean no candidate meets the current filters or constraints; it is not permission to remove a declared allergy or condition. Compare the whole recorded serving, including paired rice, before confirming. A successful swap can recalculate grocery requirements. Check the current notice and allowance in Meal plan and Membership; persistent errors go to Help.',
+    'Nakadepende ang swap sa natitirang cycle allowance, meal status at eligible replacements. Maaaring walang pasok sa filters o restrictions; huwag alisin ang totoong allergy o kondisyon para lang may result. Ihambing ang buong serving kasama ang rice. Maaaring magbago ang groceries pagkatapos ng swap. Tingnan ang Meal plan at Membership; para sa error, pumunta sa Help.', [...meals, { label: 'Membership', href: '/membership' }, { label: 'Help', href: '/help' }]);
+  if (/\b(groceries|grocery|shopping list|checklist)\b/.test(text) && /\b(check|checked|tick|eaten|ate|amount|quantity|quantities|changed|bakit)\b/.test(text)) return result(
+    'A grocery checkbox tracks shopping, not food eaten. Ingredients by day are requirements for cleared scheduled meals; All days uses the cycle purchase checklist. Pending meals, later clearance and swaps can change the requirements. Check your pantry before buying; Nara does not infer pantry inventory or consumption from checked items.',
+    'Para sa shopping ang grocery checkbox, hindi sa pagkain ng meal. Ang Ingredients by day ay sangkap para sa cleared scheduled meals; cycle purchase checklist ang All days. Maaaring magbago ang listahan pagkatapos ng clearance o swap. Suriin muna ang pantry; hindi ipinapalagay ng chat ang stock o nakain mula sa checkboxes.', [{ label: 'Groceries', href: '/grocery' }]);
+  if (/\b(skip|skipped|yesterday|future|tomorrow|kahapon|bukas)\b/.test(text)
+    && /\b(eaten|done|mark|log|count|meal|intake|calories)\b/.test(text)) return result(
+    'Only food recorded as eaten contributes to consumed intake; a skipped or merely scheduled meal does not. You cannot mark a future meal eaten early. Past planned meals have a seven-day logging window and still need current clearance. Check the scheduled date and available action in Meal plan; History shows recorded entries. I have not changed any log.',
+    'Nakain na food logs lang ang kasama sa consumed intake; hindi ang skipped o scheduled lang. Hindi puwedeng mark eaten ang future meal. May seven-day logging window ang past planned meals at kailangan pa rin ang current clearance. Tingnan ang date at action sa Meal plan, at records sa History. Walang binagong log sa chat.', [...meals, { label: 'Meal history', href: '/meals?tab=history' }]);
+  return null;
 }
 
 /** Reviewed against NARA_SYSTEM_GUIDE.md and current routes; these replies require no account reads. */

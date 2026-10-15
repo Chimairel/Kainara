@@ -61,7 +61,7 @@ export class MemberAssistantService {
   static async message(userId: string, input: AssistantInput) {
     if (!assistantEnabled()) throw new AppError('The assistant is not enabled.', 404, 'ASSISTANT_DISABLED');
     const direct = input.action ?? assistantDirectAction(input.message);
-    if (direct === 'TODAY' || direct === 'GUIDANCE' || direct === 'CURRENT_MEALS' || direct === 'GROCERIES') {
+    if (direct === 'TODAY' || direct === 'GUIDANCE' || direct === 'CURRENT_MEALS' || direct === 'GROCERIES' || direct === 'PLAN_STATUS' || direct === 'MEAL_STATUS') {
       const reply = await this.direct(userId, direct, input.message);
       return { confirmationRequired: false as const, reply, allowance: await Usage.allowance(userId) };
     }
@@ -119,6 +119,8 @@ export class MemberAssistantService {
     if (action === 'TODAY') return this.today(userId);
     if (action === 'CURRENT_MEALS') return MemberAssistantPlanService.currentMeals(userId, message);
     if (action === 'GROCERIES') return MemberAssistantPlanService.groceries(userId);
+    if (action === 'PLAN_STATUS') return MemberAssistantPlanService.planningStatus(userId);
+    if (action === 'MEAL_STATUS') return MemberAssistantPlanService.mealStatus(userId, message);
     return this.guidance(userId);
   }
 

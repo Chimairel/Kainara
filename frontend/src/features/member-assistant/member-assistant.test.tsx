@@ -16,6 +16,22 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
+it('answers blocking and starter help locally and distinguishes why from how without message API calls', async () => {
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await waitFor(() => expect(result.current.enabled).toBe(true));
+  act(() => result.current.send(undefined, 'why do i need to log my weight every week?'));
+  expect(result.current.messages.at(-1)?.text).toContain('unchanged-details option');
+  act(() => result.current.send(undefined, 'how do I log my weight?'));
+  expect(result.current.messages.at(-1)?.text).toContain('Log today’s weight');
+  for (const question of ['why is the starter plan only one day?', 'I already read my nutrition report but am blocked',
+    'I answered the RND question, why is the meal still pending?', 'Bakit kailangan mag log ng timbang bawat linggo?']) {
+    act(() => result.current.send(undefined, question));
+    expect(result.current.messages.at(-1)?.reply?.creditsUsed).toBe(0);
+    expect(result.current.pending).toBeNull();
+  }
+  expect(api.post).not.toHaveBeenCalled(); expect(api.get).toHaveBeenCalledTimes(1);
+});
+
 it('answers membership comparisons, diabetes eligibility, Tagalog and slang locally at zero credits', async () => {
   vi.mocked(api.get).mockResolvedValue({ data: { data: { enabled: true, allowance: { ...allowance, used: 5, remaining: 0 } } } });
   const { result } = renderHook(() => useMemberAssistant(true));

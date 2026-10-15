@@ -151,6 +151,32 @@ async function main() {
     assert.equal(groceries.body.data.reply.creditsUsed, 0); assert.equal(providerCalls, 0);
     assert.equal(await prisma.assistantRequest.count(), 0);
     pass('free current menu and shared grocery day projection exclude held meals and other dates without spending');
+    for (const message of ['why do I need to log my weight every week?', 'what is a starter plan?', 'I answered the RND meal question, why is it still pending?']) {
+      const answer = await request(member, '/messages', { requestKey: randomUUID(), message });
+      assert.equal(answer.status, 200); assert.equal(answer.body.data.reply.source, 'SYSTEM');
+      assert.equal(answer.body.data.reply.creditsUsed, 0); assert.equal(answer.body.data.confirmationRequired, false);
+    }
+    pass('purpose, starter and clarification explanations are free through HTTP');
+    const planning = await request(member, '/messages', { requestKey: randomUUID(), message: 'check my planning status' });
+    assert.equal(planning.status, 200, JSON.stringify(planning.body));
+    assert.equal(planning.body.data.reply.creditsUsed, 0);
+    assert.match(planning.body.data.reply.text, /Latest guidance: version 1, acknowledged/);
+    assert.match(planning.body.data.reply.text, /not approval of every meal/);
+    pass('owned planning notices distinguish acknowledged guidance from meal approval');
+    const ambiguousMeal = await request(member, '/messages', { requestKey: randomUUID(), message: 'can I eat Synthetic chicken lunch if I have diabetes?' });
+    assert.equal(ambiguousMeal.status, 200);
+    assert.match(ambiguousMeal.body.data.reply.text, /I have not selected one/);
+    assert.match(ambiguousMeal.body.data.reply.text, /does not update or verify your profile/);
+    const exactMeal = await request(member, '/messages', { requestKey: randomUUID(), message: `can I eat Synthetic chicken lunch on ${getManilaDateKey(today)}?` });
+    assert.equal(exactMeal.status, 200);
+    assert.match(exactMeal.body.data.reply.text, /currently mark this recorded meal\/serving as cleared/);
+    const heldMeal = await request(member, '/messages', { requestKey: randomUUID(), message: 'can I eat Pending synthetic lunch today?' });
+    assert.equal(heldMeal.status, 200); assert.match(heldMeal.body.data.reply.text, /not currently cleared/);
+    const unownedMeal = await request(other, '/messages', { requestKey: randomUUID(), message: 'can I eat Synthetic chicken lunch today?' });
+    assert.equal(unownedMeal.status, 200); assert.match(unownedMeal.body.data.reply.text, /could not identify/);
+    assert.doesNotMatch(unownedMeal.body.data.reply.text, /currently mark this recorded meal/);
+    assert.equal(providerCalls, 0); assert.equal(await prisma.assistantRequest.count(), 0);
+    pass('dated personal meal checks preserve ambiguity, holds and member isolation without AI work');
     const consent = await request(member, '/messages', { ...raw, allowAi: true });
     assert.equal(consent.status, 200, JSON.stringify(consent.body));
     assert.equal(consent.body.data.reply.meals.length, 1);
@@ -203,6 +229,9 @@ async function main() {
     assert.equal(exhausted.status, 429); assert.equal(exhausted.body.errorCode, 'ASSISTANT_CREDITS_EXHAUSTED');
     assert.equal(providerCalls, 1);
     assert.equal((await request(member, '/messages', { requestKey: randomUUID(), message: 'hello' })).status, 200);
+    const freeExhausted = await request(member, '/messages', { requestKey: randomUUID(), message: 'check my planning status' });
+    assert.equal(freeExhausted.status, 200); assert.equal(freeExhausted.body.data.reply.creditsUsed, 0);
+    assert.equal(freeExhausted.body.data.allowance.remaining, 0); assert.equal(providerCalls, 1);
     pass('exhausted AI credits block provider work while free actions remain available');
     await prisma.mealLibrary.update({ where: { id: meal.id }, data: { status: 'FLAGGED' } });
     // Verify through the existing admission query independently of the provider/global RPM.

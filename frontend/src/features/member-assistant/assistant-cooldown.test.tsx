@@ -34,6 +34,24 @@ it('free current meal and day ingredients remain sendable at zero credits during
   expect(vi.mocked(api.post).mock.calls.every(([, body]) => !(body as { allowAi: boolean }).allowAi)).toBe(true);
 });
 
+it('free planning and meal status questions post without AI consent at zero credits during cooldown', async () => {
+  const exhausted = { ...allowance, remaining: 0, used: 5, nextAiRequestAt: '2026-10-15T14:01:00Z' };
+  vi.mocked(api.get).mockResolvedValue({ data: { data: { enabled: true, allowance: exhausted } } });
+  vi.mocked(api.post).mockResolvedValue({ data: { data: { confirmationRequired: false, allowance: exhausted,
+    reply: { text: 'Saved status, not medical clearance', source: 'SYSTEM', creditsUsed: 0 } } } });
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await act(async () => {});
+  for (const question of ['why is my meal pending?', 'can I eat adobo if I have diabetes?', 'Pwede ba ang sinigang kung may hypertension ako?']) {
+    act(() => result.current.setDraft(question));
+    expect(result.current.cooldownBlocksDraft).toBe(false);
+    await act(async () => result.current.send());
+    expect(result.current.messages.at(-1)?.reply?.source).toBe('SYSTEM');
+    expect(result.current.pending).toBeNull(); expect(result.current.allowance?.remaining).toBe(0);
+  }
+  expect(api.post).toHaveBeenCalledTimes(3);
+  expect(vi.mocked(api.post).mock.calls.every(([, body]) => !(body as { allowAi: boolean }).allowAi)).toBe(true);
+});
+
 it('counts down locally, preserves blocked drafts and allows free system help without extra reads', async () => {
   const { result } = renderHook(() => useMemberAssistant(true));
   await act(async () => {}); act(() => result.current.setOpen(true));

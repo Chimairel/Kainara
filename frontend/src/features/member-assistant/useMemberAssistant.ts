@@ -57,7 +57,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
   }, [open, cooldownUntil]);
   const freeRequest = (text: string, action?: AssistantAction) => {
     const direct = action ?? assistantDirectAction(text);
-    return Boolean(assistantStaticReply(text, action)) || ['TODAY', 'GUIDANCE', 'CURRENT_MEALS', 'GROCERIES'].includes(direct ?? '');
+    return Boolean(assistantStaticReply(text, action)) || ['TODAY', 'GUIDANCE', 'CURRENT_MEALS', 'GROCERIES', 'PLAN_STATUS', 'MEAL_STATUS'].includes(direct ?? '');
   };
 
   useEffect(() => {
