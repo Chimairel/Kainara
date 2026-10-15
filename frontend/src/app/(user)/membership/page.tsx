@@ -189,6 +189,7 @@ function MembershipContent() {
           currentTier={data?.enabled ? (data.tier ?? (data.enhanced ? 'HEALTH' : 'FREE')) : 'FREE'}
           currentLevel={currentLevel}
           limits={limits}
+          assistant={data?.enabled ? data.assistant : undefined}
           isFullScreenModal={true}
           isOpen={isPlansModalOpen}
           onClose={() => {

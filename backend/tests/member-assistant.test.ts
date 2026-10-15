@@ -93,7 +93,10 @@ test('information works at zero credits without provider calls, reservations, re
   mockDelegate(t, prisma.userProfile, 'update', async () => { throw new Error('no profile write'); });
   mockDelegate(t, prisma.mealLog, 'create', async () => { throw new Error('no meal log'); });
   for (const message of ['what is the system all about?', 'how to change my weight', 'change my plan', 'how to log an outside meal?',
-    'how do you calculate my kcal?', 'why is my daily target 2571?']) {
+    'how do you calculate my kcal?', 'why is my daily target 2571?', 'yo', 'yow', 'wassup', 'wzp',
+    'what are the differences between Lifestyle and Health?', 'what plan is best suited for me?',
+    'I have diabetes can I just go with Lifestyle?', 'Ano ang pagkakaiba ng Lifestyle at Health?',
+    'May diabetes ako, pwede ba Lifestyle?', 'Saan ko puwedeng baguhin ang kondisyon ko?', 'Marunong ka ba mag Tagalog?']) {
     for (const allowAi of [false, true]) {
       const result = await Assistant.message('member', { ...input(), message, allowAi });
       assert.equal(result.confirmationRequired, false);

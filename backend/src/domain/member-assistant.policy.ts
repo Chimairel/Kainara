@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { getManilaDateKey, getManilaMidnight } from './meal-plan-cycle.policy';
 import { membershipWeek, type MembershipTierName } from './membership.policy';
 export { assistantDirectAction } from './member-assistant-information';
+import { ASSISTANT_WEEKLY_CREDIT_DEFAULTS } from './member-assistant-information';
 
 export const assistantEnabled = () => process.env.MEMBER_ASSISTANT_ENABLED === 'true';
 export const ASSISTANT_COOLDOWN_MS = 60_000;
@@ -31,7 +32,7 @@ export type AssistantCriteria = z.infer<typeof assistantInterpretationSchema>;
 export function assistantLimits(tier: MembershipTierName, env: NodeJS.ProcessEnv = process.env) {
   // Conservative capstone allowances, not a claim about provider/project quota.
   // Shared admission remains authoritative; one reply can require two attempts.
-  const defaults = { FREE: 5, LIFESTYLE: 15, HEALTH: 30 } as const;
+  const defaults = ASSISTANT_WEEKLY_CREDIT_DEFAULTS;
   const limit = (fallback: number) => {
     const raw = env[`MEMBER_ASSISTANT_${tier}_WEEKLY_CREDITS`];
     if (raw === undefined || raw === '') return fallback;
@@ -39,6 +40,15 @@ export function assistantLimits(tier: MembershipTierName, env: NodeJS.ProcessEnv
     return +raw;
   };
   return { weekly: limit(defaults[tier]) };
+}
+
+/** Public benefit metadata only; no account lookup or receipt-table access. */
+export function assistantMembershipBenefits(env: NodeJS.ProcessEnv = process.env) {
+  if (env.MEMBER_ASSISTANT_ENABLED !== 'true') return { enabled: false as const };
+  return { enabled: true as const, weeklyCredits: {
+    FREE: assistantLimits('FREE', env).weekly, LIFESTYLE: assistantLimits('LIFESTYLE', env).weekly,
+    HEALTH: assistantLimits('HEALTH', env).weekly,
+  } };
 }
 
 export function assistantWindows(at: Date) {

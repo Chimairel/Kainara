@@ -21,6 +21,7 @@ import { getManilaDateKey, getManilaMidnight } from '@/domain/meal-plan-cycle.po
 import { lockUserProfile } from './profile-revision.service';
 import { testCheckoutConfig } from '@/domain/membership-checkout.policy';
 import { membershipTransitionView } from './membership-transition.service';
+import { assistantMembershipBenefits } from '@/domain/member-assistant.policy';
 
 type Client = Prisma.TransactionClient;
 const include = { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true };
@@ -381,6 +382,14 @@ export class MembershipService {
         })
       : 0;
     const swapsCap = membershipSwapCap(state, limits);
+    const assistantBenefits = assistantMembershipBenefits();
+    const assistantUsed = assistantBenefits.enabled ? await prisma.assistantRequest.count({ where: {
+      userId, createdAt: { gte: window.start, lt: window.end },
+      OR: [{ state: 'SUCCEEDED' }, { state: 'PENDING', leaseUntil: { gt: at } }],
+    } }) : 0;
+    const assistantTier = state.level === 'TRIAL_PENDING' ? 'FREE'
+      : state.tier === 'HEALTH' ? 'HEALTH' : state.tier === 'LIFESTYLE' ? 'LIFESTYLE' : 'FREE';
+    const assistantCap = assistantBenefits.enabled ? assistantBenefits.weeklyCredits[assistantTier] : 0;
     const checkoutConfig = testCheckoutConfig();
     const scheduledMemberships = checkoutConfig
       ? await prisma.membershipTestCheckout.findMany({
@@ -399,6 +408,8 @@ export class MembershipService {
     return {
       enabled: true as const,
       policyVersion: MEMBERSHIP_POLICY_VERSION,
+      assistant: assistantBenefits.enabled ? { ...assistantBenefits,
+        allowance: { used: assistantUsed, cap: assistantCap, remaining: Math.max(0, assistantCap - assistantUsed) } } : assistantBenefits,
       serverTime: at.toISOString(),
       level: state.level,
       enhanced: state.enhanced,

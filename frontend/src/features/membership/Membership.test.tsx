@@ -78,6 +78,22 @@ afterEach(() => {
   sessionStorage.clear();
 });
 describe('membership status and gates', () => {
+  it('shows configured Nara credits separately from outside estimates and hides them when disabled', () => {
+    state.data = { ...view(), assistant: { enabled: true, weeklyCredits: { FREE: 4, LIFESTYLE: 12, HEALTH: 24 },
+      allowance: { used: 3, cap: 24, remaining: 21 } } };
+    const rendered = render(<MembershipPage />);
+    expect(screen.getByLabelText('Nara AI credits: 21 of 24 remaining')).toBeInTheDocument();
+    expect(screen.getByLabelText('Outside-food AI estimates: 6 of 10 remaining')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'View plans' })[0]);
+    for (const cap of [4, 12, 24]) expect(screen.getByText(`${cap} Nara AI credits per week`)).toBeInTheDocument();
+    expect(screen.getByText('Free Nara app help without credits')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    state.data = { ...view(), assistant: { enabled: false } };
+    rendered.rerender(<MembershipPage />);
+    expect(screen.queryByText('Nara AI credits')).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'View plans' })[0]);
+    expect(screen.queryByText(/Nara AI credits per week/)).not.toBeInTheDocument();
+  });
   it('explains each planning benefit without treating individual assessment as guaranteed support', () => {
     render(<MembershipPage />);
     fireEvent.click(screen.getAllByRole('button', { name: 'View plans' })[0]);
@@ -95,7 +111,7 @@ describe('membership status and gates', () => {
   });
   it('keeps plans out of the allowance view and opens the shared accessible plan dialog', () => {
     render(<MembershipPage />);
-    expect(screen.getByLabelText('AI estimates: 6 of 10 remaining')).toBeInTheDocument();
+    expect(screen.getByLabelText('Outside-food AI estimates: 6 of 10 remaining')).toBeInTheDocument();
     expect(screen.getByLabelText('Meal swaps: 20 of 21 remaining')).toBeInTheDocument();
     expect(screen.queryByText('Replans')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Get Lifestyle', hidden: true })).not.toBeInTheDocument();
@@ -112,7 +128,7 @@ describe('membership status and gates', () => {
     expect(screen.getByText('10 meal swaps per cycle')).toBeInTheDocument();
     expect(screen.getByText('21 meal swaps per cycle')).toBeInTheDocument();
     expect(screen.queryByText(/optional replans/i)).not.toBeInTheDocument();
-    expect(screen.getByText('10 AI estimates per week')).toBeInTheDocument();
+    expect(screen.getByText('10 outside-food AI estimates per week')).toBeInTheDocument();
     expect(screen.getByText('1 RND plan review per week')).toBeInTheDocument();
     expect(screen.getByText('1 outside food review per week')).toBeInTheDocument();
     expect(screen.getByText(/Monday at midnight \(Philippine time\)/)).toBeInTheDocument();

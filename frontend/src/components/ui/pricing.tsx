@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import NumberFlow from '@number-flow/react';
 import { CheckCheck, X } from '@/components/ui/icons';
 import { motion, type Variants } from 'motion/react';
-import type { MembershipView } from '@/features/membership/MembershipProvider';
+import type { AssistantBenefits, MembershipView } from '@/features/membership/MembershipProvider';
 import { useMembershipCheckout } from '@/features/membership/useMembershipCheckout';
 import { checkoutSelectionKey, displayPrices, pendingMembershipSelection } from '@/features/membership/checkout';
 import api from '@/lib/axios';
@@ -23,6 +23,7 @@ export interface PricingProps {
   currentLevel?: 'FREE' | 'TRIAL_PENDING' | 'TRIAL' | 'MEMBER' | null;
   currentTier?: 'FREE' | 'LIFESTYLE' | 'HEALTH';
   limits?: Extract<MembershipView, { enabled: true }>['limits'];
+  assistant?: AssistantBenefits;
   onClose?: () => void;
   isFullScreenModal?: boolean;
   isOpen?: boolean;
@@ -94,6 +95,7 @@ export default function Pricing({
   currentLevel,
   currentTier,
   limits,
+  assistant,
   onClose,
   isFullScreenModal = false,
   isOpen = true,
@@ -101,6 +103,7 @@ export default function Pricing({
   const Heading = headingLevel;
   const [isYearly, setIsYearly] = useState(false);
   const [prices, setPrices] = useState(displayPrices);
+  const [publicAssistant, setPublicAssistant] = useState<AssistantBenefits>({ enabled: false });
   const [returnFocus] = useState(() =>
     typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null)
   );
@@ -150,6 +153,11 @@ export default function Pricing({
       .get('/membership/plans', { signal: controller.signal })
       .then((response) => {
         const p = response.data.data?.prices;
+        const benefits = response.data.data?.assistant;
+        if (benefits?.enabled === true && ['FREE', 'LIFESTYLE', 'HEALTH'].every(tier =>
+          Number.isSafeInteger(benefits.weeklyCredits?.[tier]) && benefits.weeklyCredits[tier] >= 0)) {
+          setPublicAssistant(benefits);
+        } else setPublicAssistant({ enabled: false });
         if (
           p &&
           ['LIFESTYLE', 'HEALTH'].every((tier) =>
@@ -172,6 +180,8 @@ export default function Pricing({
     memberOutsideReviews: 1,
   };
 
+  const assistantBenefits = assistant ?? publicAssistant;
+  const naraCredits = assistantBenefits.enabled ? assistantBenefits.weeklyCredits : null;
   const plans = [
     {
       tier: 'FREE' as const,
@@ -187,7 +197,8 @@ export default function Pricing({
         'Apply weight updates to your meal planning',
         'Free first report and unchanged weekly report activation',
         `${l.freeSwaps} meal swaps per cycle`,
-        `${l.freeEstimates} AI estimates per week`,
+        `${l.freeEstimates} outside-food AI estimates per week`,
+        ...(naraCredits ? [`${naraCredits.FREE} Nara AI credits per week`, 'Free Nara app help without credits'] : []),
         'Groceries, manual food logging and saved records',
       ],
     },
@@ -206,7 +217,8 @@ export default function Pricing({
         'Apply shopping-day changes through your nutrition report',
         'Progress insights and adaptive weekly check-ins',
         `${l.lifestyleSwaps} meal swaps per cycle`,
-        `${l.memberEstimates} AI estimates per week`,
+        `${l.memberEstimates} outside-food AI estimates per week`,
+        ...(naraCredits ? [`${naraCredits.LIFESTYLE} Nara AI credits per week`] : []),
       ],
     },
     {
@@ -220,6 +232,7 @@ export default function Pricing({
       featuresHeading: 'Everything in Lifestyle, plus:',
       features: [
         `${l.healthSwaps} meal swaps per cycle`,
+        ...(naraCredits ? [`${naraCredits.HEALTH} Nara AI credits per week`] : []),
         { label: 'Planning for conditions and restrictions needing review', details: 'HEALTH' as const },
         'New case plans subject to required clearance',
         `${l.memberPlanReviews} RND plan review${l.memberPlanReviews === 1 ? '' : 's'} per week`,

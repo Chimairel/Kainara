@@ -110,6 +110,13 @@ export const membershipChapter: DocsChapter = {
             current configured limits.
           </p>
           <p>
+            When Nara is enabled, its default weekly AI credits are Free 5, Lifestyle 15 and Health 30, including an
+            active Health trial. These are separate from outside-food AI estimates, swaps and RND reviews. App help
+            does not use credits. One completed AI request uses one credit; failed requests do not spend member credits.
+            Credits reset Monday at midnight in Manila and do not roll over. Shared AI availability and cooldowns still
+            apply; check Membership and Nara for the configured allowances and current balance.
+          </p>
+          <p>
             Estimate and requested outside-review weeks reset Monday at midnight in Manila. Swaps follow each plan
             cycle; plan-review episodes follow the target plan week. One outside-review episode covers the items in one
             logged meal. Failed operations and retries do not spend additional credits. Safety checks and follow-up

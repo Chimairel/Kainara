@@ -7,7 +7,9 @@ import { formatMembershipDate } from './MembershipPlanHeader';
 export default function PlanStatisticsCard({ data }: { data: Extract<MembershipView, { enabled: true }> }) {
   const allowances = [
     { name: 'Meal swaps', period: 'This cycle', ...data.swaps },
-    { name: 'AI estimates', period: 'This week', ...data.usage.AI_ESTIMATE },
+    { name: 'Outside-food AI estimates', period: 'This week', ...data.usage.AI_ESTIMATE },
+    ...(data.assistant?.enabled && data.assistant.allowance
+      ? [{ name: 'Nara AI credits', period: 'This week · separate from outside-food estimates', ...data.assistant.allowance }] : []),
     { name: 'Plan reviews', period: 'Target week', ...data.usage.PLAN_REVIEW },
     { name: 'Outside reviews', period: 'This week', ...data.usage.OUTSIDE_REVIEW },
   ];

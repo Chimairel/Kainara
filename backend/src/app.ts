@@ -36,6 +36,7 @@ import membershipRouter from '@/routes/membership.routes';
 import memberAssistantRouter from '@/routes/member-assistant.routes';
 import membershipPaymentRouter from '@/routes/membership-payment.routes';
 import { MEMBERSHIP_PRICES, testCheckoutConfig } from '@/domain/membership-checkout.policy';
+import { assistantMembershipBenefits } from '@/domain/member-assistant.policy';
 
 // Initialize Express app
 const app = express();
@@ -106,6 +107,7 @@ app.get('/api/membership/plans', (_req, res) => {
     success: true,
     data: {
       prices: MEMBERSHIP_PRICES,
+      assistant: assistantMembershipBenefits(),
       currency: 'PHP',
       mode: 'TEST',
       autoRenews: false,

@@ -1,5 +1,6 @@
 /** Reviewed navigation help, kept with the app code; no provider, embeddings or database writes. */
 export type AssistantInformation = { text: string; links: Array<{ label: string; href: string }> };
+export const ASSISTANT_WEEKLY_CREDIT_DEFAULTS = { FREE: 5, LIFESTYLE: 15, HEALTH: 30 } as const;
 type HelpTopic = AssistantInformation & { id: string; subject: RegExp; purpose?: RegExp };
 
 const edit = /\b(change|update|edit|correct|record|log|enter|add|save|set|baguhin|palitan|iupdate|ilagay|usbon|iusab)\b/;
@@ -50,9 +51,6 @@ const topics: HelpTopic[] = [
   { id: 'guidance', subject: /\b(nutrition (?:guidance|report)|saved guidance)\b/,
     text: 'Open Nutrition guidance to read your saved planning estimates, nutrient references and their sources. Use the report page to review its current status.',
     links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
-  { id: 'membership', subject: /\b(membership|subscription|upgrade|lifestyle|health plan|free plan)\b/,
-    text: 'Open Membership to compare the available plans and see your current access. The page shows the current benefits and available membership actions.',
-    links: [{ label: 'Membership', href: '/membership' }] },
   { id: 'export', subject: /\b(export|download)\b.*\b(data|records|nutrition|summary|pdf)\b/,
     text: 'Open Export to see the data and nutrition-summary downloads available for your account.',
     links: [{ label: 'Export', href: '/export' }] },
@@ -73,9 +71,10 @@ export function normalizeAssistantQuestion(message: string) {
 /** Shared by the server fallback and the generated browser guide. */
 export function assistantDirectAction(message: string): 'GREETING' | 'TODAY' | 'GUIDANCE' | 'VIEW_PLAN' | 'CREDITS' | 'CURRENT_MEALS' | 'GROCERIES' | null {
   const text = normalizeAssistantQuestion(message);
-  if (/^(hi|hello|hey|thanks|thank you|salamat|maayong (adlaw|buntag)|good (morning|afternoon|evening))$/u.test(text)) return 'GREETING';
+  if (/^(hi|hello|hey|yo|yow|wassup|wazzup|whats up|whatsup|wzp|sup|kumusta|kamusta|musta|thanks|thank you|salamat|maayong (adlaw|buntag)|magandang (umaga|hapon|gabi)|good (morning|afternoon|evening))(?: nara)?$/u.test(text)) return 'GREETING';
   if (['help', 'what can you do'].includes(text)) return 'GREETING';
-  if (['credits', 'my credits', 'ai credits'].includes(text) || /\bcredits?\b/.test(text) && /\b(how|what|when|balance|remaining|reset|used|renew|weekly)\b/.test(text)) return 'CREDITS';
+  if (['credits', 'my credits', 'ai credits'].includes(text) || /\bcredits?\b/.test(text) && /\b(how|what|when|balance|remaining|reset|used|renew|weekly|ilan|paano|kailan|ano|natitira)\b/.test(text)
+    && !/\b(compare|difference|lifestyle|health|free plan|pagkakaiba)\b/.test(text)) return 'CREDITS';
   if (['todays nutrition', 'daily summary', 'nutrition today'].includes(text)) return 'TODAY';
   // These reads use today's Manila date, never infer a different day or a prescribed food.
   const anotherDay = /\b(tomorrow|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|\b\d{4} \d{2} \d{2}\b/.test(text);
@@ -96,7 +95,9 @@ export function assistantStaticReply(message: string, action?: string): Assistan
   const direct = action ?? assistantDirectAction(message);
   if (['TODAY', 'GUIDANCE', 'CURRENT_MEALS', 'GROCERIES'].includes(direct ?? '')) return null;
   if (direct === 'CREDITS') return {
-    text: 'One successful AI-assisted request uses one Nara credit. Outside-food AI estimates have a separate allowance. I ask before calling AI. App instructions, greetings and free shortcuts do not spend credits. Credits reset on Monday at 12:00 AM in the Philippines; unused credits do not roll over. The balance below is the last checked balance. Weekly credits are an allowance, not reserved Gemini capacity: shared AI limits can temporarily pause requests even when credits remain. Failed requests do not spend member credits. The server checks your current allowance before any AI request.',
+    text: usesTagalog(normalizeAssistantQuestion(message))
+      ? 'Isang Nara credit ang gamit ng bawat matagumpay na AI-assisted request. Hiwalay ang allowance para sa outside-food AI estimates. Libre ang app instructions, greetings at free shortcuts. Nagre-reset ang credits tuwing Lunes, 12:00 AM sa Pilipinas; hindi naiipon ang hindi nagamit. Ang balance sa ibaba ay huling na-check na balance. Maaaring pansamantalang unavailable ang AI dahil sa shared limits kahit may credits pa. Walang member credit na nagagastos sa failed request. Muling chine-check ng server ang allowance bago ang AI request.'
+      : 'One successful AI-assisted request uses one Nara credit. Outside-food AI estimates have a separate allowance. I ask before calling AI. App instructions, greetings and free shortcuts do not spend credits. Credits reset on Monday at 12:00 AM in the Philippines; unused credits do not roll over. The balance below is the last checked balance. Weekly credits are an allowance, not reserved Gemini capacity: shared AI limits can temporarily pause requests even when credits remain. Failed requests do not spend member credits. The server checks your current allowance before any AI request.',
     links: [{ label: 'View membership', href: '/membership' }],
   };
   if (direct === 'VIEW_PLAN') return {
@@ -107,17 +108,90 @@ export function assistantStaticReply(message: string, action?: string): Assistan
     links: [{ label: 'Browse meals without AI', href: '/meals?tab=library' }],
   };
   if (direct === 'GREETING') return {
-    text: 'Hi, I’m Nara. Ask me how to use KAINARA, report an issue, find meals or learn about food and nutrition. App instructions are free. I can also show today’s recorded nutrition and saved guidance. I ask before using an AI credit. Explore Docs & Help for more instructions.',
+    text: usesTagalog(normalizeAssistantQuestion(message))
+      ? 'Kumusta! Ako si Nara. Puwede kang magtanong sa Tagalog o Taglish tungkol sa KAINARA, membership, pagkain at nutrisyon. Libre ang gabay sa paggamit ng app. Hihingi muna ako ng pahintulot bago gumamit ng AI credit. May mga gabay din sa Docs & Help.'
+      : 'Hi, I’m Nara. Ask me how to use KAINARA, report an issue, find meals or learn about food and nutrition. App instructions are free. I can also show today’s recorded nutrition and saved guidance. I ask before using an AI credit. Explore Docs & Help for more instructions.',
     links: [{ label: 'Docs & Help', href: '/docs' }],
   };
   return assistantInformationReply(message);
 }
 
 const choices: AssistantInformation = {
-  text: 'Which part of KAINARA do you mean? I can explain weight tracking in Progress, your Meal plan, Membership, profile settings or other app features. You can also browse Docs & Help. These instructions are free. For a specific concern, you can contact support through Help.',
-  links: [{ label: 'Progress', href: '/progress' }, { label: 'Meal plan', href: '/meals' },
-    { label: 'Membership', href: '/membership' }, { label: 'Docs & Help', href: '/docs' }, { label: 'Help', href: '/help' }],
+  text: 'Which part of KAINARA do you mean? Tell me the page or what you want to do. I can explain app features and help with food and nutrition questions. You can browse Docs & Help for app instructions. For a specific concern, you can contact support through Help.',
+  links: [{ label: 'Docs & Help', href: '/docs' }, { label: 'Help', href: '/help' }],
 };
+
+function usesTagalog(text: string) {
+  return /\b(ano|anong|paano|saan|nasan|bakit|alin|aling|pwede|puwede|magkano|pagkakaiba|ako|ko|ba|po|mga|meron|mayroon|gusto|kailangan|piliin|baguhin|palitan|timbang|ngayon|kumusta|kamusta|musta|salamat|magandang|tagalog|taglish)\b/.test(text);
+}
+function fallbackInformation(text: string): AssistantInformation {
+  return usesTagalog(text) ? {
+    text: 'Aling bahagi ng KAINARA ang tinutukoy mo? Sabihin ang pahina o kung ano ang gusto mong gawin. Puwede kang magtanong tungkol sa app, pagkain at nutrisyon. May mga gabay sa Docs & Help. Para sa partikular na concern, makipag-ugnayan sa support sa Help.',
+    links: choices.links,
+  } : choices;
+}
+
+/** General plan guidance, not an inferred entitlement, diagnosis or checkout action. */
+function membershipInformation(text: string): AssistantInformation | null {
+  const comparing = /\b(compare|comparison|difference|differences|different|versus|vs|pagkakaiba|kaibahan|ikumpara)\b/.test(text);
+  const planSubject = /\b(plans?|membership|subscription|benefits?|perks?|tier|trial|upgrade|renew|price|cost|magkano|pagkakaiba)\b/.test(text);
+  const named = /\b(membership|subscription|lifestyle|health plan|free plan|paid plan|premium)\b/.test(text)
+    || planSubject && /\b(free|health)\b/.test(text)
+    || comparing && /\bfree\b/.test(text) && /\bhealth\b/.test(text)
+    || /^(?:(?:what|how) about |paano naman )?(?:free|health)(?: plan)?$/.test(text);
+  const choosing = /\b(best|better|suit|suited|suitable|choose|pick|recommend|right|bagay|piliin|alin|aling|pinakamaganda)\b/.test(text);
+  const genericPlan = /\bplans?\b/.test(text) && (comparing || choosing) && !/\b(meal|diet|eating|workout)\b/.test(text);
+  if (!named && !genericPlan) return null;
+  // An ordinary lifestyle/nutrition question is not a subscription question.
+  if (!planSubject && !comparing && !choosing && /\b(eat|consume|food|nutrition|protein|calories|diet|healthy lifestyle)\b/.test(text)) return null;
+  const tl = usesTagalog(text);
+  const links = [{ label: 'Membership', href: '/membership' }, { label: 'Health & goals', href: '/profile/health' }];
+  if (/\b(my current|my membership|my subscription|do i have|am i on|which plan am|anong plan ko|aking plan|plan ko ngayon)\b/.test(text)
+    && !comparing && !choosing) return {
+    text: tl ? 'Makikita sa Membership ang iyong kasalukuyang plan, dates, natitirang allowances at scheduled plan. Hindi ko ipinapalagay ang iyong entitlement mula sa tanong.'
+      : 'Membership shows your current plan, dates, remaining allowances and any scheduled plan. I have not checked or inferred your entitlement from this question.', links: [links[0]],
+  };
+  if (/\b(diabet(?:es|ic)|hypertension|kidney|heart|conditions?|kondisyon|sakit|pregnan\w*)\b/.test(text)) return {
+    text: tl
+      ? 'Sa KAINARA, kapag may nakatalang kondisyon tulad ng diabetes, kailangan ang Health access at kinakailangang RND clearance para sa personalized case planning. Hindi ito nabubuksan ng Lifestyle. Puwede pa ring gamitin ang available na libreng tracking at saved records. Ang aktibong 30-day Health trial ay may Health access; hindi ito nagsisimula habang naghihintay pa ng review. Hindi awtomatikong naaaprubahan ang profile o meals kapag bumili ng Health. Panatilihing tama ang kondisyon sa Health & goals at tingnan ang status sa Membership. Hindi ko pa sinuri ang iyong account mula sa tanong na ito.'
+      : 'In KAINARA, a saved condition such as diabetes requires Health access and the required RND clearance for personalized case planning. Lifestyle does not unlock that workflow. Available Free tracking and saved records remain accessible. An active 30-day Health trial includes Health access; waiting for review does not start it. Buying Health does not automatically approve a profile or meal. Keep declarations accurate in Health & goals and check your actual status in Membership. I have not checked your account from this question.', links,
+  };
+  if (/\b(trial|pagsubok)\b/.test(text)) return {
+    text: tl
+      ? 'Ang 30-day Health trial ay nagsisimula kapag available na ang unang cleared current meal plan mo. Hindi ito nagsisimula habang pending review o para lang sa future plan. Kasama ang Health benefits at default na 30 Nara AI credits bawat linggo, hindi 30 credits bawat araw. Hindi nare-reset ang trial sa check-in o bagong plan. Tingnan ang aktuwal na dates at allowances sa Membership.'
+      : 'The 30-day Health trial starts when your first cleared current meal plan becomes available, not while review is pending or only a future plan exists. It includes Health benefits and a default 30 Nara AI credits per week, not per day. Check-ins and new plans do not restart the trial. Membership shows your actual dates and configured allowances.', links: [links[0]],
+  };
+  if (/\b(renew|renewal|cancel|charge|payment|pay|billing|monthly|yearly|price|cost|magkano|bayad)\b/.test(text)) return {
+    text: tl
+      ? 'May monthly at yearly na pagpipilian sa Membership. Tingnan ang kasalukuyang presyo at quote bago magpatuloy. Ang checkout na kasalukuyang implemented ay PayMongo test mode at walang automatic renewal. Ang pag-renew o paglipat ng plan ay may sariling effective dates; hindi binabago ng chat ang subscription o nagkukumpirma ng payment. Para sa payment concern, pumunta sa Help.'
+      : 'Membership offers monthly and yearly options and shows the current prices and quote before checkout. The currently implemented checkout is PayMongo test mode with no automatic renewal. Renewal and plan changes have their own effective dates; chat does not change your subscription or confirm payment. For a payment concern, contact support through Help.', links: [links[0], { label: 'Help', href: '/help' }],
+  };
+  const c = ASSISTANT_WEEKLY_CREDIT_DEFAULTS;
+  return {
+    text: tl
+      ? `Free: general meal planning gamit ang eligible saved report, tracking at basic allowances. Lifestyle: para sa ordinaryong pagbabago sa goals, activity, preferences at supported allergies, mas maraming swaps at progress insights. Health: may Lifestyle features at case-planning/RND review allowances para sa mga kondisyong nangangailangan ng review. Default Nara AI credits bawat linggo: Free ${c.FREE}, Lifestyle ${c.LIFESTYLE}, Health ${c.HEALTH}. Hiwalay ang outside-food AI estimates, swaps at RND review allowances. Kung sapat ang basic tracking at stable planning, maaaring sapat ang Free; para sa routine planning changes, tingnan ang Lifestyle; para sa declared conditions o restrictions na kailangang i-review, Health at kinakailangang clearance. Hindi ko ipinapalagay ang iyong profile. Tingnan ang aktuwal na configured limits at eligibility sa Membership; hindi garantiya ng agarang AI availability ang credits.`
+      : `Free supports general meal planning with an eligible saved report, tracking and basic allowances. Lifestyle adds ordinary goal, activity, preference and supported-allergy planning changes, more swaps and progress insights. Health adds case planning and bounded RND review allowances for conditions requiring review. Default weekly Nara AI credits: Free ${c.FREE}, Lifestyle ${c.LIFESTYLE}, Health ${c.HEALTH}. Outside-food AI estimates, meal swaps and RND reviews have separate allowances. Free may suit basic tracking and stable planning; Lifestyle supports routine planning changes; declared conditions or restrictions needing review require Health access and required clearance. I have not inferred your profile. Membership shows actual configured limits and eligibility; credits do not guarantee immediate AI availability.`, links,
+  };
+}
+
+function tagalogNavigation(text: string): AssistantInformation | null {
+  if (!usesTagalog(text)) return null;
+  if (/\b(tagalog|taglish|filipino)\b/.test(text) && /\b(speak|understand|answer|reply|talk|pwede|puwede|marunong|ka|can)\b/.test(text)) return {
+    text: 'Oo, puwede kang mag-Tagalog o Taglish. Libre ang nakahandang gabay tungkol sa KAINARA, membership at mga karaniwang tanong sa paggamit ng app. Kapag hindi malinaw ang tanong, hihingi ako ng paglilinaw. Ang mas malawak na tanong sa pagkain o nutrisyon ay maaaring gumamit ng AI; hihingi muna ako ng pahintulot bago gumastos ng credit.', links: [{ label: 'Docs & Help', href: '/docs' }],
+  };
+  if (/\b(report|magreport|ireport|reklamo|support|issue|bug|problem)\b/.test(text) && /\b(paano|saan|nasan|gusto|kailangan|pwede|puwede)\b/.test(text)) return {
+    text: 'Pumunta sa Contact Support para mag-report ng issue. Ilagay ang apektadong pahina, inaasahan mong mangyari at kung ano ang nangyari. Suriin ang reply email bago isumite. Hindi pa ako nagpapadala ng report mula sa chat.', links: [{ label: 'Contact Support', href: '/help' }],
+  };
+  if (/\b(paano|saan|nasan)\b/.test(text) && /\b(baguhin|palitan|update|change|edit|iupdate|itago|itala|record)\b/.test(text)) {
+    if (/\b(timbang|weight)\b/.test(text) && !/\b(target|goal)\b/.test(text)) return {
+      text: 'Para itala ang kasalukuyang timbang, pumunta sa Progress at piliin ang “Log today’s weight”. Ilagay ang timbang sa kilograms at i-save. Makikita rin doon ang weight history. Hindi binabago ng chat ang iyong timbang.', links: [{ label: 'Progress', href: '/progress' }],
+    };
+    if (/\b(kondisyon|condition|conditions|allergy|allergies|target|goal)\b/.test(text)) return {
+      text: 'Pumunta sa Health & goals para baguhin ang iyong saved health information. Piliin ang Body & goals o Conditions & allergies at i-save ang tamang detalye. Maaaring kailanganin ang bagong review bago magamit ang pagbabago sa planning.', links: [{ label: 'Health & goals', href: '/profile/health' }],
+    };
+  }
+  return null;
+}
 
 /** General food/nutrition questions proceed to the consent-based server classifier too. */
 function needsAi(text: string) {
@@ -137,6 +211,8 @@ export function assistantInformationReply(message: string): AssistantInformation
   if (/\b(should|safe|allowed|prescribe|treat)\b/.test(text)
     && /\b(eat|consume|take|protein|carbs|fat|sodium|potassium|calories)\b/.test(text)
     && /\b(diabetes|diabetic|kidney|hypertension|pregnant|heart|condition)\b/.test(text)) return null;
+  const localHelp = tagalogNavigation(text) ?? membershipInformation(text);
+  if (localHelp) return localHelp;
   // Identify the member's app estimate independently of a particular number,
   // unit abbreviation or word order. Do not interpret typed values as saved facts.
   const ownEstimate = /\b(my|mine|our|kainara|system|app)\b/.test(text);
@@ -162,7 +238,7 @@ export function assistantInformationReply(message: string): AssistantInformation
   };
   const matches = topics.filter(topic => topic.subject.test(text)
     && (topic.purpose ? topic.purpose.test(text) || /\b(where|saan|asa)\b/.test(text) : navigate.test(text) || edit.test(text) || text.split(' ').length <= 3));
-  if (matches.length > 1 && !(matches.length === 2 && matches[0].id === 'body' && matches[1].id === 'weight')) return choices;
+  if (matches.length > 1 && !(matches.length === 2 && matches[0].id === 'body' && matches[1].id === 'weight')) return fallbackInformation(text);
   if (matches.length) return { text: matches[0].text, links: matches[0].links };
   if (/\bprofile\b/.test(text) && (edit.test(text) || navigate.test(text))) return {
     text: 'Open your Profile to choose Personal details, Health & goals, Food & planning, Nutrition guidance or Security & privacy. Select the section you want to review; this chat does not edit it.',
@@ -171,11 +247,11 @@ export function assistantInformationReply(message: string): AssistantInformation
   // An uncertain app question gets free clarification, never a speculative provider call.
   if (needsAi(text)) return null;
   if (/\b(system|app|kainara|nara|settings?|profile|account|credits?|membership|subscription|plan|onboarding)\b/.test(text)
-    || edit.test(text) && navigate.test(text)) return choices;
+    || edit.test(text) && navigate.test(text)) return fallbackInformation(text);
   // A food name need not appear in a browser-side vocabulary. Interpretation still requires consent,
   // and the server rejects unrelated scope. Explicit app-help ambiguities stay free above.
   if (/^(?:what is|whats|what are|tell me about|can you tell me about|could you explain|explain|how does|why|ano ang|unsa ang)\b/u.test(text)) return null;
-  return choices;
+  return fallbackInformation(text);
 }
 
 /** Reviewed against NARA_SYSTEM_GUIDE.md and current routes; these replies require no account reads. */

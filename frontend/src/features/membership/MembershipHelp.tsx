@@ -8,7 +8,8 @@ export default function MembershipHelp() {
         <p>
           Your 30-day Health trial starts with your first usable current meal plan. Pending review does not start it.
         </p>
-        <p>Meal swaps apply to a plan cycle. AI estimates and outside reviews reset weekly in Philippine time.</p>
+        <p>Meal swaps apply to a plan cycle. Outside-food AI estimates and outside reviews reset weekly in Philippine time.</p>
+        <p>Nara, when enabled, has separate weekly AI credits. App help is free. One completed AI request uses one credit; failed requests do not spend credits. Shared capacity and cooldowns still apply.</p>
         <p>
           One plan review covers a weekly plan, including its meal decisions and follow-up. It is not a charge per meal.
         </p>

@@ -16,6 +16,23 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
+it('answers membership comparisons, diabetes eligibility, Tagalog and slang locally at zero credits', async () => {
+  vi.mocked(api.get).mockResolvedValue({ data: { data: { enabled: true, allowance: { ...allowance, used: 5, remaining: 0 } } } });
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await waitFor(() => expect(result.current.enabled).toBe(true));
+  for (const question of ['yo', 'yow', 'wassup', 'wzp', 'kumusta', 'Marunong ka ba mag Tagalog?',
+    'what are the differences between this plan and that plan?', 'what plan is best suited for me?',
+    'I have diabetes can I just go with Lifestyle?', 'Ano ang pagkakaiba ng Lifestyle at Health?',
+    'May diabetes ako pwede ba Lifestyle?', 'Saan ko puwedeng baguhin ang kondisyon ko?']) {
+    act(() => result.current.send(undefined, question));
+    expect(result.current.messages.at(-1)?.reply?.creditsUsed).toBe(0);
+    expect(result.current.messages.at(-1)?.reply?.source).toBe('SYSTEM');
+    expect(result.current.pending).toBeNull();
+  }
+  expect(api.post).not.toHaveBeenCalled(); expect(api.get).toHaveBeenCalledTimes(1);
+  expect(result.current.allowance?.remaining).toBe(0);
+});
+
 it('answers the reported kcal and numbered-target questions locally without credit consent or message POSTs', async () => {
   vi.mocked(api.get).mockResolvedValue({ data: { data: { enabled: true, allowance: { ...allowance, used: 5, remaining: 0 } } } });
   const { result } = renderHook(() => useMemberAssistant(true));

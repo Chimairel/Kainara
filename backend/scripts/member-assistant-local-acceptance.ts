@@ -109,7 +109,8 @@ async function main() {
     return { response: { text: () => JSON.stringify({ intent: 'FIND_MEAL', clarification: '', search: '', mealType: 'LUNCH', include: ['chicken'], exclude: [], minProteinG: 25, maxCalories: 500, maxFatG: null }) } };
   } })) as typeof originalModel;
   const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
-  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/user/assistant`;
+  const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const base = `${origin}/api/user/assistant`;
   const request = async (actor: typeof member | null, path = '', body?: unknown) => {
     const response = await fetch(base + path, { method: body ? 'POST' : 'GET', headers: {
       'Content-Type': 'application/json', ...(actor ? { Authorization: `Bearer ${signAccessToken({ userId: actor.id, email: actor.email, role: actor.role })}` } : {}),
@@ -124,6 +125,9 @@ async function main() {
     pass('authenticated member role boundary');
     for (const [actor, cap] of [[member, 5], [lifestyle, 15], [health, 30]] as const) assert.equal((await request(actor)).body.data.allowance.cap, cap);
     pass('real Free/Lifestyle/Health entitlement grants');
+    const publicPlans = await (await fetch(`${origin}/api/membership/plans`)).json() as any;
+    assert.deepEqual(publicPlans.data.assistant, { enabled: true, weeklyCredits: { FREE: 5, LIFESTYLE: 15, HEALTH: 30 } });
+    pass('public plans expose enabled configured Nara benefits without private member usage');
     const raw = { requestKey: randomUUID(), message: 'Chicken lunch under 500 kcal with at least 25 g protein' };
     const preflight = await request(member, '/messages', raw);
     assert.equal(preflight.body.data.confirmationRequired, true);
@@ -153,6 +157,21 @@ async function main() {
     assert.equal(consent.body.data.reply.meals[0].id, meal.id);
     assert.equal(consent.body.data.allowance.remaining, 4); assert.equal(providerCalls, 1);
     pass('confirmed request retrieves a real admitted fixture and spends one credit');
+    for (const [actor, cap, used] of [[member, 5, 1], [lifestyle, 15, 0], [health, 30, 0]] as const) {
+      const response = await fetch(`${origin}/api/user/membership`, { headers: {
+        Authorization: `Bearer ${signAccessToken({ userId: actor.id, email: actor.email, role: actor.role })}`,
+      } });
+      assert.equal(response.status, 200);
+      const view = (await response.json() as any).data;
+      assert.deepEqual(view.assistant.allowance, { cap, used, remaining: cap - used });
+      assert.equal(view.usage.AI_ESTIMATE.used, 0, 'chat never spends the separate outside estimate counter');
+    }
+    pass('membership returns owned Nara balance matching admission, separately from food estimates');
+    process.env.MEMBER_ASSISTANT_ENABLED = 'false';
+    const disabledPlans = await (await fetch(`${origin}/api/membership/plans`)).json() as any;
+    assert.deepEqual(disabledPlans.data.assistant, { enabled: false });
+    process.env.MEMBER_ASSISTANT_ENABLED = 'true';
+    pass('disabled assistant is not advertised in public plan benefits');
     const replay = await request(member, '/messages', raw);
     assert.equal(replay.body.data.replayed, true); assert.equal(providerCalls, 1);
     assert.equal(replay.body.data.allowance.remaining, 4);
