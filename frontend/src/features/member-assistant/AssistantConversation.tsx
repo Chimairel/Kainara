@@ -8,6 +8,7 @@ import Avatar from '@/components/ui/Avatar';
 import NaraPortrait from './NaraPortrait';
 import { ArrowUpRight, BookOpen, MessageSquare, Plus, Soup, X } from '@/components/ui/icons';
 import AssistantComposer from './AssistantComposer';
+import { assistantQuestionText } from './assistant-composer.policy';
 import type { MemberAssistantModel } from './useMemberAssistant';
 import type { AssistantReply } from './types';
 
@@ -100,11 +101,11 @@ export default function AssistantConversation({ model, titleId, member, modal = 
   const disabled = model.busy || Boolean(model.pending) || Boolean(model.recoveryKey);
   const composerDisabled = model.busy || Boolean(model.recoveryKey);
   const sendBlocked = disabled || Boolean(model.typingReply);
-  const mood = model.busy ? 'thinking' : model.error || (model.pending && model.allowance?.remaining === 0) ? 'failed' : 'front';
+  const mood = model.busy ? 'thinking' : model.error || (model.pending && model.allowance?.remaining === 0) ? 'failed' : 'follow';
   return <div className="flex h-full min-h-0 flex-col bg-brand-surface text-brand-text">
     <header className="flex shrink-0 items-center justify-between gap-2 border-b border-brand-border px-5 py-3">
       <div className="flex min-w-0 items-center gap-2">
-        <NaraPortrait mood={mood} size={48} />
+        <NaraPortrait mood={mood} size={64} />
         <div className="min-w-0">{modal
         ? <Dialog.Title className="font-display text-lg font-semibold">Nara</Dialog.Title>
         : <h2 id={titleId} className="font-display text-lg font-semibold">Nara</h2>}
@@ -135,7 +136,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
               <p className="whitespace-pre-wrap break-words text-sm leading-6">{model.typingReply?.id === message.id ? <>
                 <span aria-hidden="true">{model.typingReply.text}<span className="ml-0.5 inline-block h-3.5 w-0.5 translate-y-0.5 bg-brand-muted" /></span>
                 <span className="sr-only">{message.text}</span>
-              </> : <ReplyText text={message.text} links={message.reply?.links} onNavigate={modal ? () => model.setOpen(false) : undefined} />}</p>
+              </> : <ReplyText text={message.role === 'user' ? assistantQuestionText(message.text) : message.text} links={message.reply?.links} onNavigate={modal ? () => model.setOpen(false) : undefined} />}</p>
               {message.restored && message.createdAt ? <p className={`mt-2 text-[11px] ${message.role === 'user' ? '' : 'text-brand-muted'}`}>Earlier · {new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(message.createdAt)}</p> : null}
               {model.typingReply?.id === message.id ? <div className="mt-1"><TypingDots label="Nara is typing…" /></div> : null}
               {message.reply && model.typingReply?.id !== message.id ? <ReplyDetails reply={message.reply} onNavigate={modal ? () => model.setOpen(false) : undefined} /> : null}

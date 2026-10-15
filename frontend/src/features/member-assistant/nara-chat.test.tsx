@@ -16,6 +16,40 @@ const model = {
 } as unknown as MemberAssistantModel;
 afterEach(() => { motionPreferences.reduced = false; vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
+it('uses larger launcher and header portraits while keeping conversation avatars still', () => {
+  Element.prototype.scrollIntoView = vi.fn();
+  const launcher = render(<NaraLauncher id="larger-nara" panelId="chat" onOpen={vi.fn()} />);
+  expect(launcher.container.querySelector('[data-nara-mood]')).toHaveStyle({ width: '104px', height: '104px' });
+  expect(screen.getByRole('button', { name: 'Open Nara chat' })).toHaveClass('h-28', 'w-28');
+  launcher.unmount();
+  const chat = render(<AssistantConversation model={{ ...model, messages: [{ id: 'greeting', role: 'assistant', text: 'Hello' }] }} titleId="larger" />);
+  const portraits = chat.container.querySelectorAll('[data-nara-mood]');
+  expect(portraits[0]).toHaveStyle({ width: '64px', height: '64px' });
+  expect(portraits[0]).toHaveAttribute('data-nara-mood', 'follow');
+  expect(portraits[1]).toHaveStyle({ width: '32px' });
+  expect(portraits[1]).toHaveAttribute('data-nara-mood', 'front');
+  chat.rerender(<AssistantConversation model={{ ...model, busy: true }} titleId="larger" />);
+  expect(chat.container.querySelector('[data-nara-mood]')).toHaveAttribute('data-nara-mood', 'thinking');
+});
+
+it('lets the idle header follow the pointer and returns to a static center for reduced motion', () => {
+  Element.prototype.scrollIntoView = vi.fn();
+  vi.stubGlobal('matchMedia', vi.fn((query: string) => ({ matches: query.includes('pointer: fine') })));
+  const pointers = vi.spyOn(window, 'addEventListener');
+  const view = render(<AssistantConversation model={model} titleId="following" />);
+  expect(pointers.mock.calls.filter(([type]) => type === 'pointermove')).toHaveLength(1);
+  const headerSprite = view.container.querySelector('header [style*="directions"]') as HTMLElement;
+  const sprite = headerSprite.parentElement!.parentElement!;
+  vi.spyOn(sprite, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 64, bottom: 64, width: 64, height: 64, toJSON() {} });
+  const frame = vi.spyOn(window, 'requestAnimationFrame');
+  fireEvent(window, new MouseEvent('pointermove', { clientX: 400, clientY: 32 }));
+  act(() => { frame.mock.calls.at(-1)?.[0](0); });
+  expect(headerSprite.style.backgroundPosition).toBe('100% 50%');
+  motionPreferences.reduced = true;
+  view.rerender(<AssistantConversation model={model} titleId="following" />);
+  expect(headerSprite.style.backgroundPosition).toBe('50% 50%');
+});
+
 it('loops the thinking gaze in order, faces front afterwards, and clears its timer', () => {
   vi.useFakeTimers();
   const view = render(<NaraPortrait mood="thinking" />);

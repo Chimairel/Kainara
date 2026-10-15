@@ -18,6 +18,7 @@ export default function AssistantComposer({ id, draft, onChange, onSend, disable
   const keyDelete = useRef(false);
   const selection = useRef([0, 0]);
   const [announcement, setAnnouncement] = useState('');
+  const [scrollTop, setScrollTop] = useState(0);
   const menu = !active && !disabled && !dismissed && /^\/(?:a|ai)?$/i.test(draft.trimStart());
   const tooLong = draft.length > 1000;
   const clearSelection = () => { armed.current = false; setSelected(false); };
@@ -66,8 +67,9 @@ export default function AssistantComposer({ id, draft, onChange, onSend, disable
     </div> : null}
     <form onSubmit={event => { event.preventDefault(); if (menu) selectAi(); else if (!sendBlocked && !cooldownBlocked && !tooLong && body.trim()) onSend(); }}
       className="nara-composer flex items-end gap-2 rounded-2xl border border-brand-border bg-brand-bg p-2 focus-within:border-brand-muted">
-      {active ? <span data-nara-ai-chip aria-hidden="true"
-        className={`mb-6 mt-2 shrink-0 rounded-md border px-2 py-0.5 text-sm font-semibold ${selected ? 'border-brand-green bg-brand-green text-brand-surface' : 'border-brand-border bg-brand-bgAlt text-brand-green'}`}>/ai</span> : null}
+      <div className="relative min-w-0 flex-1 overflow-hidden">
+      {active ? <span data-nara-ai-prefix aria-hidden="true" style={{ transform: `translateY(-${scrollTop}px)` }}
+        className={`pointer-events-none absolute left-2 top-2 rounded-sm px-0.5 text-sm font-bold leading-6 ${selected ? 'bg-brand-green text-brand-surface' : 'bg-brand-green/10 text-brand-green'}`}>/ai</span> : null}
       <label htmlFor={`${id}-input`} className="sr-only">Message the assistant</label>
       <textarea data-nara-composer ref={input} id={`${id}-input`} value={body} disabled={disabled} rows={2}
         data-nara-command-selected={selected || undefined}
@@ -75,6 +77,8 @@ export default function AssistantComposer({ id, draft, onChange, onSend, disable
         role="combobox" aria-autocomplete="list" aria-expanded={menu} aria-controls={menu ? `${id}-commands` : undefined}
         aria-activedescendant={menu ? `${id}-ai-option` : undefined} aria-describedby={`${id}-command-help`}
         aria-invalid={tooLong || undefined}
+        style={{ textIndent: active ? '2em' : undefined }}
+        onScroll={event => setScrollTop(event.currentTarget.scrollTop)}
         onChange={event => {
           clearSelection(); setDismissed(false);
           const value = event.target.value;
@@ -105,7 +109,8 @@ export default function AssistantComposer({ id, draft, onChange, onSend, disable
             if (!sendBlocked && !cooldownBlocked && !tooLong && body.trim() && !/^\/ai$/i.test(body.trim())) onSend();
           }
         }}
-        className="max-h-36 min-h-14 min-w-0 flex-1 resize-none border-0 bg-transparent p-2 text-sm leading-6 text-brand-text outline-none placeholder:text-brand-muted disabled:opacity-50" />
+        className="block max-h-36 min-h-14 w-full min-w-0 resize-none border-0 bg-transparent p-2 text-sm leading-6 text-brand-text outline-none placeholder:text-brand-muted disabled:opacity-50" />
+      </div>
       <Button type="submit" size="sm" disabled={sendBlocked || cooldownBlocked || tooLong || !body.trim() || menu || /^\/ai$/i.test(body.trim())}
         aria-label="Send message" className="!h-10 !w-10 !min-w-10 !rounded-xl !p-0"><ArrowUp className="h-5 w-5" /></Button>
     </form>

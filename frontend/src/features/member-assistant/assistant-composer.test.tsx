@@ -144,11 +144,55 @@ it('restores credit questions, invalidates edited consent, reuses the user entry
   await act(async () => result.current.confirm()); expect(api.post).toHaveBeenCalledTimes(1);
   await act(async () => result.current.send());
   expect(result.current.messages.filter(entry => entry.role === 'user')).toHaveLength(1);
-  expect(result.current.messages[0]).toMatchObject({ id, text: '/ai What is carbohydrate?' });
+  expect(result.current.messages[0]).toMatchObject({ id, text: 'What is carbohydrate?' });
   expect((vi.mocked(api.post).mock.calls[1][1] as { context: unknown[] }).context).toHaveLength(0);
   await act(async () => result.current.confirm());
   expect(vi.mocked(api.post).mock.calls[2][1]).toMatchObject({ message: '/ai What is carbohydrate?', allowAi: true });
   expect(result.current.draft).toBe(''); expect(result.current.messages.at(-1)?.text).toBe('AI answer');
+});
+
+it('aligns the highlighted prefix with the first text line and scrolls it with multiline input', () => {
+  const { input, container } = setup('/ai First line\nSecond line');
+  const prefix = container.querySelector('[data-nara-ai-prefix]');
+  expect(prefix).toHaveTextContent('/ai');
+  expect(prefix).toHaveClass('absolute', 'left-2', 'top-2', 'font-bold', 'leading-6', 'bg-brand-green/10');
+  expect(prefix).not.toHaveClass('border');
+  expect(input).toHaveStyle({ textIndent: '2em' });
+  expect(input).toHaveClass('p-2', 'text-sm', 'leading-6');
+  fireEvent.scroll(input, { target: { scrollTop: 24 } });
+  expect(prefix).toHaveStyle({ transform: 'translateY(-24px)' });
+});
+
+it('renders and stores the question without /ai while retaining the command in consent and recovery identity', async () => {
+  const first = renderHook(() => useMemberAssistant(true, 'owner'));
+  await waitFor(() => expect(first.result.current.enabled).toBe(true));
+  await act(async () => first.result.current.send(undefined, '/ai How to plan meals?'));
+  expect(first.result.current.messages[0].text).toBe('How to plan meals?');
+  expect(first.result.current.pending?.message).toBe('/ai How to plan meals?');
+  expect(readAssistantSession('owner')?.messages[0].text).toBe('How to plan meals?');
+  first.unmount();
+  const second = renderHook(() => useMemberAssistant(true, 'owner'));
+  await waitFor(() => expect(second.result.current.pending).not.toBeNull());
+  expect(second.result.current.messages[0].text).toBe('How to plan meals?');
+  await act(async () => second.result.current.confirm());
+  expect(vi.mocked(api.post).mock.calls[1][1]).toMatchObject({ message: '/ai How to plan meals?', allowAi: true });
+  render(<AssistantConversation model={second.result.current} titleId="sent-question" />);
+  const log = screen.getByRole('log', { name: 'Assistant conversation' });
+  expect(log).toHaveTextContent('How to plan meals?'); expect(log).not.toHaveTextContent('/ai');
+});
+
+it('hides old command prefixes from restored messages and later conversation context', async () => {
+  saveAssistantSession({ version: 1, owner: 'legacy', createdAt: Date.now(), open: false, draft: '', recoveryKey: null,
+    pending: null, messages: [{ id: 'old', role: 'user', text: '/AI Old question' },
+      { id: 'reply', role: 'assistant', text: 'Type /ai for AI.' }] });
+  const { result } = renderHook(() => useMemberAssistant(true, 'legacy'));
+  await waitFor(() => expect(result.current.messages).toHaveLength(2));
+  expect(result.current.messages[0].text).toBe('Old question');
+  expect(result.current.messages[1].text).toBe('Type /ai for AI.');
+  await act(async () => result.current.send(undefined, '/ai New question'));
+  expect(vi.mocked(api.post).mock.calls[0][1]).toMatchObject({ context: [
+    { role: 'user', content: 'Old question' }, { role: 'assistant', content: 'Type /ai for AI.' },
+  ] });
 });
 
 it('cancel preserves an editable formatted draft, removes the unconfirmed bubble and never spends', async () => {

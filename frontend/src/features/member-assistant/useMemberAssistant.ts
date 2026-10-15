@@ -7,7 +7,7 @@ import type { AssistantAction, AssistantAllowance, AssistantInput, AssistantResu
 import { assistantAiQuestion, assistantDirectAction, assistantStaticReply } from './assistant-information.generated';
 import { readAssistantSession, saveAssistantSession, type AssistantSession } from '@/lib/assistant-session';
 import { useAssistantTyping } from './useAssistantTyping';
-import { formatAiDraft } from './assistant-composer.policy';
+import { assistantQuestionText, formatAiDraft } from './assistant-composer.policy';
 
 export const ASSISTANT_BALANCE_MAX_AGE_MS = 60_000;
 
@@ -76,7 +76,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
       const entryId = storedEntry?.id ?? matchingLegacy?.id ?? null;
       setDraftEntryId(entryId);
       setMessages(saved.messages.map(item => ({ ...item, restored: true,
-        ...(restoredPending && item.id === entryId ? { text: restoredPending.message } : {}) })));
+        ...(item.role === 'user' ? { text: assistantQuestionText(restoredPending && item.id === entryId ? restoredPending.message : item.text) } : {}) })));
       setDraft(restoredPending?.message ?? saved.draft); setOpen(saved.open);
       setPending(restoredPending && restoredPending.message.length <= 1000 ? restoredPending : null); setRecoveryKey(saved.recoveryKey);
       restoreRecovery.current = saved.recoveryKey;
@@ -176,7 +176,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
       if (result.confirmationRequired) {
         const message = formatAiDraft(input.message);
         setDraft(message); setDraftEntryId(entryId);
-        setMessages(current => current.map(item => item.id === entryId ? { ...item, text: message } : item));
+        setMessages(current => current.map(item => item.id === entryId ? { ...item, text: assistantQuestionText(message) } : item));
         // Preflight admitted no work. Canonicalize before consent; never rewrite an admitted receipt.
         setPending(message.length <= 1000 ? { ...input, message, action: undefined, allowAi: false, requestKey: result.requestKey } : null);
         return;
@@ -266,13 +266,14 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     if (cooldownUntil > Date.now() && !freeRequest(text, action)) return;
     const input: AssistantInput = {
       requestKey: crypto.randomUUID(), message: text, action, allowAi: false,
-      context: messages.filter(item => item.id !== draftEntryId).slice(-6).map(item => ({ role: item.role, content: item.text.slice(0, 500) })),
+      context: messages.filter(item => item.id !== draftEntryId).slice(-6).map(item => ({ role: item.role,
+        content: (item.role === 'user' ? assistantQuestionText(item.text) : item.text).slice(0, 500) })),
     };
     const entryId = draftEntryId ?? input.requestKey;
     setDraftEntryId(entryId);
     setMessages(current => current.some(item => item.id === entryId)
-      ? current.map(item => item.id === entryId ? { ...item, text } : item)
-      : [...current.slice(-39), { id: entryId, role: 'user', text, createdAt: Date.now() }]);
+      ? current.map(item => item.id === entryId ? { ...item, text: assistantQuestionText(text) } : item)
+      : [...current.slice(-39), { id: entryId, role: 'user', text: assistantQuestionText(text), createdAt: Date.now() }]);
     setDraft('');
     const information = assistantStaticReply(text, action);
     if (information) {
