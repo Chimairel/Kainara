@@ -73,12 +73,13 @@ test('prepared information recognizes actions, aliases, common typos and app nav
 
 test('uncertain requests clarify for free and weight guidance is not mistaken for changing a recorded measurement', () => {
   assert.match(assistantInformationReply('change my plan')!.text, /Meal plan or your Membership/);
-  for (const message of ['what does this button do in the app?', 'something unclear', 'how much should I weigh?', 'how do I lose weight?']) {
+  for (const message of ['what does this button do in the app?', 'something unclear']) {
     const result = assistantInformationReply(message);
     assert.ok(result, message);
     assert.doesNotMatch(result.text, /Log today’s weight/, message);
   }
-  for (const message of ['find chicken without pork', 'Chicken under 500 kcal', 'a pork dinner with 25g protein']) {
+  for (const message of ['find chicken without pork', 'Chicken under 500 kcal', 'a pork dinner with 25g protein', 'how much should I weigh?', 'how do I lose weight?',
+    'can you tell me the nutrition fact of pandesal', 'What is protein?', 'How do I cook rice?', 'Nara, explain fiber and digestion']) {
     assert.equal(assistantInformationReply(message), null, message);
   }
 });

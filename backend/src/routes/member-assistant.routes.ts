@@ -3,7 +3,8 @@ import rateLimit from 'express-rate-limit';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { requireUserPrerequisites } from '@/middleware/userPrerequisites';
-import { validateZodBody } from '@/middleware/validateZod';
+import { validateZodBody, validateZodRequest } from '@/middleware/validateZod';
+import { z } from 'zod';
 import { asyncHandler } from '@/middleware/errorHandler';
 import { assistantInputSchema } from '@/domain/member-assistant.policy';
 import { MemberAssistantService } from '@/services/member-assistant.service';
@@ -15,6 +16,11 @@ router.use(authenticate, requireRole('USER'), requireUserPrerequisites({ emailVe
 router.use((_req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); });
 router.get('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
   res.json({ success: true, data: await MemberAssistantService.status(req.user!.userId) });
+}));
+router.get('/requests/:requestKey', rateLimit({ windowMs: 60000, limit: 30, standardHeaders: true, legacyHeaders: false,
+  keyGenerator: req => (req as AuthenticatedRequest).user!.userId }),
+validateZodRequest({ params: z.object({ requestKey: z.uuid() }).strict() }), asyncHandler(async (req: AuthenticatedRequest, res) => {
+  res.json({ success: true, data: await MemberAssistantService.recover(req.user!.userId, req.params.requestKey) });
 }));
 router.post('/messages', rateLimit({
   windowMs: 60000, limit: 30, standardHeaders: true, legacyHeaders: false,

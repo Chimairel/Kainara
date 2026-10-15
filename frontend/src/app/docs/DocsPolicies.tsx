@@ -216,6 +216,10 @@ export const policyChapters: DocsChapter[] = [
         id: 'privacy-policy-support', title: 'Contact Support messages',
         content: <p>When you submit Contact Support, Kainara saves your topic, message, account identifier, chosen reply email, and submission time in an admin-only support inbox. Your account name and email identify who submitted it; changing the reply email does not change your account. A copy is sent to the operator’s support email through the configured email provider. Admin replies are saved with their author and delivery status, then emailed to your chosen reply address using Kainara’s configured sender. The form does not attach health profiles, documents, or meal history. Deleting your account also deletes its stored support requests and replies; copies already sent through email are handled separately by the recipient and email provider.</p>,
       },
+      {
+        id: 'privacy-policy-nara', title: 'Nara conversations',
+        content: <><p>Nara keeps up to 40 recent messages, the unsent draft and the open chat state in this browser tab’s session storage so a refresh can restore them. Saved history expires after 24 hours from the conversation’s start and is discarded when it is next read or written. New chat, sign-out, account deletion or an account switch clears that saved conversation. Browser session restoration can retain tab storage, so the explicit expiration also applies. Replies may contain information you asked about from your saved guidance; earlier replies are dated and do not establish current targets or permissions.</p><p>Prepared app help runs in the browser. Before an AI request, Nara asks for confirmation and sends the question and at most six recent context messages to the configured AI provider. A saved-guidance explanation also uses the relevant saved guidance. The server retains bounded request receipts and replies for retry recovery rather than a complete chat transcript. Receipts are eligible for deletion after eight days through the existing enabled cleanup flow. Refresh recovery checks an owned receipt without starting AI or spending another credit.</p></>,
+      },
     ],
   },
   {
@@ -225,28 +229,27 @@ export const policyChapters: DocsChapter[] = [
     group: 'Policies and help',
     icon: ShieldAlert,
     tone: 'cyan',
-    summary: 'Separate health-data and document consents support the app’s review and planning workflows.',
+    summary: 'Health-data consent and requested details support the app’s review and planning workflows.',
     sections: [
       {
         id: 'data-protection-notice-consent',
-        title: 'Consent and documents',
+        title: 'Consent and requested health details',
         content: (
           <>
             <p>
               Onboarding asks for separate acknowledgments of the clinical disclaimer, health-data processing, and Terms
-              and Privacy notices. A clinical-record upload requires another explicit consent checkbox. Documents are
-              optional during onboarding, but unreviewed required evidence can keep a restricted profile from planning.
-              Withdrawing a document can invalidate decisions that depended on it.
+              and Privacy notices. If an RND needs more information, answer their requested Health details form.
+              New clinical-document uploads are retired. Withdrawing a historical document can still invalidate
+              decisions that depended on it.
             </p>
             <p>
-              The upload choice and the planning requirement are different. You may skip the optional upload step, yet a
-              particular declared condition can still require reviewed evidence before its profile is confirmed. A RND
-              can also request clarification or a document after inspecting a vague or higher-risk entry. The app should
-              explain what is outstanding instead of treating a submitted file as automatically sufficient.
+              A declared condition may need individual review before the profile is confirmed. An RND can request
+              clarification after inspecting an unclear entry. New declarations alone do not create a Health details
+              form. Follow the next step shown; submitting answers does not automatically approve the profile.
             </p>
             <p>
-              Before uploading, check that the file belongs to you and is relevant to the declared condition. The review
-              can confirm usable nutrition context from the record; it cannot authenticate the document or replace a
+              Provide accurate information relevant to your own declared condition. Review can establish usable
+              nutrition context from recorded evidence; it cannot authenticate a historical document or replace a
               diagnosis by your own healthcare professional.
             </p>
           </>

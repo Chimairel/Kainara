@@ -2,7 +2,7 @@
 
 ## Current local runtime — October 15, 2026
 
-The owner selected the isolated local database for chatbot development. Normal localhost at ports **3000 / 5000 now uses `kainara_local_development@127.0.0.1:55432`**, superseding the October 12 shared-Neon localhost configuration. The local copy contains older records and does not synchronize with demo. All 109 current migrations are applied locally, `MEMBER_ASSISTANT_ENABLED=true`, and local push delivery is disabled to avoid sending restored subscriptions' notifications. Hosted configuration and data were not changed.
+The owner selected the isolated local database for chatbot development. Normal localhost at ports **3000 / 5000 now uses `kainara_local_development@127.0.0.1:55432`**, superseding the October 12 shared-Neon localhost configuration. The local copy contains older records and does not synchronize with demo. All 110 current migrations are applied locally, including `20261015140000_water_residual_precision`; `MEMBER_ASSISTANT_ENABLED=true`, and local push delivery is disabled to avoid sending restored subscriptions' notifications. Hosted configuration and data were not changed. [Nara help and refresh recovery](verification/NARA_GUIDE_AND_RECOVERY_2026-10-15.md) records the latest local implementation.
 
 The previous shared-Neon environment is preserved privately in `backend/.local/local-development/backend-before-local.env`; its older predecessor is retained separately. Do not print or commit these files. The pre-migration local backup is `backend/.local/backups/local-development-2026-10-15T09-46-57-000Z.dump` with its adjacent manifest. This backup reads Docker PostgreSQL, not Neon.
 

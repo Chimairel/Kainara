@@ -6,6 +6,7 @@ import { Role } from '@/types';
 import { decodeToken, cookieHelper } from '@/lib/auth';
 import api, { setSessionRefreshSuppressed } from '@/lib/axios';
 import { clearSessionResourceCache } from '@/lib/session-resource-cache';
+import { clearAssistantSessions } from '@/lib/assistant-session-reset';
 import { classifyProfileLoadFailure, profileCheckError, type ProfileLoadFailure } from '@/lib/profile-load-failure';
 import { refreshUserProfile } from '@/lib/user-profile-resource';
 import { refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
@@ -153,6 +154,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         cookieHelper.clear('nutrimind_session');
         clearSessionResourceCache();
+        clearAssistantSessions();
         confirmedProfileOwner.current = null;
         setUser(null);
         setProfileLoadError(false);
@@ -219,6 +221,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           cookieHelper.clear('nutrimind_session');
           clearSessionResourceCache();
+          clearAssistantSessions();
           setUser(null);
           setIsLoading(false);
         }
@@ -233,6 +236,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = useCallback(
     async (token: string) => {
+      clearAssistantSessions();
       sessionRequestId.current += 1;
       confirmedProfileOwner.current = null;
       setProfileLoadError(false);
@@ -273,6 +277,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const logout = useCallback(async () => {
+    clearAssistantSessions();
     sessionRequestId.current += 1;
     confirmedProfileOwner.current = null;
     setIsLoading(true);
@@ -296,6 +301,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [replace]);
 
   const completeAccountDeletion = useCallback(() => {
+    clearAssistantSessions();
     sessionRequestId.current += 1;
     confirmedProfileOwner.current = null;
     setSessionRefreshSuppressed(true);

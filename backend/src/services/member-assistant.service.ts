@@ -15,6 +15,7 @@ import { NutritionReportService } from './nutrition-report.service';
 import { MemberAssistantUsageService as Usage } from './member-assistant-usage.service';
 import { queryEligibleLibraryPage, type EligibleLibraryMeal } from './meal-library-candidate-query.service';
 import { assistantStaticReply } from '@/domain/member-assistant-information';
+import { MemberAssistantNutritionService } from './member-assistant-nutrition.service';
 
 export type AssistantReply = {
   text: string;
@@ -46,6 +47,11 @@ export function matchesAssistantCriteria(meal: Pick<EligibleLibraryMeal, 'mealNa
 }
 
 export class MemberAssistantService {
+  static async recover(userId: string, requestKey: string) {
+    if (!assistantEnabled()) throw new AppError('The assistant is not enabled.', 404, 'ASSISTANT_DISABLED');
+    return { ...await Usage.recover(userId, requestKey), allowance: await Usage.allowance(userId) };
+  }
+
   static async status(userId: string) {
     if (!assistantEnabled()) return { enabled: false as const };
     return { enabled: true as const, allowance: await Usage.allowance(userId) };
@@ -84,13 +90,18 @@ export class MemberAssistantService {
       );
       let reply: AssistantReply;
       if (criteria.intent === 'FIND_MEAL') reply = await this.meals(userId, criteria);
+      else if (criteria.intent === 'FOOD_FACTS') {
+        const fnri = /\bFNRI\b/i.test(input.message), usda = /\bUSDA\b/i.test(input.message);
+        reply = await MemberAssistantNutritionService.facts(criteria.search, fnri !== usda ? fnri ? 'FNRI' : 'USDA_FDC' : undefined);
+      }
+      else if (criteria.intent === 'NUTRITION_QUESTION') reply = await MemberAssistantNutritionService.explain(input);
       else if (criteria.intent === 'TODAY') reply = await this.today(userId);
       else if (criteria.intent === 'GUIDANCE') reply = await this.guidance(userId, input);
       else if (criteria.intent === 'CLARIFY') reply = {
         text: criteria.clarification || 'Which meal or numeric nutrition limit would you like me to search for?', source: 'AI', creditsUsed: 1,
       };
       else reply = {
-        text: 'I can find eligible meals, show today’s recorded nutrition, and explain saved nutrition guidance. Use the existing meal or profile screens to make changes, and ask an RND for individual health advice.',
+        text: 'I can help with KAINARA, meals, food facts and general nutrition education. Use the existing meal or profile screens to make changes, and ask an RND for individual health advice.',
         source: 'AI', creditsUsed: 1,
       };
       reply = { ...reply, source: 'AI', creditsUsed: 1 };

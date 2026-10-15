@@ -1,6 +1,6 @@
 # Nara: audited system guide
 
-Guide date: October 15, 2026. Baseline: `6bc5e016`, branch `codex/member-assistant`, shared working copy. **Reviewed content and implementation specification; not yet connected to the chatbot.** See the [audit and findings](verification/NARA_SYSTEM_AUDIT_2026-10-15.md).
+Guide date: October 15, 2026. Audit baseline: `6bc5e016`, branch `codex/member-assistant`, shared working copy. **Prepared help and food/nutrition handlers are now implemented on this feature branch.** Matching remains bounded; not every wording is guaranteed. See the [original audit](verification/NARA_SYSTEM_AUDIT_2026-10-15.md) and [implementation evidence](verification/NARA_GUIDE_AND_RECOVERY_2026-10-15.md).
 
 ## Purpose and authority
 
@@ -16,7 +16,7 @@ This guide records general product behavior. It contains no account records, cre
 | --- | --- | --- |
 | How KAINARA works; where to find something; what a workflow means | Reviewed entries below, bundled with the browser | Free; no Gemini call and no message API request |
 | My recorded intake, saved guidance, current balance or personal status | Existing authenticated account endpoints | Free supported shortcuts; current server state is authoritative |
-| General food facts, meal ideas, nutrition education or an explanation needing AI | Consent-based AI interpretation, with the appropriate reference/retrieval handler | Explicit one-credit prompt before provider work; expanded nutrition handlers still need implementation |
+| General food facts, meal ideas, nutrition education or an explanation needing AI | Consent-based interpretation, bounded composition retrieval or curated educational evidence | Explicit one-credit prompt before provider work; source coverage limits what can be answered |
 
 An unfamiliar phrase should not automatically be treated as an app question. “Nutrition facts for pandesal” belongs to food information, even though it does not contain a recognized recipe-search command. “How do I report an issue?” belongs to free support instructions.
 
@@ -111,7 +111,7 @@ Nara currently exists in the member portal. Understanding what staff do helps ex
 | Admin Audit / governance | Inspect authorized saved review context; quarantine release/archive uses a version-bound administrative decision. Current code does not require two RND quarantine confirmations. | [review service](../backend/src/services/meal-review.service.ts), [audit routes](../backend/src/routes/admin-audit.routes.ts) |
 | Admin website | Preview/publish website media and manage its revisions; unrelated to nutrition approval. | [website routes](../backend/src/routes/admin-website-content.routes.ts) |
 
-## Food and nutrition questions: accepted scope to implement
+## Food and nutrition questions
 
 - Accept food-composition questions, nutrient explanations, balanced-meal concepts, meal selection, portions, cooking/preparation and food-safety questions related to KAINARA's purpose. Do not require an app-navigation keyword or a familiar Filipino food name.
 - For “nutrition facts of pandesal”, interpret the food identity, retrieve a small bounded set of existing FNRI/USDA candidates, and ask about variants when ambiguous. Display the matched record, source and basis. Per-100-g data must not silently become “one piece”; only scale a known mass with deterministic arithmetic. Missing nutrients stay unavailable. Do not ask Gemini to invent a nutrition table.
@@ -127,10 +127,10 @@ Use the existing normalization, explicit typo corrections, word boundaries, phra
 
 Keep the existing single canonical guide, generated frontend copy and parity check. General app answers remain bundled code; no vector database, extra food catalogue, full chat transcript table or repeated membership query is needed for those answers. Existing per-account memory cache behavior remains unchanged.
 
-### Implementation order after this audit
+### Implementation and future maintenance
 
-1. Review this content against the findings. Correct stale public instructions alongside the prepared help entries.
-2. Expand free app knowledge and its paraphrase/destination tests. Add a coverage test for every entry and all actual destinations, including `/help`.
-3. Extend food/nutrition classification **and backend handlers together**. Merely loosening the frontend matcher cannot enable food answers with the current strict intent schema.
-4. Test consent/cancel, zero-credit free help, no provider before consent, source/serving ambiguity, missing nutrients, unsupported tasks and no automatic member-data changes. Retain receipt replay and server credit locking.
-5. Run bounded isolated browser checks and keep actual-model quality, hosted parity and clinical review as separate evidence. Use the normal authorized demo release procedure when promotion is requested.
+1. The canonical guide now includes expanded support and workflow answers; public upload/quarantine instructions follow current code. Keep these sources aligned when workflows change.
+2. New food/nutrition intents and their actual handlers ship together. Composition values come from records; general education uses a small curated evidence packet, not live web search or clinical approval.
+3. Continue testing paraphrases, ambiguous navigation, consent/cancel, zero-credit help, source/serving ambiguity, missing nutrients and no automatic member-data changes. Add regression cases for reported wording failures.
+4. Refresh persistence is bounded and temporary; current balances and permissions remain server-authoritative. Recover existing paid work through owned receipt reads, never an automatic provider retry.
+5. Keep actual-model quality, hosted parity and clinical review as separate evidence. Use the normal authorized demo release procedure when promotion is requested.

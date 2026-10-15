@@ -18,9 +18,9 @@ export const clinicalGuidelinesChapter: DocsChapter = {
         <>
           <p>
             Enter diagnosed conditions, allergies, medications or relevant risk context truthfully and update them when
-            they change. A vague entry may need correction. Some conditions require reviewed documents; an RND may also
-            request evidence for a specific declared area. Do not upload another person&apos;s record, and cover
-            unrelated identifiers before submitting a supporting file.
+            they change. A vague entry may need correction. An RND can request more information for a declared area;
+            answer their form in Health details. New clinical-document uploads are retired. Provide only information
+            relevant to your own profile.
           </p>
           <p>
             The system can only compare meals against the restrictions it has recorded. For example, a broad label may

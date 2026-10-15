@@ -30,13 +30,18 @@ function ReplyText({ text, links, onNavigate }: { text: string; links?: Assistan
 }
 
 function ReplyDetails({ reply, onNavigate }: { reply: AssistantReply; onNavigate?: () => void }) {
+  const fact = (item: { label: string; value: string }) => <div key={item.label} className="min-w-0">
+    <dt className="text-xs text-brand-muted">{item.label}</dt>
+    <dd className="mt-1 break-words text-sm font-semibold tabular-nums">{item.value}</dd>
+  </div>;
   return <>
     {reply.facts?.length ? <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-y border-brand-border py-4">
-      {reply.facts.map(fact => <div key={fact.label} className="min-w-0">
-        <dt className="text-xs text-brand-muted">{fact.label}</dt>
-        <dd className="mt-1 break-words text-sm font-semibold tabular-nums">{fact.value}</dd>
-      </div>)}
+      {reply.facts.slice(0, 4).map(fact)}
     </dl> : null}
+    {reply.facts && reply.facts.length > 4 ? <details className="mt-3 text-sm">
+      <summary className="w-fit cursor-pointer rounded text-brand-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green">More recorded facts</summary>
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">{reply.facts.slice(4).map(fact)}</dl>
+    </details> : null}
     {reply.meals?.map(meal => <article key={meal.id} className="mt-4 border-t border-brand-border pt-4">
       <h3 className="font-display text-base font-semibold">{meal.name}</h3>
       <p className="mt-1 text-xs leading-5 text-brand-muted tabular-nums">{meal.calories.toFixed(1)} kcal · {meal.proteinG.toFixed(1)} g protein</p>
@@ -47,7 +52,7 @@ function ReplyDetails({ reply, onNavigate }: { reply: AssistantReply; onNavigate
       </details>
     </article>)}
     {reply.references?.length ? <details className="mt-4 text-xs text-brand-muted">
-      <summary className="w-fit cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green">Sources from saved guidance</summary>
+      <summary className="w-fit cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green">Sources</summary>
       <ul className="mt-2 space-y-2">{reply.references.filter(item => item.href.startsWith('https://')).map(item => <li key={item.href}>
         <a href={item.href} target="_blank" rel="noopener noreferrer" className="break-words text-brand-green underline underline-offset-4">{item.label}</a>
       </li>)}</ul>
@@ -69,7 +74,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
   useEffect(() => { input.current?.focus(); }, []);
   useEffect(() => { if (model.pending && !model.busy) confirmation.current?.focus(); }, [model.pending, model.busy]);
   const reset = model.allowance ? new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(model.allowance.resetsAt)) : '';
-  const disabled = model.busy || Boolean(model.pending);
+  const disabled = model.busy || Boolean(model.pending) || Boolean(model.recoveryKey);
   const mood = model.busy ? 'thinking' : model.error || (model.pending && model.allowance?.remaining === 0) ? 'failed' : 'front';
   return <div className="flex h-full min-h-0 flex-col bg-brand-surface text-brand-text">
     <header className="flex shrink-0 items-center justify-between gap-2 border-b border-brand-border px-5 py-3">
@@ -103,6 +108,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
             <div className={`min-w-0 max-w-[calc(100%-40px)] rounded-2xl px-4 py-3 ${message.role === 'user' ? 'rounded-br-sm bg-brand-green text-brand-surface' : 'rounded-bl-sm bg-brand-bgAlt'}`}>
               <span className="sr-only">{message.role === 'user' ? 'You' : 'Nara'}: </span>
               <p className="whitespace-pre-wrap break-words text-sm leading-6"><ReplyText text={message.text} links={message.reply?.links} onNavigate={modal ? () => model.setOpen(false) : undefined} /></p>
+              {message.restored && message.createdAt ? <p className={`mt-2 text-[11px] ${message.role === 'user' ? '' : 'text-brand-muted'}`}>Earlier · {new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(message.createdAt)}</p> : null}
               {message.reply ? <ReplyDetails reply={message.reply} onNavigate={modal ? () => model.setOpen(false) : undefined} /> : null}
             </div>
           </div>)}
@@ -111,6 +117,10 @@ export default function AssistantConversation({ model, titleId, member, modal = 
           className="min-h-9 rounded-lg border border-brand-border px-2.5 text-xs text-brand-muted hover:bg-brand-bgAlt focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-40">{label}</button>)}</div>
       </>}
       {model.busy ? <p role="status" className="mt-5 text-sm text-brand-muted">Nara is thinking…</p> : null}
+      {model.recoveryKey && !model.busy ? <section aria-label="Recover previous reply" className="mt-5 border-t border-brand-border pt-4 text-sm leading-6">
+        <p>{model.recoveryStatus ?? 'Recover your previous reply without calling AI again.'}</p>
+        <Button size="sm" variant="secondary" onClick={model.checkRecovery} className="mt-3">Check reply</Button>
+      </section> : null}
       {model.pending && !model.busy ? <section ref={confirmation} tabIndex={-1} aria-label="Confirm AI credit use" className="mt-5 rounded-2xl border border-brand-border bg-brand-bgAlt p-4 outline-none focus-visible:ring-2 focus-visible:ring-brand-green">
         <h3 className="text-sm font-semibold">This request uses 1 AI credit</h3>
         <p className="mt-2 text-xs leading-5 text-brand-muted">{model.allowance?.remaining ?? 0} credits remaining this week. Failed requests won’t spend a credit.</p>
@@ -120,7 +130,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
         </div>
         {!model.allowance?.remaining ? <p className="mt-3 text-xs leading-5 text-brand-muted">Credits reset {reset}. Free shortcuts are still available after cancelling.</p> : null}
       </section> : null}
-      {model.error ? <div role="alert" className="mt-5 text-sm leading-6">
+      {model.error && !model.recoveryKey ? <div role="alert" className="mt-5 text-sm leading-6">
         <p>{model.error}</p>
         <button type="button" onClick={model.retry} disabled={model.busy} className="mt-2 min-h-10 rounded font-semibold text-brand-green underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green">Retry request</button>
       </div> : null}
@@ -128,9 +138,9 @@ export default function AssistantConversation({ model, titleId, member, modal = 
     </div>
     <footer className="shrink-0 border-t border-brand-border px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
       <p className="mb-3 text-xs text-brand-muted tabular-nums">{model.allowance ? `${model.allowance.tier === 'FREE' ? 'Free' : model.allowance.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} · ${model.allowance.remaining} / ${model.allowance.cap} AI credits · Resets ${reset}` : 'Checking AI credits…'}</p>
-      <form onSubmit={event => { event.preventDefault(); model.send(); }} className="flex items-end gap-2 rounded-2xl border border-brand-border bg-brand-bg p-2 focus-within:border-brand-green focus-within:ring-2 focus-within:ring-brand-green/20">
+      <form onSubmit={event => { event.preventDefault(); model.send(); }} className="nara-composer flex items-end gap-2 rounded-2xl border border-brand-border bg-brand-bg p-2 focus-within:border-brand-muted">
         <label htmlFor={`${titleId}-input`} className="sr-only">Message the assistant</label>
-        <textarea ref={input} id={`${titleId}-input`} value={model.draft} onChange={event => model.setDraft(event.target.value)} maxLength={1000} rows={2}
+        <textarea data-nara-composer ref={input} id={`${titleId}-input`} value={model.draft} onChange={event => model.setDraft(event.target.value)} maxLength={1000} rows={2}
           placeholder="Ask about meals or your guidance…" disabled={disabled}
           onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); model.send(); } }}
           className="max-h-36 min-h-14 flex-1 resize-none border-0 bg-transparent p-2 text-sm leading-6 text-brand-text outline-none placeholder:text-brand-muted disabled:opacity-50" />

@@ -47,7 +47,7 @@ export class WaterService {
       let remaining = amountMl;
       for (const entry of entries) {
         if (remaining <= 0) break;
-        if (entry.amountMl <= remaining || entry.amountMl - remaining < 50) {
+        if (entry.amountMl <= remaining) {
           remaining -= entry.amountMl;
           await tx.waterLog.delete({ where: { id: entry.id } });
         } else {

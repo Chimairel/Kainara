@@ -67,10 +67,10 @@ export const professionalReviewChapter: DocsChapter = {
             evidence to the same incident.
           </p>
           <p>
-            If a re-verified recipe is flagged again, it is quarantined. Two distinct, currently eligible RNDs must
-            independently confirm the same version and resolve every concern before an administrator can release it.
-            Authors, flaggers and the challenged verifier cannot provide those confirmations. Corrections or new reports
-            require fresh confirmations. Once quarantined, future flags quarantine that recipe again.
+            If a re-verified recipe is flagged again, it is quarantined. An administrator must inspect the current
+            version and evidence and record a release or archive decision with a rationale. RNDs cannot claim or
+            confirm a quarantined recipe. Independent RND re-review applies to the earlier pending-review stage;
+            authors, flaggers and the challenged verifier cannot confirm that independent review.
           </p>
           <p>
             Administrative release restores recipe eligibility. Existing member slots still require fresh safety and

@@ -77,8 +77,8 @@ export function DesktopAssistantPanel({ model, titleId, member, width, onWidthCh
 }
 
 export default function MemberAssistantShell({ ready, children }: { ready: boolean; children: ReactNode }) {
-  const model = useMemberAssistant(ready);
   const { user } = useAuth();
+  const model = useMemberAssistant(ready, user?.userId);
   const { open, setOpen } = model;
   const titleId = useId();
   const [docked, setDocked] = useState(false);

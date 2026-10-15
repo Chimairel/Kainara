@@ -21,6 +21,8 @@ This is a system-wide route/workflow and regression audit, with selected localho
 
 ## Findings
 
+**Implementation follow-up:** All six findings below are addressed on the feature branch; see [guide, nutrition and refresh-recovery evidence](NARA_GUIDE_AND_RECOVERY_2026-10-15.md). This report preserves the original audit baseline and reproduction results.
+
 ### NA-01 · P2 · Existing support and workflow knowledge is missing
 
 **Confirmed:** “how to report issue?”, “I found a bug” and “how do I contact support?” return generic topic choices. Contact Support already exists at `/help`; the verified-account form submits to `/api/support/requests`, stores an admin-inbox request and allows an email reply. This is a Nara knowledge gap, not a missing support feature.

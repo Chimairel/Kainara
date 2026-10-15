@@ -6,7 +6,7 @@ type HelpTopic = AssistantInformation & { id: string; subject: RegExp; purpose?:
 const edit = /\b(change|update|edit|correct|record|log|enter|add|save|set|baguhin|palitan|iupdate|ilagay|usbon|iusab)\b/;
 const navigate = /\b(how|where|open|view|see|show|find|check|use|access|paano|saan|unsaon|asa|tanawon|tan aw|makita)\b/;
 const topics: HelpTopic[] = [
-  { id: 'body', subject: /\b(target weight|goal weight|goals?|height|activity level|birthdate|birthday|biological sex)\b/, purpose: edit,
+  { id: 'body', subject: /\b(target weight|goal weight|goals?|age|height|activity level|biological sex)\b/, purpose: edit,
     text: 'You can update your measurements, activity level and target weight in Health & goals, under Body & goals. Review your entries and save them there. I have not changed your profile.',
     links: [{ label: 'Health & goals', href: '/profile/health' }] },
   { id: 'weight', subject: /\b(weight|timbang)\b/, purpose: edit,
@@ -65,7 +65,7 @@ const topics: HelpTopic[] = [
     links: [{ label: 'Meal plan', href: '/meals' }] },
 ];
 
-const corrections: Record<string, string> = { wieght: 'weight', weigth: 'weight', grocceries: 'groceries', nutriton: 'nutrition', memebership: 'membership', passowrd: 'password' };
+const corrections: Record<string, string> = { wieght: 'weight', weigth: 'weight', grocceries: 'groceries', nutriton: 'nutrition', memebership: 'membership', passowrd: 'password', protien: 'protein', issuse: 'issue', problema: 'problem', ireport: 'report', magreport: 'report', pagreport: 'report' };
 export function normalizeAssistantQuestion(message: string) {
   return message.normalize('NFKC').toLowerCase().replace(/[’']/gu, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
     .split(/\s+/u).map(word => corrections[word] ?? word).join(' ');
@@ -88,7 +88,7 @@ export function assistantStaticReply(message: string, action?: string): Assistan
   const direct = action ?? assistantDirectAction(message);
   if (direct === 'TODAY' || direct === 'GUIDANCE') return null;
   if (direct === 'CREDITS') return {
-    text: 'One successful AI-assisted request uses one credit. I ask before calling AI. App instructions, greetings and free shortcuts do not spend credits. Credits reset on Monday at 12:00 AM in the Philippines; unused credits do not roll over. The balance below is the last checked balance. The server checks your current allowance before any AI request.',
+    text: 'One successful AI-assisted request uses one Nara credit. Outside-food AI estimates have a separate allowance. I ask before calling AI. App instructions, greetings and free shortcuts do not spend credits. Credits reset on Monday at 12:00 AM in the Philippines; unused credits do not roll over. The balance below is the last checked balance. The server checks your current allowance before any AI request.',
     links: [{ label: 'View membership', href: '/membership' }],
   };
   if (direct === 'VIEW_PLAN') return {
@@ -99,7 +99,7 @@ export function assistantStaticReply(message: string, action?: string): Assistan
     links: [{ label: 'Browse meals without AI', href: '/meals?tab=library' }],
   };
   if (direct === 'GREETING') return {
-    text: 'Hi, I’m Nara. You can ask me how to use KAINARA—for example, “How do I update my weight?” or “Where is my meal history?” App instructions are free. I can also show today’s recorded nutrition, read saved guidance and help find meals. Explore Docs & Help for more instructions.',
+    text: 'Hi, I’m Nara. Ask me how to use KAINARA, report an issue, find meals or learn about food and nutrition. App instructions are free. I can also show today’s recorded nutrition and saved guidance. I ask before using an AI credit. Explore Docs & Help for more instructions.',
     links: [{ label: 'Docs & Help', href: '/docs' }],
   };
   return assistantInformationReply(message);
@@ -111,8 +111,11 @@ const choices: AssistantInformation = {
     { label: 'Membership', href: '/membership' }, { label: 'Docs & Help', href: '/docs' }],
 };
 
-/** Only explicit supported food-search/explanation requests proceed to AI consent. */
+/** General food/nutrition questions proceed to the consent-based server classifier too. */
 function needsAi(text: string) {
+  if (/\b(nutrition(?:al)?|nutrients?|macros?|micronutrients?|vitamins?|minerals?|calories|kcal|protein|carbohydrates?|carbs?|fats?|fiber|fibre|sodium|potassium|phosphorus|cholesterol|sugar|healthy|balanced diet|hydration|digestion|metabolism|portion|serving|food safety|meal prep)\b/.test(text)) return true;
+  if (/\b(eat|eating|cook|cooking|bake|baking|steam|steaming|boil|boiling|fry|frying|reheat|reheating|leftovers|vegetables?|fruits?|beans|eggs?|bread|pandesal|pan de sal|oats|yogurt|milk|coffee|tea|tempura|adobo|monggo|malunggay|kamunggay)\b/.test(text)) return true;
+  if (/\b(weight|weigh|timbang|exercise|workout|fitness|water|tubig)\b/.test(text) && /\b(should|need|much|lose|loss|gain|maintain|benefits?|affect|enough)\b/.test(text)) return true;
   const food = /\b(meals?|recipes?|food|ingredients?|breakfast|lunch|dinner|snack|chicken|pork|beef|fish|shrimp|tofu|rice|vegetarian|vegan|protein|carbs?|fat|ulam|pagkain|manok|baboy)\b/.test(text);
   if (/\b(find|search|suggest|recommend|looking for|look for|pangita|hanap|maghanap)\b/.test(text) && food) return true;
   if (/\b(protein|carbs?|carbohydrates?|calories|kcal|fat)\b/.test(text) && /\d/.test(text)) return true;
@@ -122,9 +125,11 @@ function needsAi(text: string) {
 
 export function assistantInformationReply(message: string): AssistantInformation | null {
   const text = normalizeAssistantQuestion(message);
+  const help = extendedHelp.find(entry => entry.match.test(text));
+  if (help) return { text: help.text, links: help.links };
   if (/\b(?:about|purpose|features)\b|^(?:what is|whats|what does|what can|tell me about|explain|unsa|ano)\b|^how does .+ work\b/.test(text)
     && /\b(?:system|app|kainara|nara)\b/.test(text)
-    && /\b(?:about|purpose|do|does|is|works?|use|features|unsa|ano)\b/.test(text)) return {
+    && /\b(?:about|purpose|do|does|is|works?|use|features|unsa|ano)\b/.test(text) && !needsAi(text)) return {
     text: 'KAINARA helps you plan meals, record food and water, track progress, manage groceries and read saved nutrition guidance. RNDs review meals and provide feedback through the system. I’m Nara: I can explain these features, link you to their pages and show supported saved information. App help is free; I ask before using AI for supported requests. Start with your Meal plan or explore Docs & Help.',
     links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Docs & Help', href: '/docs' }],
   };
@@ -141,6 +146,73 @@ export function assistantInformationReply(message: string): AssistantInformation
     links: [{ label: 'Profile', href: '/profile' }],
   };
   // An uncertain app question gets free clarification, never a speculative provider call.
-  if (/\b(system|app|kainara|nara|settings?|profile|account|credits?)\b/.test(text)) return choices;
-  return needsAi(text) ? null : choices;
+  if (needsAi(text)) return null;
+  if (/\b(system|app|kainara|nara|settings?|profile|account|credits?|membership|subscription|plan|onboarding)\b/.test(text)
+    || edit.test(text) && navigate.test(text)) return choices;
+  // A food name need not appear in a browser-side vocabulary. Interpretation still requires consent,
+  // and the server rejects unrelated scope. Explicit app-help ambiguities stay free above.
+  if (/^(?:what is|whats|what are|tell me about|can you tell me about|could you explain|explain|how does|why|ano ang|unsa ang)\b/u.test(text)) return null;
+  return choices;
 }
+
+/** Reviewed against NARA_SYSTEM_GUIDE.md and current routes; these replies require no account reads. */
+const extendedHelp: Array<AssistantInformation & { match: RegExp }> = [
+  { match: /\b(report|submit|send|raise|file)\b.*\b(issues?|problems?|bugs?|errors?|complaints?|tickets?)\b|\b(contact|reach|message)\b.*\b(support|admin|administrator|team|developer)\b|\b(found|have|got)\b.*\b(bug|issue|problem)\b|\b(contact support|technical support|help desk)\b/,
+    text: 'Open Contact Support to report a problem. Choose a topic and include the page, what you expected and what happened. Verified signed-in members can send the form. Check the reply email; your request goes to the admin support inbox and an admin can reply by email. I have not submitted anything from this chat.', links: [{ label: 'Contact Support', href: '/help' }] },
+  { match: /\b(forgot|forgotten|reset|recover)\b.*\b(password|login)\b|\b(cannot|cant|unable to) (?:log in|login|sign in)\b/,
+    text: 'Use Password recovery for password sign-in. Google-only accounts should continue with Google sign-in. For a persistent access problem, open Contact Support. Never send a password or verification code in chat.', links: [{ label: 'Password recovery', href: '/forgot-password' }, { label: 'Contact Support', href: '/help' }] },
+  { match: /\b(verification code|verify (?:my )?email|resend (?:the )?(?:code|otp)|email verification|otp)\b/,
+    text: 'Open Email verification and use its resend option when available. Check your inbox and spam folder. I cannot read your email or confirm delivery, and you should not send the code in chat.', links: [{ label: 'Email verification', href: '/verify-email' }] },
+  { match: /\b(register|registration|sign up|signup|create (?:an? |my )?account|make (?:an? )?account|onboarding)\b/,
+    text: 'Use Register to create a member account, verify your email and complete the onboarding steps shown for your account. Enter your actual measurements, preferences and restrictions, then review your nutrition guidance.', links: [{ label: 'Register', href: '/register' }, { label: 'Docs & Help', href: '/docs#getting-started' }] },
+  { match: /\b(weekly check in|weekly checkin|check in due|checkin due|overdue check in|still the same)\b/,
+    text: 'Use the weekly check-in reminder on your Dashboard to confirm whether your details changed. Review any new dated Nutrition guidance and choose “Use this report for meal planning” when prompted. A check-in does not restart your trial.', links: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { match: /\b(rnd|nutritionist|dietitian)\b.*\b(feedback|advice|contact|message|questions?|answers?)\b|\b(feedback|advice|contact|message|answer|respond)\b.*\b(rnd|nutritionist|dietitian)\b/,
+    text: 'For logged outside food, open Meal history, select the entry and choose “Get RND feedback” when available. Your current access and allowance apply. Feedback does not rewrite its nutrition. For questions your RND sent you, open Health details. Nara is not a live chat with an RND.', links: [{ label: 'Meal history', href: '/meals?tab=history' }, { label: 'Health details', href: '/profile/clinical-evidence' }] },
+  { match: /\b(health details|clinical documents?|upload.*(?:medical|clinical|evidence|document)|requested forms?)\b/,
+    text: 'Open Health details to answer forms requested by your RND. New declarations do not automatically create a form. New clinical-document uploads are retired; existing historical files do not make uploading available. I have not submitted any health details.', links: [{ label: 'Health details', href: '/profile/clinical-evidence' }] },
+  { match: /\b(pending|flagged|verification|verified|approval|approved|rejected|quarantined)\b.*\b(mean|means|status|review|meal|recipe|profile)\b|\b(what|why)\b.*\b(pending|flagged|verification|approval|quarantined)\b/,
+    text: 'Meal verification checks the base recipe. Profile review checks recorded health context. Case approval checks a particular serving for that context. A flag holds the affected recipe or approval for review; quarantine requires an admin decision. Follow the status on your Meal plan. I cannot clear these checks in chat.', links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Docs & Help', href: '/docs#professional-review' }] },
+  { match: /\b(meals?|dishes?|recipes?|plan)\b.*\b(missing|empty|repeat|repeats|repeated|repeating|not showing|not loading)\b|\b(missing|repeated|repeating)\b.*\b(meal|dish|recipe)\b/,
+    text: 'A missing meal can still be preparing, awaiting review or have no eligible candidate. Check its status and any retry action in your Meal plan. A small suitable recipe pool can also cause repeated dishes. A missing slot is not an instruction to skip eating. If it persists, report the date and meal through Contact Support.', links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Contact Support', href: '/help' }] },
+  { match: /\b(acknowledge|acknowledgment|use this report|unapplied|apply.*report|apply.*guidance)\b/,
+    text: 'Saving profile details and applying a report for planning are separate steps. Open Nutrition guidance, review the dated report and choose “Use this report for meal planning” when available. Follow any membership or RND review action shown there.', links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { match: /\b(nutrition|calories|totals?)\b.*\b(include|includes|included|count|counts)\b.*\brice\b|\brice\b.*\b(included|counted)\b/,
+    text: 'Check the serving label on your meal. When a rice side is recorded, its amount is shown and the displayed meal totals include it. Extra rice changes actual consumption. Nara’s recipe-search results explicitly exclude separately paired rice.', links: [{ label: 'Meal plan', href: '/meals' }] },
+  { match: /\b(outside food|outside meal|logged food|ai estimate|food estimate)\b.*\b(wrong|inaccurate|accurate|different|accuracy|nutrition|calories)\b|\b(wrong|inaccurate)\b.*\b(estimate|food log)\b/,
+    text: 'Outside-food nutrition can be estimated or incomplete. Check the portion, ingredients, brand, preparation and package label. Inspect the entry in Meal history. Optional RND feedback advises future choices; it does not rewrite the recorded nutrition.', links: [{ label: 'Meal history', href: '/meals?tab=history' }] },
+  { match: /\b(photo|picture|image|logo)\b.*\b(meal|recipe|missing|wrong|instead|placeholder)\b|\b(meal|recipe)\b.*\b(photo|picture|image|logo)\b/,
+    text: 'The KAINARA logo is a placeholder when a meal photo is missing or cannot load. It is not an approval status. Check the recipe details and report incorrect photos through Contact Support.', links: [{ label: 'Contact Support', href: '/help' }] },
+  { match: /\b(trial|free trial)\b.*\b(start|end|expire|expired|expires|restart|work|works|mean)\b|\b(when|how|what)\b.*\btrial\b/,
+    text: 'The 30-day trial begins when your first cleared current plan becomes available. Waiting for review and a future plan do not start it. Moving from starter to weekly planning or completing a check-in does not restart it. Open Membership for your actual status and dates.', links: [{ label: 'Membership', href: '/membership' }] },
+  { match: /\b(renew automatically|auto renew|automatic renewal|charge.*automatically|real money|test payment|paymongo)\b/,
+    text: 'Current checkout is an explicitly enabled PayMongo test flow, and memberships do not automatically renew. Review the current quote and status in Membership. I cannot complete checkout or infer payment success from chat.', links: [{ label: 'Membership', href: '/membership' }] },
+  { match: /\b(estimate|estimates)\b.*\b(chat|nara|credit|credits)\b|\b(chat|nara)\b.*\b(estimate allowance|estimate limits|same credits)\b/,
+    text: 'Nara AI credits and outside-food AI estimate allowances are separate counters. Meal swaps and RND feedback have their own allowances too. Check Membership and the balance in this chat for their current values.', links: [{ label: 'Membership', href: '/membership' }] },
+  { match: /\b(grocery|groceries|shopping list)\b.*\b(pending|held|locked|cant|cannot|unable|partial)\b|\b(cant|cannot|unable)\b.*\b(check|tick)\b.*\bgrocery\b/,
+    text: 'A grocery item can be held because its linked meal is not cleared or the cycle has unresolved slots. Open its explanation. If offered, acknowledge the partial list before using available items. A held checkbox does not record a purchase.', links: [{ label: 'Groceries', href: '/grocery' }] },
+  { match: /\b(notification|notifications|banner|push)\b.*\b(not showing|not appearing|not working|missing|permission|phone)\b/,
+    text: 'Read in-app updates through the header bell. Device notifications also depend on browser permission, operating-system settings and Focus or Do Not Disturb. Provider acceptance does not prove a banner appeared. Review reminder settings in Food & planning.', links: [{ label: 'Food & planning', href: '/profile/planning' }] },
+  { match: /\b(why|how)\b.*\b(consumed calories|intake.*zero|calories.*zero|zero calories)\b/,
+    text: 'Consumed totals come from recorded eaten food, not merely scheduled meals. Missing entries do not prove you ate nothing. Check your Dashboard and Meal history. For your actual current totals, use Today’s nutrition.', links: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Meal history', href: '/meals?tab=history' }] },
+  { match: /\b(today s menu|todays menu|today s meals|todays meals|daily menu|where.*menu)\b/,
+    text: 'Open your Dashboard and choose the date to see On your menu. Scheduled meals describe the plan; consumed totals depend on food you actually recorded as eaten.', links: [{ label: 'Dashboard', href: '/dashboard' }] },
+  { match: /^(?!.*\b(nutrition|calories|protein|carbs|fat|healthy|safe|should)\b)(?:i (?:just )?(?:ate|had)|kumain ako|nikaon ko) [\p{L}\p{N} ]{1,100}$/u,
+    text: 'To record food you ate outside your plan, open Meals and choose “Log food or snack”. Enter the food and known portion, review the preview and confirm there. I have not logged food from this chat.', links: [{ label: 'Meals', href: '/meals' }] },
+  { match: /\bestimat(?:e|es|ion)\b.*\b(wrong|inaccurate|different|accurate|accuracy)\b/,
+    text: 'A food estimate can differ with portion, brand, ingredients, oil and preparation. Check the actual packaging and the entry in Meal history. Optional RND feedback advises future choices without rewriting its recorded nutrition.', links: [{ label: 'Meal history', href: '/meals?tab=history' }] },
+  { match: /\b(food|log|meal)\b.*\b(wait|count|counts|counted)\b.*\b(rnd|approval|review)\b|\b(food|log|meal)\b.*\b(rnd|approval|review)\b.*\b(count|counts|counted)\b/,
+    text: 'Saving an outside-food log records intake. Optional RND feedback is separate; the log does not wait for that feedback to count. Logging food does not make it a verified reusable recipe.', links: [{ label: 'Meal history', href: '/meals?tab=history' }] },
+  { match: /\b(reviewed|approved|review)\b.*\b(again|waiting|recheck)\b/,
+    text: 'An earlier review applies to its recorded profile, ingredients and serving. Changes or flags can invalidate that context and require a new check. A similar dish or diagnosis does not establish a reusable approval. Follow the current status in your Meal plan.', links: [{ label: 'Meal plan', href: '/meals' }] },
+  { match: /\b(happens?|effect|affect|after)\b.*\b(update|change|save)\b.*\b(profile|allergies|conditions|weight)\b/,
+    text: 'Planning changes follow the next-cycle and current-report workflow. Safety restrictions can immediately hold conflicting uneaten meals. Already recorded meals retain their history. Review the actual notice in Health & goals and any updated Nutrition guidance.', links: [{ label: 'Health & goals', href: '/profile/health' }, { label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { match: /\b(copy|export|download)\b.*\b(account data|personal data|my data|my records)\b/,
+    text: 'Open Security & privacy for account-data controls, or Export for the nutrition summary and available downloads. Complete the download on the page; I have not exported anything from this chat.', links: [{ label: 'Security & privacy', href: '/profile/security' }, { label: 'Export', href: '/export' }] },
+  { match: /\b(download|export|print|pdf)\b.*\b(grocer(?:y|ies)|shopping list)\b|\b(grocer(?:y|ies)|shopping list)\b.*\b(download|export|print|pdf)\b/,
+    text: 'Use the available PDF export controls in Groceries. The file reflects the recorded list at that time; check the current list again after meal changes.', links: [{ label: 'Groceries', href: '/grocery' }] },
+  { match: /\b(what|which)\b.*\bplan\b.*\b(have|on|using)\b/,
+    text: 'Open Membership to see your current plan, dates, remaining allowances and any scheduled next plan. I do not infer your entitlement from this question.', links: [{ label: 'Membership', href: '/membership' }] },
+  { match: /\b(not working|doesnt work|does not work|isnt working|something.*broken)\b/,
+    text: 'Open Contact Support and describe the affected page, what you expected and what happened. Check the reply email before sending. I have not submitted a report.', links: [{ label: 'Contact Support', href: '/help' }] },
+];

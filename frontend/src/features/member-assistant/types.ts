@@ -11,7 +11,7 @@ export type AssistantReply = {
   references?: Array<{ label: string; href: string }>;
   meals?: Array<{ id: string; name: string; calories: number; proteinG: number; carbsG: number; fatG: number; ingredients: string[] }>;
 };
-export type ChatEntry = { id: string; role: 'user' | 'assistant'; text: string; reply?: AssistantReply };
+export type ChatEntry = { id: string; role: 'user' | 'assistant'; text: string; createdAt?: number; restored?: boolean; reply?: AssistantReply };
 export type AssistantResult = { allowance: AssistantAllowance } & (
   { confirmationRequired: true; cost: number; requestKey: string } | { confirmationRequired: false; reply: AssistantReply }
 );

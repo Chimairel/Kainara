@@ -7,6 +7,17 @@ import { assistantLimits, assistantWindows, type AssistantInput } from '@/domain
 import { MembershipService } from './membership.service';
 
 export class MemberAssistantUsageService {
+  /** Owned receipt recovery only. Never reserves credits, writes a receipt or invokes a provider. */
+  static async recover(userId: string, requestKey: string, now = new Date()) {
+    const row = await prisma.assistantRequest.findUnique({ where: { userId_requestKey: { userId, requestKey } },
+      select: { state: true, response: true, leaseUntil: true, createdAt: true, completedAt: true } });
+    if (!row) return { status: 'NOT_FOUND' as const };
+    if (+now - +row.createdAt >= 8 * 86400000) return { status: 'EXPIRED' as const };
+    if (row.state === 'SUCCEEDED') return { status: 'SUCCEEDED' as const, reply: row.response, completedAt: (row.completedAt ?? row.createdAt).toISOString() };
+    if (row.state === 'PENDING' && row.leaseUntil > now) return { status: 'RUNNING' as const };
+    return { status: row.state === 'FAILED' ? 'FAILED' as const : 'EXPIRED' as const };
+  }
+
   static async allowance(userId: string, now = new Date(), tx: Prisma.TransactionClient = prisma) {
     const membership = membershipEnabled() ? await MembershipService.state(userId, now, tx) : null;
     // A trial that has not started must not silently acquire Health credits.
