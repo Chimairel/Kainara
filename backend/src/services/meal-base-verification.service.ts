@@ -6,6 +6,7 @@ import { buildMealLibraryRecipeSignature } from '@/domain/meal-library-signature
 import { persistDeterministicLibraryClassification } from './meal-library-publication.service';
 import { admittedLibraryBaseIds, libraryBaseRevisionKey } from './meal-base-admission.service';
 import { assertRecipeClaimCapacity } from './recipe-claim-capacity.service';
+import { recipeReviewEvidenceHash } from '@/domain/recipe-batch-review.policy';
 
 const CLAIM_MS = 30 * 60 * 1000;
 
@@ -54,7 +55,7 @@ async function requireReviewer(profileId: string) {
   }
 }
 
-async function target(kind: MealVerificationTargetKind, id: string) {
+export async function mealBaseVerificationTarget(kind: MealVerificationTargetKind, id: string) {
   if (kind === 'LIBRARY_MEAL') {
     // Prisma 5 can panic when parallel findUnique batches mix nested relation shapes.
     const meal = await prisma.mealLibrary.findFirst({
@@ -141,14 +142,31 @@ async function target(kind: MealVerificationTargetKind, id: string) {
   if (
     !recipe ||
     recipe.status !== 'AVAILABLE' ||
-    recipe.sourceName !== 'USER_OBSERVED' ||
-    !recipe.observedSubmissions.length
+    (recipe.sourceName !== 'PANLASANG_PINOY' &&
+      (recipe.sourceName !== 'USER_OBSERVED' || !recipe.observedSubmissions.length))
   ) {
     throw new Error('This admitted recipe is no longer available for verification.');
   }
+  return rawBaseVerificationEvidence(recipe);
+}
+
+export function rawBaseVerificationEvidence(recipe: {
+  id: string;
+  contentSignature: string;
+  recipeName: string;
+  description: string | null;
+  mealType: string;
+  calories: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  ingredients: Prisma.JsonValue;
+  sourceName: string;
+  sourceUrl: string;
+}) {
   return {
-    kind,
-    id,
+    kind: 'RAW_RECIPE' as const,
+    id: recipe.id,
     revisionKey: recipe.contentSignature,
     name: recipe.recipeName,
     description: recipe.description,
@@ -159,8 +177,11 @@ async function target(kind: MealVerificationTargetKind, id: string) {
     fatG: recipe.fatG,
     ingredients: recipe.ingredients,
     source: recipe.sourceName,
+    sourceUrl: recipe.sourceUrl,
   };
 }
+
+const target = mealBaseVerificationTarget;
 
 export class MealBaseVerificationService {
   /** Lightweight badge count without loading each recipe or truncating work beyond the visible queue window. */
@@ -326,7 +347,7 @@ export class MealBaseVerificationService {
     const row = await target(kind, id);
     if ('authorId' in row) assertIndependentRecipeReviewer(row.authorId, profileId);
     const key = { targetKind_targetId_revisionKey: { targetKind: kind, targetId: id, revisionKey: row.revisionKey } };
-    return prisma.$transaction(async tx => {
+    return prisma.$transaction(async (tx) => {
       await assertRecipeClaimCapacity(tx, profileId, { kind, id });
       await tx.mealBaseVerification.upsert({
         where: key,
@@ -376,7 +397,9 @@ export class MealBaseVerificationService {
     kind: MealVerificationTargetKind,
     id: string,
     decision: 'VERIFIED' | 'REJECTED',
-    rationale: string
+    rationale: string,
+    expectedRevisionKey?: string,
+    expectedEvidenceHash?: string
   ) {
     await requireReviewer(profileId);
     const reviewer = await prisma.nutritionistProfile.findUniqueOrThrow({
@@ -385,9 +408,31 @@ export class MealBaseVerificationService {
     });
     if (rationale.trim().length < 10) throw new Error('Record at least 10 characters explaining this decision.');
     const row = await target(kind, id);
+    if (expectedRevisionKey && row.revisionKey !== expectedRevisionKey)
+      throw new Error('Recipe changed. Export and review the current recipe before deciding.');
+    if (expectedEvidenceHash && recipeReviewEvidenceHash(row) !== expectedEvidenceHash)
+      throw new Error('Recipe evidence changed. Export and review the current recipe before deciding.');
     if ('authorId' in row) assertIndependentRecipeReviewer(row.authorId, profileId);
     return prisma.$transaction(
       async (tx) => {
+        if (kind === 'RAW_RECIPE') {
+          const source = await tx.rawRecipeCandidate.findUniqueOrThrow({ where: { id } });
+          if (source.status !== 'AVAILABLE' || source.contentSignature !== row.revisionKey)
+            throw new Error('Recipe changed. Refresh and review the current source.');
+          if (
+            expectedEvidenceHash &&
+            recipeReviewEvidenceHash(rawBaseVerificationEvidence(source)) !== expectedEvidenceHash
+          )
+            throw new Error('Recipe evidence changed. Export and review the current source.');
+          if (
+            source.sourceName === 'PANLASANG_PINOY' &&
+            (await tx.mealLibrary.findFirst({
+              where: { sourceRawRecipeCandidateId: id, status: 'FLAGGED' },
+              select: { id: true },
+            }))
+          )
+            throw new Error('Flagged recipes require the existing independent re-review workflow.');
+        }
         if (kind === 'LIBRARY_MEAL') {
           const current = await tx.mealLibrary.findUniqueOrThrow({ where: { id } });
           if (
@@ -445,73 +490,76 @@ export class MealBaseVerificationService {
         }
         if (kind === 'RAW_RECIPE' && decision === 'VERIFIED') {
           const source = await tx.rawRecipeCandidate.findUniqueOrThrow({ where: { id } });
-          if (
-            await tx.mealLibrary.findFirst({
-              where: { sourceRawRecipeCandidateId: source.id, status: 'FLAGGED' },
-              select: { id: true },
-            })
-          )
-            throw new Error('This source recipe is flagged and cannot be republished.');
-          const ingredients = Array.isArray(source.ingredients)
-            ? source.ingredients.flatMap((value) => {
-                if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
-                const item = value as Record<string, unknown>;
-                return typeof item.name === 'string' &&
-                  typeof item.quantity === 'number' &&
-                  typeof item.unit === 'string'
-                  ? [{ ingredientName: item.name, quantity: item.quantity, unit: item.unit }]
-                  : [];
+          // A source-base review is not a new serving or condition/allergy certification.
+          if (source.sourceName !== 'PANLASANG_PINOY') {
+            if (
+              await tx.mealLibrary.findFirst({
+                where: { sourceRawRecipeCandidateId: source.id, status: 'FLAGGED' },
+                select: { id: true },
               })
-            : [];
-          if (
-            !ingredients.length ||
-            ingredients.length !== (source.ingredients as unknown[]).length ||
-            [source.calories, source.proteinG, source.carbsG, source.fatG].some((value) => value === null)
-          ) {
-            throw new Error(
-              'The admitted recipe needs complete ingredients and serving nutrition before library publication.'
-            );
-          }
-          const signature = buildMealLibraryRecipeSignature({
-            mealName: source.recipeName,
-            mealType: source.mealType,
-            calories: source.calories!,
-            proteinG: source.proteinG!,
-            carbsG: source.carbsG!,
-            fatG: source.fatG!,
-            ingredients,
-          });
-          const existing = await tx.mealLibrary.findUnique({
-            where: { recipeSignature: signature },
-            select: { id: true },
-          });
-          if (!existing) {
-            const created = await tx.mealLibrary.create({
-              data: {
-                sourceRawRecipeCandidateId: source.id,
-                verifiedByNutritionistId: profileId,
-                mealName: source.recipeName,
-                description: source.description,
-                mealType: source.mealType,
-                calories: source.calories!,
-                proteinG: source.proteinG!,
-                carbsG: source.carbsG!,
-                fatG: source.fatG!,
-                recipeSignature: signature,
-                safetyEvidenceRevision: 1,
-                suitableConditions: [],
-                allergenFree: [],
-                dietaryTags: [],
-                ingredients: {
-                  create: ingredients.map((item, position) => ({
-                    ...item,
-                    position,
-                    dataSource: 'SOURCE_RECIPE' as const,
-                  })),
-                },
-              },
+            )
+              throw new Error('This source recipe is flagged and cannot be republished.');
+            const ingredients = Array.isArray(source.ingredients)
+              ? source.ingredients.flatMap((value) => {
+                  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+                  const item = value as Record<string, unknown>;
+                  return typeof item.name === 'string' &&
+                    typeof item.quantity === 'number' &&
+                    typeof item.unit === 'string'
+                    ? [{ ingredientName: item.name, quantity: item.quantity, unit: item.unit }]
+                    : [];
+                })
+              : [];
+            if (
+              !ingredients.length ||
+              ingredients.length !== (source.ingredients as unknown[]).length ||
+              [source.calories, source.proteinG, source.carbsG, source.fatG].some((value) => value === null)
+            ) {
+              throw new Error(
+                'The admitted recipe needs complete ingredients and serving nutrition before library publication.'
+              );
+            }
+            const signature = buildMealLibraryRecipeSignature({
+              mealName: source.recipeName,
+              mealType: source.mealType,
+              calories: source.calories!,
+              proteinG: source.proteinG!,
+              carbsG: source.carbsG!,
+              fatG: source.fatG!,
+              ingredients,
             });
-            await persistDeterministicLibraryClassification(tx, created.id);
+            const existing = await tx.mealLibrary.findUnique({
+              where: { recipeSignature: signature },
+              select: { id: true },
+            });
+            if (!existing) {
+              const created = await tx.mealLibrary.create({
+                data: {
+                  sourceRawRecipeCandidateId: source.id,
+                  verifiedByNutritionistId: profileId,
+                  mealName: source.recipeName,
+                  description: source.description,
+                  mealType: source.mealType,
+                  calories: source.calories!,
+                  proteinG: source.proteinG!,
+                  carbsG: source.carbsG!,
+                  fatG: source.fatG!,
+                  recipeSignature: signature,
+                  safetyEvidenceRevision: 1,
+                  suitableConditions: [],
+                  allergenFree: [],
+                  dietaryTags: [],
+                  ingredients: {
+                    create: ingredients.map((item, position) => ({
+                      ...item,
+                      position,
+                      dataSource: 'SOURCE_RECIPE' as const,
+                    })),
+                  },
+                },
+              });
+              await persistDeterministicLibraryClassification(tx, created.id);
+            }
           }
         }
         await tx.auditEvent.create({

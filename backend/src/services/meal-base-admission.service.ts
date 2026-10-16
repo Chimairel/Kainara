@@ -20,12 +20,16 @@ export function libraryBaseRevisionKey(recipeSignature: string, description: str
     .digest('hex');
 }
 
-export function baseMealAdmissionMatches(meal: LibraryBase, verifiedKeys: ReadonlySet<string>): boolean {
+export function baseMealAdmissionMatches(
+  meal: LibraryBase,
+  verifiedKeys: ReadonlySet<string>,
+  requireRecordedReview = false
+): boolean {
   if (meal.status !== 'APPROVED') return false;
   const source = meal.sourceRawRecipeCandidate;
   if (source && source.status !== 'AVAILABLE') return false;
   if (!meal.recipeSignature) return false;
-  if (source?.sourceName === 'PANLASANG_PINOY' && source.status === 'AVAILABLE') return true;
+  if (!requireRecordedReview && source?.sourceName === 'PANLASANG_PINOY' && source.status === 'AVAILABLE') return true;
   return (
     verifiedKeys.has(`LIBRARY_MEAL:${meal.id}:${libraryBaseRevisionKey(meal.recipeSignature, meal.description)}`) ||
     verifiedKeys.has(`GENERATED_RECIPE:${meal.recipeSignature}:${meal.recipeSignature}`) ||
@@ -40,11 +44,12 @@ export function baseMealAdmissionMatches(meal: LibraryBase, verifiedKeys: Readon
 /** Verification follows the exact recipe revision. It grants no health clearance. */
 export async function admittedLibraryBaseIds(
   meals: readonly LibraryBase[],
-  db: Pick<typeof prisma, 'mealBaseVerification'> = prisma
+  db: Pick<typeof prisma, 'mealBaseVerification'> = prisma,
+  requireRecordedReview = false
 ): Promise<Set<string>> {
   if (meals.length === 0) return new Set();
   const alreadyAdmitted = new Set(
-    meals.flatMap((meal) => (baseMealAdmissionMatches(meal, new Set()) ? [meal.id] : []))
+    meals.flatMap((meal) => (baseMealAdmissionMatches(meal, new Set(), requireRecordedReview) ? [meal.id] : []))
   );
   const needsVerification = meals.filter((meal) => !alreadyAdmitted.has(meal.id));
   if (needsVerification.length === 0) return alreadyAdmitted;
@@ -56,6 +61,7 @@ export async function admittedLibraryBaseIds(
   const verified = await db.mealBaseVerification.findMany({
     where: {
       status: 'VERIFIED',
+      ...(requireRecordedReview ? { reviewedByNutritionistId: { not: null }, reviewedAt: { not: null } } : {}),
       OR: [
         { targetKind: 'LIBRARY_MEAL', targetId: { in: ids } },
         { targetKind: 'RAW_RECIPE', targetId: { in: rawIds } },
@@ -66,7 +72,7 @@ export async function admittedLibraryBaseIds(
   });
   const keys = new Set(verified.map((row) => `${row.targetKind}:${row.targetId}:${row.revisionKey}`));
   for (const meal of needsVerification) {
-    if (baseMealAdmissionMatches(meal, keys)) alreadyAdmitted.add(meal.id);
+    if (baseMealAdmissionMatches(meal, keys, requireRecordedReview)) alreadyAdmitted.add(meal.id);
   }
   return alreadyAdmitted;
 }

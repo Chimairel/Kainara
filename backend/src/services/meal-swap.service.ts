@@ -808,6 +808,7 @@ export class MealSwapService {
       limit: input.limit,
       safetyOnly: true,
       includeProfileApproved: true,
+      requireRecordedReview: true,
     });
 
     const [recipeImages, cookingLinks] = await Promise.all([

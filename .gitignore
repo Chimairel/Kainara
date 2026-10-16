@@ -71,3 +71,6 @@ codex/toothless.jpg
 # Private staging credentials, snapshot archives, access links and runtime logs.
 /backend/.local/environment-isolation-20261016/
 /backend/.local/nara-release-audit-20261016/
+
+# Private recipe review exports and operator receipts.
+/backend/.local/recipe-review*.json

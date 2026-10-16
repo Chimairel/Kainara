@@ -39,6 +39,8 @@ export function toPublicVerifier(
 }
 
 export const rawRecipeImageSelect = {
+  id: true,
+  contentSignature: true,
   sourceRecordId: true,
   recipeName: true,
   sourceName: true,
@@ -152,7 +154,7 @@ function recordedMemberApproval(
 export function resolvePlanImage(
   meal: {
     libraryMeal?: (MealImageRecord & { id: string }) | null;
-    sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
+    sourceRawRecipeCandidate?: (RawRecipeImageRecord & { id?: string; contentSignature?: string }) | null;
     selectionEvidence?: unknown;
   },
   libraryImages?: ReadonlyMap<string, PublicMealImage>
@@ -245,7 +247,7 @@ export function serializeActionableMeal<
       | null;
     selectionEvidence: unknown;
     libraryMealId: string | null;
-    sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
+    sourceRawRecipeCandidate?: (RawRecipeImageRecord & { id?: string; contentSignature?: string }) | null;
     status: string;
     aiConfidenceFlag: string;
     calories: number;
@@ -256,7 +258,8 @@ export function serializeActionableMeal<
 >(
   meal: T,
   libraryImages?: ReadonlyMap<string, PublicMealImage>,
-  libraryCookingLinks?: ReadonlyMap<string, PublicMealCookingLink>
+  libraryCookingLinks?: ReadonlyMap<string, PublicMealCookingLink>,
+  sourceReviewers?: ReadonlyMap<string, NonNullable<ReturnType<typeof toPublicVerifier>>>
 ) {
   const rice = meal.servingComponents?.find((component) => component.componentType === 'COOKED_RICE');
   const {
@@ -272,7 +275,8 @@ export function serializeActionableMeal<
   const storedReviewer = toPublicVerifier(nutritionist) || toPublicVerifier(firstApprovedByNutritionist);
   const recipeReviewer =
     toPublicVerifier(libraryMeal?.safetyReviewedByNutritionist) ||
-    toPublicVerifier(libraryMeal?.verifiedByNutritionist);
+    toPublicVerifier(libraryMeal?.verifiedByNutritionist) ||
+    (sourceRawRecipeCandidate?.id ? sourceReviewers?.get(sourceRawRecipeCandidate.id) : null);
   const automaticRecipeSelection = meal.candidateProvenance === 'CERTIFIED_LIBRARY' && !meal.profileApprovalId;
   const reused = object(object(selectionEvidence).exactApprovalReuse);
   const recordedReuseReviewer = object(reused.reviewer);

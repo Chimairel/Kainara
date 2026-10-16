@@ -16,7 +16,14 @@ function replaceMethod(t: TestContext, target: object, name: string, replacement
   t.after(() => Reflect.set(target, name, original));
 }
 
+function recordedSourceReviews(t: TestContext) {
+  replaceMethod(t, prisma.mealBaseVerification, 'findMany', async () =>
+    Array.from({ length: 25 }, (_, i) => ({ targetId: `source-${i}`, revisionKey: `revision-${i}` }))
+  );
+}
+
 test('avoidance catalogue excludes conflicting and ambiguous recipes before pagination/counting', async (t) => {
+  recordedSourceReviews(t);
   const previous = process.env.MEMBERSHIP_ENABLED;
   process.env.MEMBERSHIP_ENABLED = 'false';
   t.after(() => {
@@ -72,6 +79,7 @@ test('avoidance catalogue excludes conflicting and ambiguous recipes before pagi
 });
 
 test('catalog pagination, rice filtering and plan labels use owner-scoped current/upcoming recipe identities', async (t) => {
+  recordedSourceReviews(t);
   const previous = process.env.MEMBERSHIP_ENABLED;
   process.env.MEMBERSHIP_ENABLED = 'false';
   t.after(() => {
@@ -212,6 +220,7 @@ test('archived PDF uses the saved target and never substitutes the live profile 
 });
 
 test('catalogue summary counts without reading cycle annotations or recipe card payloads', async (t) => {
+  recordedSourceReviews(t);
   const previous = process.env.MEMBERSHIP_ENABLED;
   process.env.MEMBERSHIP_ENABLED = 'false';
   t.after(() => {
@@ -311,7 +320,9 @@ test('restricted summary follows compatibility admission and returns all identit
     ],
   }));
   replaceMethod(t, prisma.mealLibrary, 'findMany', async () => rows);
-  replaceMethod(t, prisma.mealBaseVerification, 'findMany', async () => []);
+  replaceMethod(t, prisma.mealBaseVerification, 'findMany', async () => [
+    { targetKind: 'RAW_RECIPE', targetId: 'source', revisionKey: 'source-signature' },
+  ]);
   const result = await VerifiedRecipeCatalogService.list('member', { summaryOnly: true });
   assert.equal(result.restrictedProfile, true);
   assert.equal(result.total, 3);

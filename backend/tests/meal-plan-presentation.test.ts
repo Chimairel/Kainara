@@ -286,3 +286,43 @@ test('missing decision reviewer credentials are never fabricated', () => {
   });
   assert.equal(result.verifier, null);
 });
+
+test('a recorded source reviewer is shown as recipe review, not member-specific approval', () => {
+  const sourceMeal = {
+    ...meal,
+    sourceRawRecipeCandidate: {
+      id: 'raw-1',
+      contentSignature: 'current',
+      sourceName: 'PANLASANG_PINOY',
+      sourceUrl: 'https://panlasangpinoy.com/recipe',
+      sourceImageUrl: null,
+      sourceVideoUrl: null,
+      sourceRecordId: 'recipe',
+      recipeName: 'Fish',
+    },
+  };
+  const result = serializeActionableMeal(
+    sourceMeal,
+    undefined,
+    undefined,
+    new Map([
+      [
+        'raw-1',
+        {
+          name: 'Recorded RND',
+          image: null,
+          officialHeadshot: null,
+          prcLicenseNumber: '12345',
+          prcLicenseExpiry: new Date('2099-01-01'),
+          specialization: null,
+          yearsOfExperience: null,
+          university: null,
+          bio: null,
+        },
+      ],
+    ])
+  );
+  assert.equal(result.verifier?.name, 'Recorded RND');
+  assert.equal(result.verifier?.reviewScope, 'RECIPE');
+  assert.equal(serializeActionableMeal(sourceMeal).verifier, null);
+});

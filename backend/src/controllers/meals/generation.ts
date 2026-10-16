@@ -1,4 +1,5 @@
 import { publicCycleSnapshot } from '@/services/meal-macro-context.service';
+import { recordedRecipeReviewers } from '@/services/recorded-recipe-reviewer.service';
 import { filterUserActionableMealPlans } from '@/domain/meal-actionability.policy';
 import { missingMealSlots } from '@/domain/meal-generation-gap.policy';
 
@@ -90,8 +91,9 @@ export async function generateMealPlan(req: AuthenticatedRequest, res: Response)
     const libraryCookingLinks = await resolveLibraryRecipeCookingLinks(
       generatedPlanRows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
     );
+    const sourceReviewers = await recordedRecipeReviewers(generatedPlanRows);
     const meals = filterUserActionableMealPlans(generatedPlanRows).map((meal) =>
-      serializeActionableMeal(meal, libraryImages, libraryCookingLinks)
+      serializeActionableMeal(meal, libraryImages, libraryCookingLinks, sourceReviewers)
     );
     const generationSummary = summarizeGeneratedMealPlan(generatedPlanRows);
     const pendingReview = pendingPreviewWithImages(generatedPlanRows, libraryImages, libraryCookingLinks);

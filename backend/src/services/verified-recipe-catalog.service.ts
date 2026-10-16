@@ -8,6 +8,7 @@ import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panla
 import { parseRecipeCandidateIngredients } from './panlasang-recipe-candidate.provider';
 import { screenFoodExclusions } from '@/domain/food-exclusion.policy';
 import { getManilaDateKey, getManilaMidnight } from '@/domain/meal-plan-cycle.policy';
+import { recordedRawRecipeReviewWhere } from './recorded-recipe-review.service';
 
 /** Browse-only verified bases. This endpoint never grants planning or case clearance. */
 export class VerifiedRecipeCatalogService {
@@ -44,6 +45,7 @@ export class VerifiedRecipeCatalogService {
           riceRole: input.riceRole as RecipeRiceRole | undefined,
           safetyOnly: true,
           includeProfileApproved: true,
+          requireRecordedReview: true,
           collectIds: true,
           limit: 1,
         });
@@ -128,6 +130,7 @@ export class VerifiedRecipeCatalogService {
     // Some published source rows have no MealLibrary serving variant. Querying
     // MealLibrary alone would omit those real recipes from this browse-only view.
     const rawWhere: Prisma.RawRecipeCandidateWhereInput = {
+      AND: [await recordedRawRecipeReviewWhere()],
       sourceName: 'PANLASANG_PINOY',
       status: 'AVAILABLE',
       libraryVariants: { none: { status: 'FLAGGED' } },

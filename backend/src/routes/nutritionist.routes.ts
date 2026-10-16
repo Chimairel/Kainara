@@ -51,11 +51,16 @@ import { NutritionistAuditService } from '@/services/nutritionist-audit.service'
 import { AuditDetailsService } from '@/services/audit-details.service';
 import { NutritionistAuditContextService } from '@/services/nutritionist-audit-context.service';
 import { RelatedConditionReviewsService } from '@/services/related-condition-reviews.service';
-import { flagCaseApproval, resolveCaseApprovalFlag, listCaseApprovalFlags } from '@/services/case-approval-flag.service';
+import {
+  flagCaseApproval,
+  resolveCaseApprovalFlag,
+  listCaseApprovalFlags,
+} from '@/services/case-approval-flag.service';
 import { mealFlagSubmissionSchema } from '@/validation/meal-review.schemas';
 
 import libraryRouter from './nutritionist-library.routes';
 import reviewSwapRouter from './nutritionist-review-swap.routes';
+import recipeBatchReviewRouter from './recipe-batch-review.routes';
 
 const router = Router();
 
@@ -72,6 +77,7 @@ router.get(
 router.use('/profile', nutritionistProfileRouter);
 router.use('/license-updates', nutritionistLicenseRouter('NUTRITIONIST'));
 router.use(requireEligibleNutritionist);
+router.use('/recipe-batch-review', recipeBatchReviewRouter);
 router.use('/flag-drafts', flagDraftRouter());
 router.use(clinicalClarificationRouter('rnd'));
 router.use(reviewSwapRouter);
@@ -243,9 +249,14 @@ router.get(
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const id = z.string().min(1).max(191).safeParse(req.params.id);
     if (!id.success || Object.keys(req.query).length)
-      return res.status(400).json({ success: false, error: 'Supply one audit record; member selectors are not allowed.' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Supply one audit record; member selectors are not allowed.' });
     res.setHeader('Cache-Control', 'private, no-store');
-    return res.json({ success: true, data: await NutritionistAuditContextService.detail(req.user!.userId, req.nutritionistProfileId!, id.data) });
+    return res.json({
+      success: true,
+      data: await NutritionistAuditContextService.detail(req.user!.userId, req.nutritionistProfileId!, id.data),
+    });
   })
 );
 router.get(
@@ -600,35 +611,69 @@ router.get(
     res.json({ success: true, data: await ReviewStatusService.meal(req.nutritionistProfileId!, req.params.id) });
   })
 );
-router.get('/queue/:id/condition-reviews',
+router.get(
+  '/queue/:id/condition-reviews',
   validateZodRequest({
     params: z.object({ id: z.string().min(1).max(191) }).strict(),
-    query: z.object({
-      condition: z.enum(['DIABETES', 'HYPERTENSION', 'KIDNEY_DISEASE', 'HEART_CONDITION', 'PREGNANT']),
-      page: z.coerce.number().int().min(1).max(10000).default(1),
-      search: z.string().trim().max(100).optional(),
-      expectedContextKey: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-    }).strict(),
+    query: z
+      .object({
+        condition: z.enum(['DIABETES', 'HYPERTENSION', 'KIDNEY_DISEASE', 'HEART_CONDITION', 'PREGNANT']),
+        page: z.coerce.number().int().min(1).max(10000).default(1),
+        search: z.string().trim().max(100).optional(),
+        expectedContextKey: z
+          .string()
+          .regex(/^[a-f0-9]{64}$/)
+          .optional(),
+      })
+      .strict(),
   }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     res.setHeader('Cache-Control', 'private, no-store');
-    const data = await RelatedConditionReviewsService.list(req.nutritionistProfileId!, req.params.id,
-      req.query as unknown as Parameters<typeof RelatedConditionReviewsService.list>[2]);
+    const data = await RelatedConditionReviewsService.list(
+      req.nutritionistProfileId!,
+      req.params.id,
+      req.query as unknown as Parameters<typeof RelatedConditionReviewsService.list>[2]
+    );
     res.json({ success: true, data });
   })
 );
-router.post('/case-approvals/:id/flag', validateZodRequest({ params: z.object({ id: z.string().min(1).max(191) }).strict() }), validateZodBody(leasedMealFlagSubmissionSchema), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  res.json({ success: true, data: await flagCaseApproval(req.user!.userId, req.nutritionistProfileId!, req.params.id, req.body) });
-}));
-router.get('/case-approval-follow-ups', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  res.setHeader('Cache-Control', 'private, no-store');
-  res.json({ success: true, data: await listCaseApprovalFlags(req.nutritionistProfileId!) });
-}));
-router.post('/case-approvals/:id/resolve', validateZodRequest({ params: z.object({ id: z.string().min(1).max(191) }).strict() }), validateZodBody(z.object({
-  mealPlanId: z.string().min(1).max(191), expectedVersion: z.string().regex(/^[a-f0-9]{64}$/), rationale: z.string().trim().min(20).max(3000),
-}).strict()), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  res.json({ success: true, data: await resolveCaseApprovalFlag(req.user!.userId, req.nutritionistProfileId!, req.params.id, req.body) });
-}));
+router.post(
+  '/case-approvals/:id/flag',
+  validateZodRequest({ params: z.object({ id: z.string().min(1).max(191) }).strict() }),
+  validateZodBody(leasedMealFlagSubmissionSchema),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({
+      success: true,
+      data: await flagCaseApproval(req.user!.userId, req.nutritionistProfileId!, req.params.id, req.body),
+    });
+  })
+);
+router.get(
+  '/case-approval-follow-ups',
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.json({ success: true, data: await listCaseApprovalFlags(req.nutritionistProfileId!) });
+  })
+);
+router.post(
+  '/case-approvals/:id/resolve',
+  validateZodRequest({ params: z.object({ id: z.string().min(1).max(191) }).strict() }),
+  validateZodBody(
+    z
+      .object({
+        mealPlanId: z.string().min(1).max(191),
+        expectedVersion: z.string().regex(/^[a-f0-9]{64}$/),
+        rationale: z.string().trim().min(20).max(3000),
+      })
+      .strict()
+  ),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({
+      success: true,
+      data: await resolveCaseApprovalFlag(req.user!.userId, req.nutritionistProfileId!, req.params.id, req.body),
+    });
+  })
+);
 router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
   res.setHeader('Cache-Control', 'private, no-store');
   try {
@@ -726,9 +771,24 @@ router.patch(
           note,
           updates,
           expectedContextKey,
-          canvasLayout ? { version: 1, layout: canvasLayout,
-            detail: await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, mealPlanId),
-            ...(canvasReference ? { related: { view: canvasReference, result: await RelatedConditionReviewsService.list(req.nutritionistProfileId!, mealPlanId, { ...canvasReference, expectedContextKey }) } } : {}) } : undefined
+          canvasLayout
+            ? {
+                version: 1,
+                layout: canvasLayout,
+                detail: await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, mealPlanId),
+                ...(canvasReference
+                  ? {
+                      related: {
+                        view: canvasReference,
+                        result: await RelatedConditionReviewsService.list(req.nutritionistProfileId!, mealPlanId, {
+                          ...canvasReference,
+                          expectedContextKey,
+                        }),
+                      },
+                    }
+                  : {}),
+              }
+            : undefined
         );
         return res.status(200).json({ success: true, data: result });
       } else if (action === 'reject') {

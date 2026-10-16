@@ -8,6 +8,7 @@ import { buildPendingMealPlanPreview } from '@/domain/meal-generation-result.pol
 import prisma from '@/lib/prisma';
 
 import { CurrentPlanPreparationService } from '@/services/current-plan-preparation.service';
+import { recordedRecipeReviewers } from '@/services/recorded-recipe-reviewer.service';
 
 import { resolveLibraryRecipeCookingLinks } from '@/services/library-recipe-cooking-link.service';
 import { resolveLibraryRecipeImages } from '@/services/library-recipe-image.service';
@@ -124,14 +125,15 @@ export async function getCurrentPlan(req: AuthenticatedRequest, res: Response) {
     const clearedIds = new Set(cycleClearedIds);
     mark('clearance');
     const libraryMeals = [...groupMeals, ...retained].flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []));
-    const [libraryImages, libraryCookingLinks] = await Promise.all([
+    const [libraryImages, libraryCookingLinks, sourceReviewers] = await Promise.all([
       resolveLibraryRecipeImages(libraryMeals),
       resolveLibraryRecipeCookingLinks(groupMeals.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))),
+      recordedRecipeReviewers(groupMeals),
     ]);
     mark('presentation');
     const meals = groupMeals
       .filter((meal) => clearedIds.has(meal.id))
-      .map((meal) => serializeActionableMeal(meal, libraryImages, libraryCookingLinks));
+      .map((meal) => serializeActionableMeal(meal, libraryImages, libraryCookingLinks, sourceReviewers));
     mark('serialize');
     const awaitingGenerationSlots = remainingGenerationSlots(
       cycle.startDate,
@@ -256,15 +258,16 @@ export async function getPlanWorkspace(req: AuthenticatedRequest, res: Response)
     const clearedIds = new Set(clearedByCycle.flat());
     const retained = retainedByCycle.flat();
     const libraryMeals = [...rows, ...retained].flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []));
-    const [libraryImages, libraryCookingLinks] = await Promise.all([
+    const [libraryImages, libraryCookingLinks, sourceReviewers] = await Promise.all([
       resolveLibraryRecipeImages(libraryMeals),
       resolveLibraryRecipeCookingLinks(rows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))),
+      recordedRecipeReviewers(rows),
     ]);
     mark('presentation');
     const meals = rows
       .filter((meal) => clearedIds.has(meal.id))
       .map((meal) => ({
-        ...serializeActionableMeal(meal, libraryImages, libraryCookingLinks),
+        ...serializeActionableMeal(meal, libraryImages, libraryCookingLinks, sourceReviewers),
         cycleScope: meal.planGroupId === cycles.upcoming?.id ? 'UPCOMING' : 'CURRENT',
       }));
     const retainedFor = (id: string) => retainedByCycle[cycleIds.indexOf(id)] ?? [];
@@ -395,7 +398,7 @@ export async function getMealDetails(req: AuthenticatedRequest, res: Response) {
 
     return res.status(200).json({
       success: true,
-      data: serializeActionableMeal(meal, libraryImages, libraryCookingLinks),
+      data: serializeActionableMeal(meal, libraryImages, libraryCookingLinks, await recordedRecipeReviewers([meal])),
     });
   } catch (error: any) {
     console.error('[MealsController] getMealDetails error:', error);
