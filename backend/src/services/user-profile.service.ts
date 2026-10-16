@@ -370,7 +370,7 @@ export class UserProfileService {
         dailyCalorieTarget: calculations.dailyCalorieTarget,
         onboardingDone: true,
         reportAcknowledged,
-        nextPath: reportAcknowledged ? '/dashboard' : '/nutrition-report?next=dashboard',
+        nextPath: '/dashboard',
       };
     }
 
@@ -403,7 +403,7 @@ export class UserProfileService {
       dailyCalorieTarget: calculations.dailyCalorieTarget,
       onboardingDone: true,
       reportAcknowledged: false,
-      nextPath: '/nutrition-report?next=dashboard',
+      nextPath: '/dashboard',
     };
   }
 

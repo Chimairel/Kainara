@@ -11,7 +11,6 @@ import { getMealTheme } from '@/features/dashboard/DashboardMealRow';
 import { MealHistoryCardProps } from './MealHistoryCard.shared';
 export function useMealHistoryCardModel({
   log,
-  onUpdateNotes,
   onEditOutsideItem,
   onVoidOutsideLog,
   onRequestOutsideReview,
@@ -21,9 +20,6 @@ export function useMealHistoryCardModel({
   className = '',
 }: MealHistoryCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [noteInput, setNoteInput] = useState(log.notes || '');
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState({
@@ -57,22 +53,6 @@ export function useMealHistoryCardModel({
   const mealLabel = mealType ? mealLabels[mealType] : 'Meal';
 
   const theme = getMealTheme(mealType);
-
-  const handleSaveNotes = async () => {
-    if (!onUpdateNotes || isSaving) return;
-    setIsSaving(true);
-    setSaveError(null);
-    setSaveSuccess(false);
-    try {
-      await onUpdateNotes(log.id, noteInput.trim() ? noteInput.trim() : null);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2500);
-    } catch {
-      setSaveError('Failed to save note. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const isDone = log.status === 'DONE';
   const isSkipped = log.status === 'SKIPPED';
@@ -132,11 +112,6 @@ export function useMealHistoryCardModel({
     onVoidOutsideLog,
     voidReason,
     setVoidReason,
-    noteInput,
-    setNoteInput,
     saveError,
-    saveSuccess,
-    handleSaveNotes,
-    isSaving,
   };
 }

@@ -96,7 +96,7 @@ test('unfinished onboarding no longer requires automatic condition or allergy de
     }).readyToComplete,
     true
   );
-  assert.equal(evaluateOnboardingStatus({ ...snapshot, onboardingDone: true }).nextPath, '/nutrition-report');
+  assert.equal(evaluateOnboardingStatus({ ...snapshot, onboardingDone: true }).nextPath, '/dashboard');
 });
 
 test('complete current-version data is ready to finalize before report access', () => {
@@ -106,7 +106,7 @@ test('complete current-version data is ready to finalize before report access', 
   assert.deepEqual(status.missingFields, []);
 
   const completed = evaluateOnboardingStatus({ ...completeSnapshot, onboardingDone: true });
-  assert.equal(completed.nextPath, '/nutrition-report');
+  assert.equal(completed.nextPath, '/dashboard');
 });
 
 test('onboarding completion cannot fabricate or auto-acknowledge a nutrition report', () => {
@@ -115,7 +115,7 @@ test('onboarding completion cannot fabricate or auto-acknowledge a nutrition rep
   assert.doesNotMatch(source, /Initial nutritional baseline established/);
   assert.doesNotMatch(source, /nutritionReportVersion\.upsert/);
   assert.match(source, /acknowledgedAt:\s*null/);
-  assert.match(source, /nextPath:\s*'\/nutrition-report\?next=dashboard'/);
+  assert.match(source, /nextPath:\s*'\/dashboard'/);
 });
 
 test('legacy consent is grandfathered only for already-onboarded accounts', () => {

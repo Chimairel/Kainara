@@ -12,7 +12,7 @@ export function getPostAuthDestination(
   if (user.role === 'NUTRITIONIST') return '/nutritionist/reviews';
   if (!user.onboardingDone) return user.onboardingNextPath || '/onboarding/stats';
   if (!user.tosAccepted) return '/onboarding/tos';
-  if (!user.reportAcknowledged) return '/profile/nutrition-report';
+  if (!user.reportAcknowledged) return '/dashboard';
   const selected = pendingMembershipSelection();
   if (selected) return `/membership?plans=true&period=${selected.period}&tier=${selected.tier}`;
   return '/dashboard';

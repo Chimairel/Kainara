@@ -31,7 +31,7 @@ describe('CheckinModal', () => {
     const onClose = vi.fn();
     render(<CheckinModal isOpen onClose={onClose} profileRevision={7} />);
     fireEvent.click(screen.getByRole('button', { name: 'Still the same' }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/profile/nutrition-report'));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/dashboard'));
     expect(mocks.post).toHaveBeenCalledWith('/user/checkin/submit', { changed: false, profileRevision: 7 });
     expect(onClose).toHaveBeenCalledOnce();
   });

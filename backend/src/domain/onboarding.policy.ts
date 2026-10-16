@@ -44,7 +44,7 @@ export interface OnboardingSnapshot {
 }
 
 export interface OnboardingStatus {
-  nextPath: OnboardingPath | '/nutrition-report';
+  nextPath: OnboardingPath | '/dashboard';
   readyToComplete: boolean;
   missingFields: string[];
   currentTermsVersion: string;
@@ -124,7 +124,7 @@ export function evaluateOnboardingStatus(snapshot: OnboardingSnapshot): Onboardi
   const acceptedCurrentConsent = hasCurrentConsent(snapshot);
   if (!acceptedCurrentConsent) missingFields.push('currentConsent');
 
-  let nextPath: OnboardingStatus['nextPath'] = snapshot.onboardingDone ? '/nutrition-report' : '/onboarding/tos';
+  let nextPath: OnboardingStatus['nextPath'] = snapshot.onboardingDone ? '/dashboard' : '/onboarding/tos';
   if (!statsComplete) nextPath = '/onboarding/stats';
   else if (!preferencesComplete || !mealTimesComplete) nextPath = '/onboarding/preferences';
   else if (!conditionsComplete) nextPath = '/onboarding/conditions';

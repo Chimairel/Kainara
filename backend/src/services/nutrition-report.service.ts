@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { reportCalorieCalculation } from '@/domain/report-calorie-calculation.policy';
 import { buildFoodGuidance, type FoodGuidance } from '@/domain/food-guidance.policy';
 import { reportActivationTier } from '@/domain/planning-membership.policy';
 import { NotificationType, Prisma } from '@prisma/client';
@@ -26,11 +27,12 @@ type StoredNutritionReport = NonNullable<Awaited<ReturnType<typeof prisma.nutrit
 const samePlanningTargets = (left: PlanningMacroTargets | null, right: PlanningMacroTargets | null) =>
   Boolean(
     left &&
-      right &&
-      (['policyVersion', 'basis', 'goal'] as const).every((key) => left[key] === right[key]) &&
-      (['calories', 'proteinG', 'carbsG', 'fatG'] as const).every((key) => Math.abs(left[key] - right[key]) < 1e-9)
+    right &&
+    (['policyVersion', 'basis', 'goal'] as const).every((key) => left[key] === right[key]) &&
+    (['calories', 'proteinG', 'carbsG', 'fatG'] as const).every((key) => Math.abs(left[key] - right[key]) < 1e-9)
   );
 type ReportResponse = StoredNutritionReport & {
+  calorieCalculation: ReturnType<typeof reportCalorieCalculation>;
   foodGuidance?: FoodGuidance;
   planningTargets: PlanningMacroTargets | null;
   referenceItems: ReturnType<typeof buildDeterministicNutritionGuidance>['referenceItems'];
@@ -79,6 +81,7 @@ export class NutritionReportService {
     }
     return {
       ...report,
+      calorieCalculation: reportCalorieCalculation(version),
       foodGuidance: content?.foodGuidance as FoodGuidance | undefined,
       isStale: report.isStale || !policyVersion,
       referenceItems:
@@ -107,6 +110,7 @@ export class NutritionReportService {
     const policyVersion = version.policyVersion === NUTRITION_GUIDANCE_POLICY_VERSION ? version.policyVersion : null;
     return {
       id: version.id,
+      calorieCalculation: reportCalorieCalculation(version),
       foodGuidance: content.foodGuidance as FoodGuidance | undefined,
       userId: version.userId,
       version: version.version,
@@ -256,6 +260,7 @@ export class NutritionReportService {
       content: {
         ...(version.content as Record<string, unknown>),
         planningTargets: reportPlanningMacroTargets(version),
+        calorieCalculation: reportCalorieCalculation(version),
       },
     }));
   }

@@ -1,3 +1,4 @@
+import '@/features/reports/report-canvas-test-setup';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import NutritionReportWorkspace from './NutritionReportWorkspace';
@@ -80,7 +81,7 @@ describe('nutrition report lifecycle', () => {
     window.history.replaceState({}, '', '/profile/nutrition-report?next=regenerate');
     render(<NutritionReportWorkspace />);
     fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/meals'));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/dashboard'));
   });
   it('continues first-time onboarding to the dashboard only after acknowledgment succeeds', async () => {
     window.history.replaceState({}, '', '/nutrition-report?next=dashboard');
@@ -271,7 +272,7 @@ describe('nutrition report lifecycle', () => {
     expect(mocks.refresh).not.toHaveBeenCalled();
     expect(mocks.push).not.toHaveBeenCalled();
   });
-  it('preserves required clinical continuation rather than routing a blocked case home', async () => {
+  it('returns home after acknowledgment while keeping required clinical review enforced', async () => {
     mocks.post.mockResolvedValue(
       result({
         acknowledgedAt: '2026-10-02T13:00:00Z',
@@ -286,6 +287,6 @@ describe('nutrition report lifecycle', () => {
     );
     render(<NutritionReportWorkspace />);
     fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/profile/clinical-evidence'));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/dashboard'));
   });
 });

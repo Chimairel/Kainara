@@ -6,6 +6,7 @@ import StructuredSafetyIntake from '@/components/user/StructuredSafetyIntake';
 import api from '@/lib/axios';
 import { safetyInputsFromProfile } from '@/lib/safety-intake';
 import { CheckCircle } from '@/components/ui/icons';
+import { useAuth } from '@/hooks/useAuth';
 
 import type { useProgressWorkspaceModel } from './useProgressWorkspaceModel';
 type Model = Extract<ReturnType<typeof useProgressWorkspaceModel>, { kind: 'ready' }>;
@@ -17,6 +18,7 @@ type SectionProps = {
 };
 export default function ProgressSafetySection({ model }: SectionProps) {
   const { activeSection, healthSuccess, profileData, setHealthSuccess, router, setProfileData } = model;
+  const { refreshSession } = useAuth();
 
   return (
     <>
@@ -44,7 +46,8 @@ export default function ProgressSafetySection({ model }: SectionProps) {
                   : 'Your safety settings are already up to date.'
               );
               if (changed) {
-                router.push('/profile/nutrition-report');
+                await refreshSession({ showLoader: false });
+                router.push('/dashboard');
                 return;
               }
               const response = await api.get('/user/profile');

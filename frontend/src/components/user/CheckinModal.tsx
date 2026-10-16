@@ -96,7 +96,7 @@ export default function CheckinModal({
       await refreshSession();
       window.dispatchEvent(new Event('kainara:checkin-updated'));
       onClose();
-      router.push('/profile/nutrition-report');
+      router.push('/dashboard');
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to submit check-in.'));
     } finally {
@@ -122,7 +122,7 @@ export default function CheckinModal({
       await refreshSession();
       window.dispatchEvent(new Event('kainara:checkin-updated'));
       onClose();
-      router.push('/profile/nutrition-report');
+      router.push('/dashboard');
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to save your check-in.'));
     } finally {

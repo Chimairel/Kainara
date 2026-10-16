@@ -2,6 +2,7 @@ import { useMembership } from '@/features/membership/MembershipProvider';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
+import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 import { getApiErrorMessage } from '@/lib/api-error';
 import type { MealType } from '@/types';
 import type { OutsideMealLog, OutsideMealWarning } from './model';
@@ -16,6 +17,10 @@ export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [warning, setWarning] = useState<OutsideMealWarning | null>(null);
+  const [savedFood, setSavedFood] = useState<{ logId: string; itemId: string | null } | null>(null);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const feedbackInFlight = useRef(false);
   const inFlight = useRef(false);
   const request = useRef<{ key: string; signature: string } | null>(null);
   const image = useRef<File | null>(null);
@@ -36,6 +41,8 @@ export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }
     setMealName('');
     setNotes('');
     setWarning(null);
+    setSavedFood(null);
+    setFeedbackError(null);
     request.current = null;
     image.current = null;
     if (activeToast.current !== null) toast.dismiss(activeToast.current);
@@ -58,7 +65,7 @@ export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }
     request.current = null;
   };
 
-  const onSubmit = async (acknowledge = false, options?: SubmitOptions, requestRndReview = false) => {
+  const onSubmit = async (acknowledge = false, options?: SubmitOptions) => {
     if (inFlight.current) return;
     if (acknowledge && !warning) return;
     const submittedOwner = ownerId;
@@ -86,7 +93,6 @@ export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }
           ? {
               mealType,
               warningAcknowledged: true,
-              ...(requestRndReview ? { requestRndReview: true } : {}),
               confirmationId: warning!.confirmationId,
               requestKey: request.current?.key,
             }
@@ -106,8 +112,9 @@ export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }
       if (!payload.log?.id) throw new Error('The saved food response was incomplete. Retry to check the entry.');
       const photo = image.current;
       onSaved(payload.log);
-      if (requestRndReview) refreshMembership();
       reset();
+      setSavedFood({ logId: payload.log.id, itemId: payload.log.outsideItems?.[0]?.id ?? null });
+      setFeedbackError(null);
       const followUp = payload.safetyFollowUp as { status: string; messages: string[] } | undefined;
       if (followUp?.status === 'CONFLICT_DETECTED') {
         toast.warning('Food logged — possible conflict', {
@@ -116,7 +123,7 @@ export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }
           duration: 10000,
         });
       } else {
-        toast.success(requestRndReview ? 'Food logged; RND review requested' : 'Food logged', {
+        toast.success('Food logged', {
           id: toastId,
           description: 'Your intake has been updated. Estimated values remain provisional.',
         });
@@ -168,8 +175,48 @@ export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }
     }
   };
 
+  const onDismissFeedback = () => {
+    if (!feedbackInFlight.current) {
+      setSavedFood(null);
+      setFeedbackError(null);
+    }
+  };
+  const onRequestFeedback = async () => {
+    if (!savedFood?.itemId || feedbackInFlight.current) return;
+    const submittedOwner = ownerId;
+    feedbackInFlight.current = true;
+    setFeedbackBusy(true);
+    setFeedbackError(null);
+    try {
+      await api.post(`/user/meals/logs/${savedFood.logId}/items/${savedFood.itemId}/request-review`);
+      if (!mounted.current || activeOwner.current !== submittedOwner) return;
+      setSavedFood(null);
+      refreshMembership();
+      window.dispatchEvent(new Event(LIVE_UPDATE_EVENT));
+      toast.success('RND feedback requested', {
+        description: 'Your food is already logged. You can follow the feedback in Meal history.',
+      });
+    } catch (error) {
+      if (mounted.current && activeOwner.current === submittedOwner)
+        setFeedbackError(
+          getApiErrorMessage(
+            error,
+            'Your food is saved, but feedback could not be requested. Retry here or from Meal history.'
+          )
+        );
+    } finally {
+      feedbackInFlight.current = false;
+      if (mounted.current) setFeedbackBusy(false);
+    }
+  };
+
   return {
     isOpen,
+    savedFood,
+    feedbackBusy,
+    feedbackError,
+    onDismissFeedback,
+    onRequestFeedback,
     setIsOpen,
     mealName,
     mealType,

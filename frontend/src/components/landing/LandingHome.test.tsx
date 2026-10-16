@@ -79,7 +79,7 @@ describe('public home navigation', () => {
     expect(state.replace).toHaveBeenCalledWith('/dashboard');
     expect(screen.queryByText('Public navigation')).not.toBeInTheDocument();
   });
-  it('keeps report acknowledgment in the common destination chain', () => {
+  it('returns an onboarded member Home for the report acknowledgment notice', () => {
     state.user = {
       role: 'USER',
       emailVerified: true,
@@ -88,7 +88,7 @@ describe('public home navigation', () => {
       reportAcknowledged: false,
     };
     render(<Home initialMedia={null} />);
-    expect(state.replace).toHaveBeenCalledWith('/profile/nutrition-report');
+    expect(state.replace).toHaveBeenCalledWith('/dashboard');
     expect(screen.getByText('Redirecting to your workspace...')).toBeInTheDocument();
   });
   it('offers recovery on the homepage when the provisional profile read fails', () => {

@@ -38,6 +38,12 @@ interface CalorieResult {
  *   BUILD_MUSCLE:  TDEE + 300
  */
 export function calculateDailyTarget(input: CalorieInput): CalorieResult {
+  const { bmr, tdee, dailyCalorieTarget } = calculateDailyTargetBreakdown(input);
+  return { bmr, tdee, dailyCalorieTarget };
+}
+
+/** Same calculation as planning, with its intermediate values for the saved report. */
+export function calculateDailyTargetBreakdown(input: CalorieInput) {
   const { age, heightCm, weightKg, goal, activityLevel, biologicalSex, hasPregnantCondition } = input;
 
   // Determine sex: if PREGNANT condition exists, force FEMALE.
@@ -94,6 +100,12 @@ export function calculateDailyTarget(input: CalorieInput): CalorieResult {
 
   // Floor target to avoid negative numbers and round to nearest integer
   return {
+    rawBmr: bmr,
+    rawTdee: tdee,
+    sexTerm: isFemale ? -161 : 5,
+    activityMultiplier,
+    goalAdjustment: dailyCalorieTarget - tdee,
+    minimumDailyCalories: CLINICAL_NUTRITION_POLICY.minimumDailyCalories,
     bmr: Math.round(Math.max(0, bmr)),
     tdee: Math.round(Math.max(0, tdee)),
     dailyCalorieTarget: Math.round(Math.max(CLINICAL_NUTRITION_POLICY.minimumDailyCalories, dailyCalorieTarget)),

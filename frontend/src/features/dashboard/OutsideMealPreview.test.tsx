@@ -67,9 +67,7 @@ it('saves an estimate separately from requesting one whole-meal review', () => {
   render(<PreviewConfirmation {...props} />);
   fireEvent.click(screen.getByRole('button', { name: 'Save food' }));
   expect(props.onSubmit).toHaveBeenLastCalledWith(true);
-  fireEvent.click(screen.getByRole('button', { name: 'Get RND feedback' }));
-  expect(props.onSubmit).toHaveBeenLastCalledWith(true, undefined, true);
-  expect(screen.getByText(/1 of 1 feedback requests left/)).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /RND feedback/ })).not.toBeInTheDocument();
   expect(screen.getByText(/300–500 kcal/)).toBeInTheDocument();
 });
 it.each(['quota', 'lifestyle', 'loading', 'error'])(
@@ -80,12 +78,8 @@ it.each(['quota', 'lifestyle', 'loading', 'error'])(
     if (state === 'loading') membership.isLoading = true;
     if (state === 'error') membership.error = 'Unavailable';
     render(<PreviewConfirmation {...props} />);
-    expect(screen.getByRole('button', { name: 'Get RND feedback' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /RND feedback/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save food' })).toBeEnabled();
-    if (state === 'error') {
-      fireEvent.click(screen.getByRole('button', { name: 'Retry allowance' }));
-      expect(membership.refresh).toHaveBeenCalledOnce();
-    }
   }
 );
 

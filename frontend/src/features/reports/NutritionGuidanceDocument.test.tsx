@@ -1,3 +1,4 @@
+import '@/features/reports/report-canvas-test-setup';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import type { NutritionReport } from '@/types';

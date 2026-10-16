@@ -64,6 +64,7 @@ export default function ReviewCanvas({
   restoreLayout,
   hideDecisionDock = false,
   stackOnMobile = false,
+  ariaLabel,
 }: {
   title: string;
   contentKey: string;
@@ -75,6 +76,7 @@ export default function ReviewCanvas({
   readOnly?: boolean;
   hideDecisionDock?: boolean;
   stackOnMobile?: boolean;
+  ariaLabel?: string;
   className?: string;
   focusSheet?: { title: string; request: number };
   tools?: ReactNode;
@@ -312,7 +314,7 @@ export default function ReviewCanvas({
       ref={root}
       tabIndex={-1}
       role="region"
-      aria-label={readOnly ? 'Admin review canvas' : 'RND review canvas'}
+      aria-label={ariaLabel ?? (readOnly ? 'Admin review canvas' : 'RND review canvas')}
       className={`relative isolate flex min-w-0 flex-col overflow-hidden border-[6px] border-b-[16px] border-brand-surface bg-brand-bgAlt text-brand-text ${expanded ? 'h-full w-full' : `h-[calc(100dvh-19rem)] min-h-[640px] w-full rounded-2xl shadow-card-lg ${className}`}`}
     >
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-brand-border bg-brand-surface p-3">

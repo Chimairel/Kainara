@@ -3,7 +3,7 @@
 import React, { useSyncExternalStore } from 'react';
 import { Check, Loader2 } from '@/components/ui/icons';
 import type { NutritionReport } from '@/types';
-import DocumentViewer from '@/components/shared/DocumentViewer';
+import ReviewCanvas from '@/features/nutritionist-reviews/ReviewCanvas';
 import Button from '@/components/ui/Button';
 import type { ReportVersion } from './ReportHistory';
 import NutritionGuidancePaper, { type GuidanceProfileSnapshot } from './NutritionGuidancePaper';
@@ -33,7 +33,7 @@ function subscribePhone(onChange: () => void) {
 const isPhone = () => typeof window.matchMedia === 'function' && window.matchMedia(phoneQuery).matches;
 const serverPhone = () => false;
 
-/** Nutrition adapter; all reader behavior lives in the reusable DocumentViewer. */
+/** Member report adapter for the same contained canvas used by RND review. */
 export default function NutritionPdfViewer({
   report,
   profile,
@@ -113,16 +113,28 @@ export default function NutritionPdfViewer({
     );
   }
   return (
-    <DocumentViewer
+    <ReviewCanvas
       title={`Nutrition report · Version ${report.version}`}
+      ariaLabel="Nutrition report canvas"
       contentKey={`${report.id ?? 'report'}:${report.version}`}
       expanded={expanded}
       onExpandedChange={onExpandedChange}
-      onDownload={onDownload}
-      downloading={isDownloadingPdf}
-      actions={actions}
+      readOnly
+      hideDecisionDock
+      stackOnMobile
+      focusSheet={{ title: 'Nutrition report', request: report.version }}
+      actions={
+        <>
+          {onDownload && (
+            <Button variant="secondary" size="sm" onClick={onDownload} isLoading={isDownloadingPdf}>
+              Download PDF
+            </Button>
+          )}
+          {actions}
+        </>
+      }
     >
-      <NutritionGuidancePaper report={report} profile={profile} />
-    </DocumentViewer>
+      <NutritionGuidancePaper title="Nutrition report" report={report} profile={profile} />
+    </ReviewCanvas>
   );
 }

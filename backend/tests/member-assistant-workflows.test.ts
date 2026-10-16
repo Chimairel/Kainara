@@ -16,6 +16,24 @@ function delegate(t: TestContext, target: object, name: string, value: unknown) 
   t.after(() => { record[name] = old; });
 }
 
+test('report calculation, Home and saved-food feedback help match the current workflows for free', () => {
+  for (const query of [
+    'is my nutrition report using AI?',
+    'show kcal calculation in the report',
+    'zoom nutrition report',
+  ]) {
+    const answer = assistantStaticReply(query)!;
+    assert.match(answer.text, /fixed KAINARA calculations/);
+    assert(answer.links.some((link) => link.href === '/profile/nutrition-report'));
+  }
+  assert.match(assistantStaticReply('where do I go after onboarding?')!.text, /returns you to Home/);
+  assert.match(
+    assistantStaticReply('how do I request RND feedback for outside food?')!.text,
+    /Save the outside food first/
+  );
+  assert.match(assistantStaticReply('RND feedback in history notes')!.text, /instead of personal meal notes/);
+});
+
 test('purpose and requirement questions precede log-weight navigation, with an unchanged-details option', () => {
   for (const question of ['why do i need to log my weight every week?', 'Do I have to record weight weekly?',
     'why log my weight?', 'is weekly weight mandatory?', 'nothing changed in my weekly check-in',

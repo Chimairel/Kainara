@@ -26,11 +26,11 @@ export default function ProgressRegenerationModal({ model }: SectionProps) {
               variant="primary"
               onClick={() => {
                 setShowRegenerateModal(false);
-                router.push('/profile/nutrition-report');
+                router.push('/dashboard');
               }}
               className="text-xs font-bold w-full sm:w-auto shadow-md"
             >
-              Review Updated Report
+              Return to Home
             </Button>
           </div>
         }

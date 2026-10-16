@@ -1,5 +1,4 @@
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
-import OutsideReviewRequestButton from '@/features/membership/OutsideReviewRequestButton';
 import { formatMealTitle } from '@/lib/meal-title';
 import Button from '@/components/ui/Button';
 import type { OutsideMealWarning } from './model';
@@ -140,7 +139,9 @@ export default function PreviewConfirmation(props: Props & { warning: OutsideMea
             Save food
           </Button>
         </div>
-        <OutsideReviewRequestButton busy={props.isLoading} onRequest={() => props.onSubmit(true, undefined, true)} />
+        <p className="text-xs text-brand-muted">
+          After saving, you can request optional RND feedback now or later from Meal history.
+        </p>
       </div>
     </div>
   );

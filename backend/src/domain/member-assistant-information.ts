@@ -284,6 +284,37 @@ function workflowInformation(text: string): AssistantInformation | null {
   const report = [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }];
   const meals = [{ label: 'Meal plan', href: '/meals' }];
   const questions = [...meals, { label: 'Health details', href: '/profile/clinical-evidence' }];
+  if (
+    /\b(report|guidance|ulat)\b/.test(text) &&
+    /\b(ai|gemini|written|writes|generated|sumulat|ginawa|calculations?|kcal|formula|bmr|tdee|zoom|canvas)\b/.test(text)
+  )
+    return result(
+      'Current Nutrition reports use fixed KAINARA calculations and referenced guidance rules, not Gemini-written conversation. Open Nutrition guidance for the saved version’s kcal breakdown: resting energy (BMR), activity multiplier, daily expenditure (TDEE), goal adjustment and saved daily target. Archived versions use their own recorded inputs; missing historical inputs are not filled from today’s profile. The report canvas has the same zoom and pan controls as RND review; its controls change the document view only. Formula estimates do not grant medical clearance.',
+      'Fixed calculations at referenced guidance rules ang gamit sa current Nutrition report, hindi Gemini-written na usapan. Sa Nutrition guidance makikita ang kcal breakdown ng saved version: BMR, activity multiplier, TDEE, goal adjustment at saved daily target. Sariling recorded inputs ang gamit ng archived versions; hindi pinapalitan ng profile ngayon ang kulang na historical inputs. May zoom at pan controls ang report canvas tulad sa RND review, para sa document view lamang. Hindi medical clearance ang formula estimate.',
+      report
+    );
+  if (
+    /\b(feedback|rnd|nutritionist|review)\b/.test(text) &&
+    /\b(outside|logged food|food log|after saving|after logging|history|notes|isinalog|pagkalog)\b/.test(text)
+  )
+    return result(
+      'Save the outside food first. After a successful save, an optional window offers “Request RND feedback”. Closing it does not undo your log or spend a feedback request. Later, open Meal history, expand that outside-food entry and use its RND feedback section. It shows the request button, pending questions or received feedback instead of personal meal notes. One request covers the meal’s food items; Health access and the current allowance still apply. Feedback is separate from intake and does not automatically verify its nutrition or medically approve the food.',
+      'I-save muna ang outside food. Pagkatapos ma-save, may optional window para sa “Request RND feedback”. Hindi nabubura ang log o nagagastos ang feedback request kapag isinara ito. Maaari ring buksan ang outside-food entry sa Meal history at tingnan ang RND feedback section para sa request button, pending questions o natanggap na feedback kapalit ng personal meal notes. Isang request para sa food items ng meal; kailangan pa rin ang Health access at allowance. Hiwalay ang feedback sa intake at hindi automatic nutrition verification o medical approval.',
+      [
+        { label: 'Meal history', href: '/meals?tab=history' },
+        { label: 'Membership', href: '/membership' },
+      ]
+    );
+  if (
+    /\b(after|finished|completed|changed|updated|pagkatapos)\b/.test(text) &&
+    /\b(onboarding|check in|profile|weight|report)\b/.test(text) &&
+    /\b(where|home|redirect|go|next|saan)\b/.test(text)
+  )
+    return result(
+      'After onboarding or a saved health/planning change, KAINARA returns you to Home. If your current Nutrition report needs acknowledgment, sleeping Nara shows the next step there. Open the report, review it and acknowledge the current version; acknowledgment returns you Home too. Report, membership and required RND checks still govern meal preparation. Returning Home does not acknowledge a report for you.',
+      'Pagkatapos ng onboarding o pag-save ng health/planning change, babalik ka sa Home. Kung kailangan pang i-acknowledge ang current Nutrition report, ipapakita ni sleeping Nara ang susunod na hakbang. Buksan, basahin at i-acknowledge ang tamang version; babalik ka rin sa Home pagkatapos. Kailangan pa rin ang report, membership at required RND checks bago maghanda ng meals. Hindi automatic acknowledgment ang pagbalik sa Home.',
+      [{ label: 'Home', href: '/dashboard' }, ...report]
+    );
   const weight = /\b(weight|timbang)\b/.test(text);
   const weekly = /\b(weekly|every week|each week|check in|checkin|linggo|lingguhan)\b/.test(text);
   const why = /\b(why|purpose|reason|bakit|para saan)\b/.test(text);
@@ -402,7 +433,7 @@ const extendedHelp: Array<AssistantInformation & { match: RegExp }> = [
   { match: /\b(weekly check in|weekly checkin|check in due|checkin due|overdue check in|still the same)\b/,
     text: 'Use the weekly check-in reminder on your Dashboard to confirm whether your details changed. Review any new dated Nutrition guidance and choose “Use this report for meal planning” when prompted. A check-in does not restart your trial.', links: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
   { match: /\b(rnd|nutritionist|dietitian)\b.*\b(feedback|advice|contact|message|questions?|answers?)\b|\b(feedback|advice|contact|message|answer|respond)\b.*\b(rnd|nutritionist|dietitian)\b/,
-    text: 'For logged outside food, open Meal history, select the entry and choose “Get RND feedback” when available. Your current access and allowance apply. Feedback does not rewrite its nutrition. Answer meal questions in Meal plan and profile questions in Health details. Nara is not a live chat with an RND.', links: [{ label: 'Meal history', href: '/meals?tab=history' }, { label: 'Meal plan', href: '/meals' }, { label: 'Health details', href: '/profile/clinical-evidence' }] },
+    text: 'For logged outside food, open Meal history, select the entry and choose “Request RND feedback” when available. Your current access and allowance apply. Feedback does not rewrite its nutrition. Answer meal questions in Meal plan and profile questions in Health details. Nara is not a live chat with an RND.', links: [{ label: 'Meal history', href: '/meals?tab=history' }, { label: 'Meal plan', href: '/meals' }, { label: 'Health details', href: '/profile/clinical-evidence' }] },
   { match: /\b(health details|clinical documents?|upload.*(?:medical|clinical|evidence|document)|requested forms?)\b/,
     text: 'Open Health details to answer forms requested by your RND. New declarations do not automatically create a form. New clinical-document uploads are retired; existing historical files do not make uploading available. I have not submitted any health details.', links: [{ label: 'Health details', href: '/profile/clinical-evidence' }] },
   { match: /\b(pending|flagged|verification|verified|approval|approved|rejected|quarantined)\b.*\b(mean|means|status|review|meal|recipe|profile)\b|\b(what|why)\b.*\b(pending|flagged|verification|approval|quarantined)\b/,

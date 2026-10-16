@@ -16,6 +16,7 @@
     "./**/*.ts",
     "../scripts/parallel-transaction-local-acceptance.ts",
     "../scripts/recognized-profile-local-acceptance.ts",
+    "../scripts/report-feedback-local-acceptance.ts",
     "../scripts/transaction-timeout-local-acceptance.ts",
     "../scripts/audit-details-local-acceptance.ts",
     "../scripts/independent-findings-repair-acceptance.ts",

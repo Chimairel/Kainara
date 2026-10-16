@@ -33,7 +33,7 @@ export default function OutsideReviewRequestButton({
         onClick={onRequest}
         disabled={busy || isLoading || !!error || !available}
       >
-        Get RND feedback
+        Request RND feedback
       </Button>
       <p aria-live="polite" className={`text-xs leading-relaxed ${inverse ? 'text-white/90' : 'text-brand-muted'}`}>
         {isLoading || (!data && !error)

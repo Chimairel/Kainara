@@ -3,7 +3,7 @@
 import { MealMacros } from '@/components/user/MealMacros';
 import { formatMealTitle } from '@/lib/meal-title';
 
-import { Check, ChevronDown, FileText, X } from '@/components/ui/icons';
+import { Check, ChevronDown, X } from '@/components/ui/icons';
 
 import type { useMealHistoryCardModel } from './useMealHistoryCardModel';
 type Model = Extract<ReturnType<typeof useMealHistoryCardModel>, { kind: 'ready' }>;
@@ -84,19 +84,9 @@ export default function MealHistorySummary({ model }: SectionProps) {
               className="mt-1"
             />
 
-            {/* Subtext / Notes preview */}
-            <div className="mt-0.5 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-white/80">
-              {log.notes ? (
-                <span className="flex items-center gap-1 font-medium text-amber-200">
-                  <FileText className="h-3 w-3 shrink-0" />
-                  <span className="truncate max-w-[140px] sm:max-w-md italic">&ldquo;{log.notes}&rdquo;</span>
-                </span>
-              ) : (
-                <span className="font-medium text-white/70 hover:underline">
-                  {isDone ? 'Add notes' : 'View details'}
-                </span>
-              )}
-            </div>
+            <p className="mt-1 text-xs text-white/90">
+              {log.source === 'USER_LOGGED' ? 'View food details and RND feedback' : 'View meal details'}
+            </p>
           </div>
         </div>
 

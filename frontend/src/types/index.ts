@@ -127,6 +127,30 @@ export interface Allergy {
 }
 
 export interface NutritionReport {
+  calorieCalculation?: {
+    rawBmr: number;
+    rawTdee: number;
+    bmr: number;
+    tdee: number;
+    sexTerm: number;
+    activityMultiplier: number;
+    goalAdjustment: number;
+    minimumDailyCalories: number;
+    dailyCalorieTarget: number;
+    recordedTarget: number | null;
+    inputs: {
+      age: number;
+      weightKg: number;
+      heightCm: number;
+      biologicalSex: string;
+      activityLevel: string;
+      goal: string;
+      hasPregnantCondition: boolean;
+    };
+    sourceTitle: string;
+    sourceUrl: string;
+    sexTermBasis?: string;
+  } | null;
   planningTargets?: {
     calories: number;
     proteinG: number;

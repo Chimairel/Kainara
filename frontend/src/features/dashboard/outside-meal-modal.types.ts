@@ -10,6 +10,11 @@ export type SubmitOptions = {
 };
 
 export type OutsideMealModalProps = {
+  savedFood?: { logId: string; itemId: string | null } | null;
+  feedbackBusy?: boolean;
+  feedbackError?: string | null;
+  onDismissFeedback?: () => void;
+  onRequestFeedback?: () => void;
   isLoading: boolean;
   isOpen: boolean;
   mealName: string;
@@ -19,7 +24,7 @@ export type OutsideMealModalProps = {
   onMealNameChange: (value: string) => void;
   onMealTypeChange: (value: MealType) => void;
   onNotesChange: (value: string) => void;
-  onSubmit: (acknowledgePreview: boolean, options?: SubmitOptions, requestRndReview?: boolean) => void;
+  onSubmit: (acknowledgePreview: boolean, options?: SubmitOptions) => void;
   onWarningCancel: () => void;
   warning: OutsideMealWarning | null;
 };

@@ -7,12 +7,10 @@ import { MealHistoryCardProps } from '@/features/meal-history/MealHistoryCard.sh
 
 import { useMealHistoryCardModel } from '@/features/meal-history/useMealHistoryCardModel';
 import MealHistorySummary from '@/features/meal-history/MealHistorySummary';
-import OutsideMealHistoryItems from '@/features/meal-history/OutsideMealHistoryItems';
 import VoidOutsideMealForm from '@/features/meal-history/VoidOutsideMealForm';
-import MealHistoryNotesForm from '@/features/meal-history/MealHistoryNotesForm';
+import MealHistoryFeedback from '@/features/meal-history/MealHistoryFeedback';
 export default function MealHistoryCard({
   log,
-  onUpdateNotes,
   onEditOutsideItem,
   onVoidOutsideLog,
   onRequestOutsideReview,
@@ -23,7 +21,6 @@ export default function MealHistoryCard({
 }: MealHistoryCardProps) {
   const model = useMealHistoryCardModel({
     log,
-    onUpdateNotes,
     onEditOutsideItem,
     onVoidOutsideLog,
     onRequestOutsideReview,
@@ -39,7 +36,7 @@ export default function MealHistoryCard({
       {/* Primary Card Row */}
       <MealHistorySummary model={model} />
 
-      {/* Expandable Drawer: Notes & Detailed Breakdown */}
+      {/* Expandable food details and feedback */}
       {isExpanded && (
         <div className="mt-3 pl-0 sm:pl-2">
           <div className="rounded-2xl bg-black/35 backdrop-blur-md p-3.5 sm:p-4 text-white border border-white/20 shadow-inner space-y-3">
@@ -72,7 +69,6 @@ export default function MealHistoryCard({
             </div>
 
             {/* Outside Items list if available */}
-            <OutsideMealHistoryItems model={model} />
 
             {log.source === 'USER_LOGGED' && log.hasImage && (
               <button
@@ -95,8 +91,8 @@ export default function MealHistoryCard({
 
             <VoidOutsideMealForm model={model} />
 
-            {/* Note Editor Area */}
-            <MealHistoryNotesForm model={model} />
+            {/* RND feedback */}
+            <MealHistoryFeedback model={model} />
           </div>
         </div>
       )}

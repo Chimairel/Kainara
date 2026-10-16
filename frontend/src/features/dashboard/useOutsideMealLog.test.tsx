@@ -24,7 +24,13 @@ const preview = {
 };
 const saved = {
   warningRequired: false,
-  log: { id: 'log', loggedAt: options.consumedAt, status: 'DONE', ...options.items[0].reportedNutrition },
+  log: {
+    id: 'log',
+    outsideItems: [{ id: 'food' }],
+    loggedAt: options.consumedAt,
+    status: 'DONE',
+    ...options.items[0].reportedNutrition,
+  },
   safetyFollowUp: { status: 'INSUFFICIENT_EVIDENCE', messages: [] },
 };
 const response = (data: unknown) => ({ data: { success: true, data } });
@@ -242,32 +248,49 @@ describe('outside food submission', () => {
   });
 });
 
-it('keeps the preview after a rejected RND admission, then saves without requesting review', async () => {
-  vi.mocked(api.post).mockResolvedValueOnce(response(preview));
+it('saves first and keeps a rejected optional feedback request separate from intake', async () => {
+  vi.clearAllMocks();
+  vi.mocked(api.post).mockResolvedValueOnce(response(preview)).mockResolvedValueOnce(response(saved));
   const onSaved = vi.fn();
   const { result } = renderHook(() => useOutsideMealLog(onSaved));
-  await act(async () => {
-    await result.current.onSubmit(false, options);
-  });
-  vi.mocked(api.post).mockRejectedValueOnce({
-    response: { status: 429, data: { code: 'MEMBERSHIP_USAGE_LIMIT', error: 'Review allowance used' } },
-  });
-  await act(async () => {
-    await result.current.onSubmit(true, undefined, true);
-  });
-  expect(api.post).toHaveBeenLastCalledWith(
-    '/user/meals/log-outside',
-    expect.objectContaining({ requestRndReview: true })
-  );
-  expect(onSaved).not.toHaveBeenCalled();
-  expect(result.current.warning?.confirmationId).toBe('preview');
-  vi.mocked(api.post).mockResolvedValueOnce(response(saved));
-  await act(async () => {
-    await result.current.onSubmit(true);
-  });
-  expect(api.post).toHaveBeenLastCalledWith(
-    '/user/meals/log-outside',
-    expect.not.objectContaining({ requestRndReview: true })
-  );
+  await act(() => result.current.onSubmit(false, options));
+  await act(() => result.current.onSubmit(true));
   expect(onSaved).toHaveBeenCalledOnce();
+  expect(result.current.savedFood).toEqual({ logId: 'log', itemId: 'food' });
+  expect(vi.mocked(api.post).mock.calls[1][1]).not.toHaveProperty('requestRndReview');
+  vi.mocked(api.post).mockRejectedValueOnce({ response: { status: 429, data: { error: 'Review allowance used' } } });
+  await act(() => result.current.onRequestFeedback());
+  expect(result.current.feedbackError).toBe('Review allowance used');
+  expect(result.current.savedFood).not.toBeNull();
+  expect(onSaved).toHaveBeenCalledOnce();
+  act(() => result.current.onDismissFeedback());
+  expect(result.current.savedFood).toBeNull();
+});
+it('blocks duplicate feedback requests and does not submit food again', async () => {
+  vi.clearAllMocks();
+  vi.mocked(api.post).mockResolvedValueOnce(response(preview)).mockResolvedValueOnce(response(saved));
+  const { result } = renderHook(() => useOutsideMealLog(vi.fn(), 'owner'));
+  await act(() => result.current.onSubmit(false, options));
+  await act(() => result.current.onSubmit(true));
+  let finish!: (value: unknown) => void;
+  vi.mocked(api.post).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }) as never
+  );
+  let pending!: Promise<void>;
+  act(() => {
+    pending = result.current.onRequestFeedback();
+    void result.current.onRequestFeedback();
+    result.current.onDismissFeedback();
+  });
+  expect(api.post).toHaveBeenCalledTimes(3);
+  expect(result.current.savedFood).not.toBeNull();
+  await act(async () => {
+    finish(response({}));
+    await pending;
+  });
+  expect(api.post).toHaveBeenLastCalledWith('/user/meals/logs/log/items/food/request-review');
+  expect(result.current.savedFood).toBeNull();
 });

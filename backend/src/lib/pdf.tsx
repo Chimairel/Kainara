@@ -90,6 +90,34 @@ export const NutritionReportPDF = ({
           <View style={styles.divider} />
           <Text style={styles.title}>What these numbers mean</Text>
           <Text style={styles.text}>{report.generalSummary}</Text>
+          {report.calorieCalculation &&
+            (() => {
+              const c = report.calorieCalculation;
+              return (
+                <View style={styles.section}>
+                  <Text style={styles.title}>Daily kcal calculation</Text>
+                  <Text style={styles.text}>
+                    BMR: 10 x {c.inputs.weightKg} kg + 6.25 x {c.inputs.heightCm} cm - 5 x {c.inputs.age} years + (
+                    {c.sexTerm}) = {c.rawBmr} kcal/day.
+                  </Text>
+                  <Text style={styles.text}>
+                    TDEE: {c.rawBmr} x {c.activityMultiplier} = {c.rawTdee} kcal/day. Goal adjustment:{' '}
+                    {c.goalAdjustment} kcal/day.
+                  </Text>
+                  <Text style={styles.text}>
+                    Rounded formula target: {c.dailyCalorieTarget} kcal/day; app lower bound: {c.minimumDailyCalories}{' '}
+                    kcal. Saved target: {c.recordedTarget ?? 'Not recorded'} kcal/day.
+                  </Text>
+                  <Text style={styles.text}>
+                    Fixed system calculation, not AI or measured metabolism. The lower bound is an implementation rule,
+                    not a recommended intake. Medical and pregnancy needs require individual assessment.
+                  </Text>
+                  <Text style={styles.text}>
+                    Equation source: {c.sourceTitle} — {c.sourceUrl}
+                  </Text>
+                </View>
+              );
+            })()}
           {report.foodGuidance?.formatVersion === 1 && (
             <View style={styles.section}>
               <Text style={styles.title}>Food choices for your profile</Text>

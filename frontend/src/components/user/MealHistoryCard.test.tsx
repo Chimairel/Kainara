@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import MealHistoryCard from './MealHistoryCard';
 import type { MealHistoryLog } from '@/features/meals/useMealsWorkspace';
@@ -54,18 +54,6 @@ describe('MealHistoryCard', () => {
     expect(screen.getByText('Meal')).toBeInTheDocument();
     expect(screen.queryByText('Lunch')).not.toBeInTheDocument();
   });
-  it('keeps skipped meals and their note editor available', async () => {
-    const onUpdateNotes = vi.fn().mockResolvedValue(undefined);
-    render(<MealHistoryCard log={{ ...baseLog, status: 'SKIPPED' }} onUpdateNotes={onUpdateNotes} />);
-    expect(screen.getByText('SKIPPED')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { expanded: false }));
-    fireEvent.change(screen.getByLabelText(/Personal Meal Notes/i), {
-      target: { value: 'Skipped because I was away.' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /Save Note/i }));
-    await waitFor(() => expect(onUpdateNotes).toHaveBeenCalledWith(baseLog.id, 'Skipped because I was away.'));
-  });
-
   it('renders category, meal title, macros, and existing note preview', () => {
     render(<MealHistoryCard log={baseLog} />);
 
@@ -73,40 +61,15 @@ describe('MealHistoryCard', () => {
     expect(screen.getByText('Hearty Pandesal with Peanut Butter, Boiled Eggs, and Butter')).toBeInTheDocument();
     expect(screen.getByRole('article')).toHaveTextContent('859 kcal');
     expect(screen.getByRole('article')).toHaveTextContent('40g protein');
-    expect(screen.getByText(/Felt very energized after eating/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Felt very energized after eating/i)).not.toBeInTheDocument();
     expect(screen.getByText('DONE')).toBeInTheDocument();
   });
 
-  it('expands note editor when card is clicked', () => {
+  it('reuses the expanded notes area for feedback without exposing an editor', () => {
     render(<MealHistoryCard log={baseLog} />);
-
-    // Expand card
-    const cardButton = screen.getByRole('button', { expanded: false });
-    fireEvent.click(cardButton);
-
-    expect(screen.getByLabelText(/Personal Meal Notes/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Save Note/i })).toBeInTheDocument();
-  });
-
-  it('allows editing notes and calls onUpdateNotes when Save Note is clicked', async () => {
-    const handleUpdate = vi.fn().mockResolvedValue(undefined);
-    render(<MealHistoryCard log={baseLog} onUpdateNotes={handleUpdate} />);
-
-    // Expand card
-    const cardButton = screen.getByRole('button', { expanded: false });
-    fireEvent.click(cardButton);
-
-    const textarea = screen.getByLabelText(/Personal Meal Notes/i);
-    fireEvent.change(textarea, { target: { value: 'Updated note: substituted peanut butter with almond butter' } });
-
-    const saveButton = screen.getByRole('button', { name: /Save Note/i });
-    fireEvent.click(saveButton);
-
-    await waitFor(() => {
-      expect(handleUpdate).toHaveBeenCalledWith(
-        'log-101',
-        'Updated note: substituted peanut butter with almond butter'
-      );
-    });
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(screen.getByRole('region', { name: 'RND feedback' })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Save Note/ })).not.toBeInTheDocument();
   });
 });

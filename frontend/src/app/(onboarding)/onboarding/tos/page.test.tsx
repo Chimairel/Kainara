@@ -59,7 +59,7 @@ describe('onboarding final review readiness', () => {
     expect(screen.getByText('Sunday shopping · Monday to Sunday plan')).toBeInTheDocument();
     acceptAll();
     fireEvent.click(screen.getByRole('button', { name: /Complete Onboarding/ }));
-    await waitFor(() => expect(state.replace).toHaveBeenCalledWith('/profile/nutrition-report?next=dashboard'));
+    await waitFor(() => expect(state.replace).toHaveBeenCalledWith('/dashboard'));
     expect(state.post.mock.calls).toEqual([
       [
         '/user/onboarding/tos',

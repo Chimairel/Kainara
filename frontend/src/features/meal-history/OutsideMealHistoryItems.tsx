@@ -1,8 +1,5 @@
 'use client';
 
-import OutsideReviewRequestButton from '@/features/membership/OutsideReviewRequestButton';
-import { useMembership } from '@/features/membership/MembershipProvider';
-import { getApiErrorMessage } from '@/lib/api-error';
 import type { MealHistoryLog } from '@/features/meals/meals-workspace.types';
 
 import type { useMealHistoryCardModel } from './useMealHistoryCardModel';
@@ -51,7 +48,6 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
     onReplyToOutsideReview,
     clarification,
     setClarification,
-    onRequestOutsideReview,
     onObservedWithdraw,
     consentItemId,
     shareImage,
@@ -60,12 +56,6 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
     setConsentItemId,
   } = model;
 
-  const { refresh } = useMembership();
-  const items = log.outsideItems ?? [];
-  const open = items.some(
-    (item) => item.review?.requestedByUserAt && ['PENDING', 'CLAIMED', 'NEEDS_MORE_INFO'].includes(item.review.status)
-  );
-  const completed = items.length > 0 && items.every(isCurrentOutsideResponse);
   return (
     <>
       {log.outsideItems && log.outsideItems.length > 0 && (
@@ -77,26 +67,6 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
           {log.provisionalCalories ? (
             <p className="mb-2 text-amber-300">{Math.round(log.provisionalCalories)} kcal remains estimated.</p>
           ) : null}
-          {!isVoided && log.source === 'USER_LOGGED' && onRequestOutsideReview && !open && !completed && (
-            <div className="mb-4">
-              <OutsideReviewRequestButton
-                inverse
-                busy={isChanging}
-                onRequest={async () => {
-                  setIsChanging(true);
-                  setSaveError(null);
-                  try {
-                    await onRequestOutsideReview(log.id, items[0].id);
-                    refresh();
-                  } catch (error) {
-                    setSaveError(getApiErrorMessage(error, 'Could not request RND feedback. Please retry.'));
-                  } finally {
-                    setIsChanging(false);
-                  }
-                }}
-              />
-            </div>
-          )}
           <div className="space-y-2">
             {log.outsideItems.map((item, idx) => (
               <div
@@ -421,7 +391,7 @@ function isCurrentReviewedEstimate(item: NonNullable<MealHistoryLog['outsideItem
   );
 }
 
-function isCurrentOutsideResponse(item: NonNullable<MealHistoryLog['outsideItems']>[number]) {
+export function isCurrentOutsideResponse(item: NonNullable<MealHistoryLog['outsideItems']>[number]) {
   return (
     isCurrentReviewedEstimate(item) ||
     Boolean(

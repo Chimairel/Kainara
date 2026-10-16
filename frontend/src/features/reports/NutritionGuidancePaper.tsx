@@ -4,6 +4,7 @@ import React from 'react';
 import type { NutritionReport } from '@/types';
 import { formatManilaDate } from '@/lib/manila-date';
 import FoodGuidanceSections from './FoodGuidanceSections';
+import CalorieCalculation from './CalorieCalculation';
 
 export type GuidanceProfileSnapshot = {
   name: string;
@@ -38,6 +39,8 @@ function parseList(value: unknown): string[] {
 }
 
 export interface NutritionGuidancePaperProps {
+  /** Sheet label consumed by the shared review canvas. */
+  title?: string;
   report: NutritionReport;
   profile: GuidanceProfileSnapshot;
   activePlanningVersion?: number | null;
@@ -73,13 +76,16 @@ export default function NutritionGuidancePaper({
     report.acknowledgedAt && activePlanningVersion && activePlanningVersion !== report.version
   );
 
-  const statusText = report.confirmationKind === 'FOOD_GUIDANCE_UPDATE'
-    ? report.acknowledgedAt ? 'Food guidance acknowledged' : 'Food guidance awaiting acknowledgment'
-    : report.acknowledgedAt
-    ? isPreviouslySelected
-      ? 'Previously selected for planning'
-      : 'Selected for planning'
-    : 'Not yet selected for planning';
+  const statusText =
+    report.confirmationKind === 'FOOD_GUIDANCE_UPDATE'
+      ? report.acknowledgedAt
+        ? 'Food guidance acknowledged'
+        : 'Food guidance awaiting acknowledgment'
+      : report.acknowledgedAt
+        ? isPreviouslySelected
+          ? 'Previously selected for planning'
+          : 'Selected for planning'
+        : 'Not yet selected for planning';
 
   const isArchived = Boolean(activePlanningVersion && report.version < activePlanningVersion);
 
@@ -91,7 +97,8 @@ export default function NutritionGuidancePaper({
 
   const isPolicyReport = Boolean(report.reportPolicyVersion && referenceItems.length > 0);
   const totalPages =
-    report.foodGuidance?.formatVersion === 1 || (isPolicyReport && referenceItems.length <= 3 && !limitList.length && !avoidList.length && !drinksList.length)
+    report.foodGuidance?.formatVersion === 1 ||
+    (isPolicyReport && referenceItems.length <= 3 && !limitList.length && !avoidList.length && !drinksList.length)
       ? 1
       : 2;
 
@@ -173,12 +180,19 @@ export default function NutritionGuidancePaper({
             <SummaryHeading className="text-sm sm:text-base font-bold text-[#2D6A4F]">
               What these numbers mean
             </SummaryHeading>
+            {report.reportPolicyVersion && (
+              <p className="text-xs text-slate-600">
+                Prepared from saved profile data, fixed calculations and referenced guidance rules. No AI response is
+                used to write this report.
+              </p>
+            )}
             <p className="text-xs sm:text-[13px] text-slate-700 leading-relaxed">
               {report.generalSummary || 'No summary recorded for this version.'}
             </p>
           </section>
 
           {/* Daily planning estimates (macro cards) */}
+          <CalorieCalculation calculation={report.calorieCalculation} />
           {report.planningTargets && (
             <section
               role="region"

@@ -306,7 +306,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
           profileData: profileUpdate.data.data,
         });
         writeSessionResource(ownerId, 'user-profile', profileUpdate.data.data);
-        setShowRegenerateModal(true);
+        router.push('/dashboard');
       }
     } catch (err: unknown) {
       if (isCurrent()) setBiometricsError(getApiErrorMessage(err, 'Failed to update biometrics.'));
@@ -367,6 +367,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         if (profileRes.data?.success) {
           writeSessionResource(ownerId, 'user-profile', profileRes.data.data);
         }
+        router.push('/dashboard');
       }
     } catch (err: unknown) {
       if (isCurrent()) setWeightFormError(getApiErrorMessage(err, 'Failed to log weight.'));
