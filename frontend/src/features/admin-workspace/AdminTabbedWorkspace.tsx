@@ -20,15 +20,18 @@ export default function AdminTabbedWorkspace({
   title,
   description,
   tabs,
+  tabAliases = {},
 }: {
   title: string;
   description: string;
   tabs: AdminWorkspaceTab[];
+  tabAliases?: Record<string, string>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const selected = tabs.find((tab) => tab.id === params.get('tab')) ?? tabs[0];
+  const requested = params.get('tab') ?? '';
+  const selected = tabs.find((tab) => tab.id === (tabAliases[requested] ?? requested)) ?? tabs[0];
   const ownerId = useAuth().user?.userId;
   const { setSubTab } = useBreadcrumb();
   const [visited, setVisited] = useState(() => new Set([selected.id]));

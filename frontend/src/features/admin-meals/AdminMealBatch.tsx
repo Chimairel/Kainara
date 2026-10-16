@@ -1,243 +1,233 @@
 'use client';
-import { formatMealTitle } from '@/lib/meal-title';
-import FeedbackNotice from '@/components/shared/FeedbackNotice';
-
-import { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useSessionQuery } from '@/hooks/useSessionQuery';
+import { useRef } from 'react';
+import { FileText, ImageIcon } from '@/components/ui/icons';
 import Button from '@/components/ui/Button';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
-import api from '@/lib/axios';
-type Preview = {
-  previewId: string | null;
-  valid: boolean;
-  alreadyImported: boolean;
-  results: { index: number; mealName: string | null; errors: string[] }[];
-};
-function download(value: unknown, name: string) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  link.click();
-  URL.revokeObjectURL(url);
-}
+import { formatMealTitle } from '@/lib/meal-title';
+import { useAdminMealBatch } from './useAdminMealBatch';
+import MealJsonEditor from './MealJsonEditor';
+import BatchMealPreview from './BatchMealPreview';
+
 export default function AdminMealBatch({ active }: { active: boolean }) {
-  const ownerId = useAuth().user?.userId;
-  const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [text, setText] = useState('');
-  const [preview, setPreview] = useState<Preview | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState('');
-  const library = useSessionQuery<{ meals: { id: string; mealName: string }[]; total: number }>({
-    ownerId,
-    enabled: active,
-    resource: `admin-batch-library:${page}`,
-    fetcher: async () => (await api.get('/admin/library', { params: { page, limit: 20 } })).data.data,
-    errorMessage: 'Meal selection could not be loaded.',
-  });
-  async function run(action: 'template' | 'export' | 'preview' | 'import') {
-    if (busy) return;
-    setBusy(true);
-    setError(null);
-    setMessage('');
-    try {
-      if (action === 'template')
-        download((await api.get('/admin/meals/batch/template')).data.data, 'kainara-meal-template.json');
-      if (action === 'export')
-        download(
-          (await api.post('/admin/meals/batch/export', { ids: selected })).data.data,
-          'kainara-selected-meals.json'
-        );
-      if (action === 'preview') {
-        if (new Blob([text]).size > 2 * 1024 * 1024) throw new Error('JSON batches are limited to 2 MB.');
-        const result = (await api.post('/admin/meals/batch/preview', JSON.parse(text))).data.data as Preview;
-        setPreview(result);
-      }
-      if (action === 'import' && preview?.previewId) {
-        const result = (await api.post('/admin/meals/batch/import', { previewId: preview.previewId })).data.data;
-        setMessage(
-          result.replayed
-            ? 'This batch was already imported. No duplicate drafts were created.'
-            : `${result.meals.length} unverified drafts imported. RND review is required before member use.`
-        );
-        setPreview({ ...preview, alreadyImported: true });
-        await library.refetch();
-      }
-    } catch (err) {
-      setError(
-        (err as { response?: { data?: { error?: string } }; message?: string }).response?.data?.error ??
-          (err instanceof SyntaxError
-            ? 'The file is not valid JSON.'
-            : 'Batch operation failed. No partial import was committed.')
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
+  const model = useAdminMealBatch(active);
+  const file = useRef<HTMLInputElement>(null);
+  const { preview, busy, text, run, library } = model;
   if (!active) return null;
   return (
-    <div className="space-y-6">
-      <header>
-        <h2 className="font-display text-2xl font-bold">Batch meal drafts</h2>
-        <p className="mt-2 text-sm text-brand-muted">
-          Import up to 100 meals in a 2 MB JSON file. Every ingredient needs an FNRI mapping and edible grams per
-          serving. Imports create new unverified drafts. Published meals and reviews cannot be overwritten.
-        </p>
-      </header>
-      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
-      {message && (
-        <p role="status" className="text-sm text-brand-green">
-          {message}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-3">
-        <Button variant="secondary" disabled={busy} onClick={() => void run('template')}>
+    <div className="min-w-0 space-y-5">
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-2xl">
+          <h2 className="font-display text-2xl font-bold">Batch meal drafts</h2>
+          <p className="mt-1 text-sm leading-relaxed text-brand-muted">
+            Write once, add multiple recipes. Each ingredient needs an FNRI ID and edible grams per serving. Import up
+            to 100 meals in a 2 MB file.
+          </p>
+        </div>
+        <Button variant="secondary" size="sm" disabled={busy} onClick={() => void run('template')}>
           Download JSON template
         </Button>
-        <Button variant="secondary" disabled={busy || !selected.length} onClick={() => void run('export')}>
-          Export {selected.length || ''} selected meals
-        </Button>
-      </div>
-      <details className="rounded-2xl border border-brand-border bg-brand-surface p-4">
-        <summary className="min-h-11 cursor-pointer font-semibold">Select library meals for export</summary>
-        <p className="mb-3 text-xs text-brand-muted">
-          Exports contain recipe fields only. Missing mappings or quantities remain blank and must be corrected before
-          importing. Approval identities, flags and member information are excluded.
-        </p>
-        {library.error && <FeedbackNotice variant="inline">{library.error}</FeedbackNotice>}
-        <WorkspaceTable
-          label="Meals for batch export"
-          rows={library.data?.meals ?? []}
-          rowKey={(meal) => meal.id}
-          emptyMessage="No library meals found."
-          columns={[
-            {
-              key: 'select',
-              header: 'Select',
-              headerClassName: 'w-12 text-center',
-              cellClassName: 'text-center',
-              cell: (meal) => (
-                <input
-                  type="checkbox"
-                  aria-label={formatMealTitle(meal.mealName)}
-                  checked={selected.includes(meal.id)}
-                  disabled={!selected.includes(meal.id) && selected.length >= 100}
-                  onChange={(event) =>
-                    setSelected(event.target.checked ? [...selected, meal.id] : selected.filter((id) => id !== meal.id))
-                  }
-                />
-              ),
-            },
-            { key: 'name', header: 'Meal', cell: (meal) => formatMealTitle(meal.mealName) },
-          ]}
-        />
-
-        <div className="mt-3 flex items-center gap-3">
-          <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-            Previous
-          </Button>
-          <span className="text-xs">Page {page}</span>
+      </header>
+      {model.error && <FeedbackNotice variant="inline">{model.error}</FeedbackNotice>}
+      {model.message && <FeedbackNotice tone="success">{model.message}</FeedbackNotice>}
+      <section
+        aria-label="Batch JSON workspace"
+        className="min-w-0 overflow-hidden rounded-2xl border border-brand-border bg-brand-surface"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-border bg-brand-bgAlt/60 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2 font-mono text-xs">
+            <FileText className="h-4 w-4 shrink-0 text-brand-green" aria-hidden="true" />
+            <span className="truncate">{model.fileName}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={file}
+              type="file"
+              accept=".json,application/json"
+              aria-label="Upload meal JSON"
+              className="sr-only"
+              disabled={busy}
+              onChange={(event) => {
+                void model.upload(event.target.files?.[0]);
+                event.target.value = '';
+              }}
+            />
+            <Button variant="ghost" size="sm" disabled={busy} onClick={() => file.current?.click()}>
+              Upload JSON
+            </Button>
+            {!text.trim() && (
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => void run('insert-template')}>
+                Insert template
+              </Button>
+            )}
+            <Button variant="secondary" size="sm" disabled={busy || !text.trim()} onClick={model.format}>
+              Format JSON
+            </Button>
+          </div>
+        </div>
+        <div className="grid min-w-0 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <MealJsonEditor value={text} onChange={model.edit} disabled={busy} />
+          <BatchMealPreview text={text} />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-brand-border px-4 py-4">
+          <p className="max-w-lg text-xs leading-relaxed text-brand-muted">
+            Imports create unverified drafts. Published recipes and reviews stay protected.
+          </p>
           <Button
             variant="secondary"
-            size="sm"
-            disabled={!library.data || page * 20 >= library.data.total}
-            onClick={() => setPage(page + 1)}
+            disabled={busy || !text.trim()}
+            isLoading={busy}
+            onClick={() => void run('preview')}
           >
-            Next
+            Preview and validate
           </Button>
         </div>
-      </details>
-      <section className="space-y-4 rounded-2xl border border-brand-border bg-brand-surface p-5">
-        <label className="block text-sm font-semibold">
-          Upload meal JSON
-          <input
-            type="file"
-            accept=".json,application/json"
-            className="mt-2 block min-h-11 w-full text-sm"
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
-              setPreview(null);
-              if (!file) return;
-              if (file.size > 2 * 1024 * 1024) {
-                setError('JSON batches are limited to 2 MB.');
-                return;
-              }
-              setText(await file.text());
-              setError(null);
-            }}
-          />
-        </label>
-        <label className="block text-sm font-semibold">
-          Recipe JSON
-          <textarea
-            rows={10}
-            value={text}
-            onChange={(event) => {
-              setText(event.target.value);
-              setPreview(null);
-            }}
-            className="mt-2 w-full rounded-xl border border-brand-border bg-brand-bg p-3 font-mono text-xs"
-          />
-        </label>
-        <Button variant="secondary" disabled={busy || !text.trim()} onClick={() => void run('preview')}>
-          Preview and validate
-        </Button>
-        {preview && (
-          <div className="space-y-3">
-            <h3 className="font-semibold">
+      </section>
+      {preview && (
+        <section aria-label="Batch validation results" className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="font-display text-lg font-bold">
               {preview.alreadyImported
                 ? 'Previously imported batch'
                 : preview.valid
                   ? 'Ready to import as unverified drafts'
                   : 'Correct these errors before importing'}
             </h3>
-            <WorkspaceTable
-              label="Batch import preview"
-              rows={preview.results}
-              rowKey={(row) => String(row.index)}
-              columns={[
-                {
-                  key: 'meal',
-                  header: 'Meal',
-                  cell: (row) => (
-                    <strong>
-                      Meal {row.index + 1}: {formatMealTitle(row.mealName || 'Name missing')}
-                    </strong>
-                  ),
-                },
-                {
-                  key: 'validation',
-                  header: 'Validation',
-                  headerClassName: 'min-w-[240px]',
-                  cell: (row) =>
-                    row.errors.length ? (
-                      <ul className="space-y-1 text-status-error-text">
-                        {row.errors.map((issue, index) => (
-                          <li key={index}>{issue}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-brand-green">Draft fields and ingredient mappings passed.</p>
-                    ),
-                },
-              ]}
-            />
-
             <Button
               disabled={busy || !preview.valid || !preview.previewId || preview.alreadyImported}
               onClick={() => void run('import')}
             >
               Import all as drafts
             </Button>
-            <p className="text-xs text-brand-muted">
-              Import rechecks the current catalogue and recipe duplicates. Any failure cancels the whole batch.
-            </p>
           </div>
-        )}
-      </section>
+          <WorkspaceTable
+            label="Batch import preview"
+            rows={preview.results}
+            rowKey={(row) => String(row.index)}
+            columns={[
+              {
+                key: 'meal',
+                header: 'Meal',
+                cell: (row) => (
+                  <strong>
+                    Meal {row.index + 1}: {formatMealTitle(row.mealName || 'Name missing')}
+                  </strong>
+                ),
+              },
+              {
+                key: 'validation',
+                header: 'Validation',
+                headerClassName: 'min-w-[240px]',
+                cell: (row) =>
+                  row.errors.length ? (
+                    <ul className="space-y-1 text-status-error-text">
+                      {row.errors.map((issue, i) => (
+                        <li key={i}>{issue}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-brand-green">Draft fields and ingredient mappings passed.</p>
+                  ),
+              },
+            ]}
+          />
+          <p className="text-xs text-brand-muted">
+            Import rechecks the catalogue and duplicate recipes. Any failure cancels the entire batch.
+          </p>
+        </section>
+      )}
+      <details className="border-b border-brand-border pb-4">
+        <summary className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold">
+          <ImageIcon className="h-4 w-4" aria-hidden="true" />
+          Image URLs and JSON fields
+        </summary>
+        <div className="max-w-3xl space-y-3 pt-2 text-sm leading-relaxed text-brand-muted">
+          <p>
+            Each meal can include an optional <code>image</code> object. Use a direct HTTPS image from Cloudinary,
+            Panlasang Pinoy uploads or a YouTube thumbnail. The app retains the link; importing does not upload the
+            photo to Cloudinary.
+          </p>
+          <p>
+            Include <code>url</code>, <code>altText</code>, <code>imageKind</code> (EXACT or REPRESENTATIVE) and{' '}
+            <code>licenseCode</code>. Source photos need <code>creator</code> and <code>sourcePageUrl</code>. Use{' '}
+            <code>null</code> when the license is unknown; Creative Commons/public-domain declarations also need their
+            license URL.
+          </p>
+          <p>
+            Ingredient IDs come from the FNRI catalogue. Export an existing mapped recipe to reuse its IDs. Nutrient
+            values and ingredient grams describe one serving.
+          </p>
+        </div>
+      </details>
+      <details className="border-b border-brand-border pb-4">
+        <summary className="min-h-11 cursor-pointer text-sm font-semibold">Select library meals for export</summary>
+        <div className="space-y-3 pt-3">
+          <p className="max-w-3xl text-xs leading-relaxed text-brand-muted">
+            Exports include recipe fields and supported image links, without approvals or member information. Correct
+            missing FNRI mappings before importing.
+          </p>
+          {library.error && <FeedbackNotice variant="inline">{library.error}</FeedbackNotice>}
+          <WorkspaceTable
+            label="Meals for batch export"
+            rows={library.data?.meals ?? []}
+            rowKey={(meal) => meal.id}
+            emptyMessage="No library meals found."
+            columns={[
+              {
+                key: 'select',
+                header: 'Select',
+                headerClassName: 'w-12 text-center',
+                cellClassName: 'text-center',
+                cell: (meal) => (
+                  <input
+                    type="checkbox"
+                    aria-label={formatMealTitle(meal.mealName)}
+                    checked={model.selected.includes(meal.id)}
+                    disabled={!model.selected.includes(meal.id) && model.selected.length >= 100}
+                    onChange={(event) =>
+                      model.setSelected(
+                        event.target.checked
+                          ? [...model.selected, meal.id]
+                          : model.selected.filter((id) => id !== meal.id)
+                      )
+                    }
+                  />
+                ),
+              },
+              { key: 'name', header: 'Meal', cell: (meal) => formatMealTitle(meal.mealName) },
+            ]}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={busy || !model.selected.length}
+              onClick={() => void run('export')}
+            >
+              Export {model.selected.length || ''} selected meals
+            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={model.page <= 1}
+                onClick={() => model.setPage(model.page - 1)}
+              >
+                Previous
+              </Button>
+              <span className="text-xs text-brand-muted">Page {model.page}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={!library.data || model.page * 20 >= library.data.total}
+                onClick={() => model.setPage(model.page + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }

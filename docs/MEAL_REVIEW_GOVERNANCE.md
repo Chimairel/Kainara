@@ -50,11 +50,30 @@ Reviewed member meals use the same **Reviewed by [name], RND** credential contro
 
 ## JSON batch meals
 
-Use **Admin → Meals → Batch meals** to download a template, select recipes to export, upload/edit JSON, preview errors and import valid drafts. The envelope is `KAINARA_MEALS_V1` with a `meals` array. Limits are 100 meals and 2 MB.
+Use **Admin → Meals → Author meals → Batch JSON** to download a template, select recipes to export, upload/edit JSON, preview errors and import valid drafts. Single meal retains the ordinary authoring form. The former `?tab=batch` URL still opens Batch JSON. The envelope is `KAINARA_MEALS_V1` with a `meals` array. Limits are 100 meals and 2 MB.
 
 Recipe objects use the normal admin authoring fields: name/type, summary, preparation instructions, nutrition basis, serving description, nutrient values and ingredients with current FNRI `foodItemId` plus `gramsPerServing`. Missing mappings, quantities, instructions or evidence require correction. Export does not guess missing values. Existing exact recipes produce duplicate errors unless the identical payload is a previously completed import by that administrator, which returns its saved result.
 
 Files contain no member data, review flags, approvals or reviewer identities. Import always creates new unverified drafts; it never overwrites a published meal. A valid preview is saved for its administrator. Import revalidates current mappings and duplicates within one atomic transaction. Any error cancels the entire batch. Retrying a completed preview returns the original drafts without creating duplicates.
+
+Each recipe may also have an optional `image` object (or omit it / set it to `null`):
+
+```json
+{
+  "url": "https://res.cloudinary.com/YOUR_CLOUD/image/upload/YOUR_PHOTO.jpg",
+  "imageKind": "REPRESENTATIVE",
+  "altText": "A representative photo of the prepared meal",
+  "creator": "The actual photographer or source",
+  "sourcePageUrl": "https://example.com/the-original-photo-page",
+  "licenseCode": null
+}
+```
+
+Replace those image placeholders with real links and attribution. Supported direct HTTPS image hosts match the current renderer/CSP: Cloudinary `image/upload`, Panlasang Pinoy uploads and YouTube thumbnails. The server stores links without fetching bytes or uploading to Cloudinary; preview validation does not prove photo availability, dimensions, recipe accuracy or permission to reuse it. `EXACT` and `REPRESENTATIVE` remain distinct in displays. A null license records unknown licensing and requires creator/source attribution; OWNED/GENERATED and the existing CC0/PUBLIC_DOMAIN/CC_BY_4_0/CC_BY_SA_4_0 codes retain their metadata requirements. Do not label an unknown license as owned or Creative Commons.
+
+The JSON editor provides contained scrolling, line numbers, syntax highlighting, formatting and a live draft preview. Normal textarea selection/clipboard/IME behavior and Tab navigation remain. Syntax highlighting falls back to plain text above 100,000 characters to bound work; imports still accept the existing 2 MB maximum. Editing/formatting invalidates previous validation; import needs the current server preview identity. Both authoring drafts survive method switches and clear with the owning account boundary. Completed legacy receipts remain readable, and new receipt hashes normalize field order for image export/reimport.
+
+Deploy migration `20261017030000_batch_linked_meal_images` before enabling linked-image imports. It extends the existing image constraint for attributed links without fabricating Cloudinary resource IDs or dimensions; existing empty/uploaded states remain. [Implementation and verification](ADMIN_MEAL_BATCH_EDITOR_2026-10-17.md).
 
 ## API entry points
 

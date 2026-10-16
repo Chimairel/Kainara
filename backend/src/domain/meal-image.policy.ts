@@ -150,14 +150,14 @@ export function toPublicMealImage(meal: MealImageRecord): PublicMealImage | null
   if (meal.adaptedImageUrl)
     return {
       url: meal.adaptedImageUrl,
-      altText: meal.mealName || 'Adapted recipe',
-      kind: 'EXACT',
+      altText: meal.imageAltText || meal.mealName || 'Adapted recipe',
+      kind: meal.imageKind || 'EXACT',
       attribution: {
-        creator: 'Nutritionist supplied',
-        sourcePageUrl: null,
-        licenseCode: null,
-        licenseUrl: null,
-        modifications: 'Adapted recipe',
+        creator: meal.imageAltText ? meal.imageCreator : 'Nutritionist supplied',
+        sourcePageUrl: meal.imageSourcePageUrl,
+        licenseCode: meal.imageLicenseCode,
+        licenseUrl: meal.imageLicenseUrl,
+        modifications: meal.imageAltText ? null : 'Adapted recipe',
       },
     };
   const cloudName = configuredCloudinaryCloudName();

@@ -2,13 +2,19 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
-import { adminMealInputSchema, type AdminMealInput } from '@/validation/admin-meal.schemas';
+import { adminMealInputSchema } from '@/validation/admin-meal.schemas';
+import { batchMealImageSchema } from '@/validation/batch-meal-image.schemas';
+import { batchMealImageFields, exportBatchMealImage } from '@/domain/batch-meal-image.policy';
 import { createAdminMealDraft, resolveIngredients, recipeSignature } from './admin-meal-authoring.service';
 import { digest, json, reviewActor } from './meal-review-context.service';
+import { rawRecipeImageSelect, resolvePlanImage } from './meal-plan-presentation.service';
+import { resolveLibraryRecipeImages } from './library-recipe-image.service';
 
 const envelope = z
   .object({ format: z.literal('KAINARA_MEALS_V1'), meals: z.array(z.unknown()).min(1).max(100) })
   .strict();
+const batchMealInputSchema = adminMealInputSchema.extend({ image: batchMealImageSchema.nullable().optional() });
+type BatchMealInput = z.infer<typeof batchMealInputSchema>;
 const limits = (input: unknown) => {
   if (Buffer.byteLength(JSON.stringify(input), 'utf8') > 2 * 1024 * 1024)
     throw new AppError('JSON batches are limited to 2 MB.', 413, 'BATCH_TOO_LARGE');
@@ -21,10 +27,10 @@ const limits = (input: unknown) => {
 async function validateBatch(tx: Prisma.TransactionClient, input: unknown) {
   const batch = limits(input);
   const seen = new Set<string>();
-  const meals: AdminMealInput[] = [];
+  const meals: BatchMealInput[] = [];
   const results: { index: number; mealName: string | null; errors: string[] }[] = [];
   for (const [index, candidate] of batch.meals.entries()) {
-    const parsed = adminMealInputSchema.safeParse(candidate);
+    const parsed = batchMealInputSchema.safeParse(candidate);
     const result = {
       index,
       mealName:
@@ -65,6 +71,7 @@ export class AdminMealBatchService {
           instructions: '',
           nutritionBasis: '',
           nutritionServingDescription: '',
+          image: null,
           calories: null,
           proteinG: null,
           carbsG: null,
@@ -87,6 +94,7 @@ export class AdminMealBatchService {
     const rows = await prisma.mealLibrary.findMany({
       where: { id: { in: ids } },
       include: {
+        sourceRawRecipeCandidate: { select: rawRecipeImageSelect },
         ingredients: { orderBy: { position: 'asc' }, include: { foodItem: { select: { source: true } } } },
         safetyReviews: { where: { reasonCode: 'ADMIN_AUTHORED_DRAFT' }, orderBy: { createdAt: 'desc' }, take: 1 },
       },
@@ -94,6 +102,7 @@ export class AdminMealBatchService {
     if (rows.length !== ids.length)
       throw new AppError('One or more selected meals are unavailable.', 404, 'MEAL_NOT_FOUND');
     const byId = new Map(rows.map((row) => [row.id, row]));
+    const sourceImages = await resolveLibraryRecipeImages(rows);
     const output = {
       format: 'KAINARA_MEALS_V1',
       meals: ids.map((id) => {
@@ -101,6 +110,10 @@ export class AdminMealBatchService {
         const snapshot = row.safetyReviews[0]?.evidenceSnapshot as
           { summary?: string; instructions?: string; nutritionBasis?: string } | undefined;
         const [description, instructions] = (row.description ?? '').split('\n\nPreparation instructions:\n');
+        const image = exportBatchMealImage(
+          row,
+          resolvePlanImage({ libraryMeal: row, sourceRawRecipeCandidate: row.sourceRawRecipeCandidate }, sourceImages)
+        );
         return {
           mealName: row.mealName,
           mealType: row.mealType,
@@ -108,6 +121,7 @@ export class AdminMealBatchService {
           instructions: snapshot?.instructions ?? instructions ?? '',
           nutritionBasis: snapshot?.nutritionBasis ?? '',
           nutritionServingDescription: row.nutritionServingDescription ?? '',
+          ...(image ? { image } : {}),
           calories: row.calories,
           proteinG: row.proteinG,
           carbsG: row.carbsG,
@@ -131,12 +145,22 @@ export class AdminMealBatchService {
   }
 
   static async preview(userId: string, input: unknown) {
-    const hash = digest(limits(input));
+    const batch = limits(input);
+    // Zod orders known fields consistently, including optional image metadata.
+    // Keep exact legacy hashes readable without rewriting completed receipts.
+    const hash = digest({
+      ...batch,
+      meals: batch.meals.map((meal) => {
+        const parsed = batchMealInputSchema.safeParse(meal);
+        return parsed.success ? parsed.data : meal;
+      }),
+    });
+    const legacyHash = digest(batch);
     return prisma.$transaction(
       async (tx) => {
         await reviewActor(tx, userId);
         const previous = await tx.mealBatchImport.findFirst({
-          where: { actorUserId: userId, payloadHash: hash, importedAt: { not: null } },
+          where: { actorUserId: userId, payloadHash: { in: [hash, legacyHash] }, importedAt: { not: null } },
           select: { id: true, result: true },
         });
         if (previous)
@@ -175,7 +199,22 @@ export class AdminMealBatchService {
             validation.results
           );
         const meals = [];
-        for (const input of validation.meals) meals.push(await createAdminMealDraft(tx, userId, input));
+        for (const input of validation.meals) {
+          const meal = await createAdminMealDraft(tx, userId, input);
+          if (input.image) {
+            await tx.mealLibrary.update({ where: { id: meal.id }, data: batchMealImageFields(input.image) });
+            await tx.auditEvent.create({
+              data: {
+                actorUserId: userId,
+                action: 'MEAL_IMAGE_LINKED',
+                entityType: 'MealLibrary',
+                entityId: meal.id,
+                metadata: json({ image: input.image, source: 'ADMIN_MEAL_BATCH', providerUpload: false }),
+              },
+            });
+          }
+          meals.push(meal);
+        }
         await tx.mealBatchImport.update({
           where: { id: preview.id },
           data: { result: json(meals), importedAt: new Date() },

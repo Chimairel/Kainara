@@ -30,7 +30,7 @@ export class AdminMealImageService {
           sourceImages
         ),
         // Management state: source photos can display without a custom assignment to remove.
-        hasImage: Boolean(meal.imagePublicId),
+        hasImage: Boolean(meal.imagePublicId || (meal.adaptedImageUrl && meal.imageAssignedAt)),
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
@@ -55,6 +55,7 @@ export class AdminMealImageService {
         const updated = await tx.mealLibrary.update({
           where: { id: mealId },
           data: {
+            adaptedImageUrl: null,
             imagePublicId: uploaded.public_id,
             imageVersion: String(uploaded.version),
             imageFormat: uploaded.format,
@@ -98,6 +99,7 @@ export class AdminMealImageService {
       await tx.mealLibrary.update({
         where: { id: mealId },
         data: {
+          adaptedImageUrl: null,
           imagePublicId: null,
           imageVersion: null,
           imageFormat: null,
