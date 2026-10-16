@@ -30,3 +30,12 @@ Use a fresh disposable loopback PostgreSQL database named exactly `kainara_recog
 ## Release
 
 Local verification is complete. Staging rollout and its observed results are recorded below when executed. Demo promotion is separate; no demo functional tests or data rewrites are authorized by this change.
+
+### Staging complete at 00:22 UTC+8
+
+- Commit `4e652f3ebd9849571c15535e8866368022811db8` is pushed to development and `codex/staging`. Build and repeat the full backend suite from a clean committed archive, excluding unrelated shared-checkout edits. The clean frontend build also succeeds; Windows emits a standalone trace-copy symlink permission warning because dependencies are junctions. This is not a verified portable standalone Windows package. The hosted Vercel build succeeds separately.
+- An additional 15 frontend profile-gate/dashboard/preparation tests pass from the clean archive (102 affected frontend tests in total).
+- Restart only the isolated staging API using that archive and the existing separate staging Neon database; retain its configuration. No database migration or restore. Refresh only the staging preview's tunnel override. Production branch tracking remains `demo`.
+- Vercel deployment `dpl_9JXhzq5bCneuCmfqYPhZrnS5Jbzt` is **READY**, reports the exact candidate SHA and attaches the existing staging alias. Its API proxy and the public staging tunnel both verify recognized diabetes `required=false` / planning permitted (`REQUEST_ALLOWED_REVIEW_EXPECTED`), and unknown custom input `required=true` / `BLOCKED_PROFILE_REVIEW`. Anonymous status access returns 401.
+- Staging checks create only synthetic accounts and remove them with their temporary guidance records afterward. No profile approvals or plans are seeded on staging. Provider usage-event delta is zero. Initial hosted readiness fixture lacked acknowledged guidance and correctly returned 409; corrected the fixture, retaining the application acknowledgment requirement.
+- Demo branch remains `9faec90cbfb7ca42a95cd8ca9264ee9a6f49deda`. No demo release, SQL test or app request is performed. Browser login, visual checks and actual-model quality are not claimed by these authenticated HTTP checks.
