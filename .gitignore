@@ -74,3 +74,7 @@ codex/toothless.jpg
 
 # Private recipe review exports and operator receipts.
 /backend/.local/recipe-review*.json
+
+# Private capstone fixture target settings and rollback receipts.
+/backend/.local/capstone-seed-20261016/
+/backend/.local/capstone-prepare.cjs
