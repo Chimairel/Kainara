@@ -61,6 +61,41 @@ test('meal permission asks use a free status path and extract the dish without i
   assert.equal(assistantDirectAction('why is my meal pending?'), 'PLAN_STATUS');
 });
 
+test('planning availability variations use owned status while RND and setup explanations stay prepared and free', () => {
+  for (const question of [
+    "why is my meal planning isn't available yet?", 'why is my meal planning not available yet?',
+    'when will my meal plan be available?', 'my meal planning is unavailable',
+    'why can I not access my meals?', 'bakit hindi available ang meal planning ko?', 'bakit wala pa ang meal plan ko?',
+  ]) {
+    assert.equal(assistantDirectAction(question), 'PLAN_STATUS', question);
+    assert.equal(assistantStaticReply(question), null, question);
+  }
+  for (const question of ['what is RND?', 'what does an RND do?', 'what does RND stand for?',
+    'who reviews my profile?', 'is Nara an RND?', 'ano ang RND?', 'who approves my meal plan?']) {
+    const answer = assistantStaticReply(question);
+    assert.ok(answer, question);
+    assert.match(answer.text, /Registered Nutritionist-Dietitian/, question);
+    assert.ok(answer.links.some(link => link.href === '/help'), question);
+  }
+  assert.match(assistantStaticReply('what are the meal planning requirements?')!.text, /correct Nutrition guidance/);
+  assert.match(assistantStaticReply('why do I need an RND?')!.text, /cannot skip/);
+  assert.match(assistantStaticReply('how long does RND review take?')!.text, /promise a completion time/);
+  assert.equal(assistantStaticReply('/ai what is RND?'), null);
+  assert.equal(assistantStaticReply('what does an RND recommend I eat for kidney disease?'), null);
+});
+
+test('water history and corrections help precede generic meal-history navigation without prescribing intake', () => {
+  for (const question of ['where can I see my water history?', 'show my hydration graph', 'water intake last week', 'saan ang history ng tubig ko?']) {
+    const answer = assistantStaticReply(question);
+    assert.ok(answer, question);
+    assert.match(answer.text, /Water history/, question);
+    assert.ok(answer.links.some(link => link.href === '/progress'), question);
+  }
+  assert.match(assistantStaticReply('why did my water reset at midnight?')!.text, /earlier saved days remain/);
+  assert.match(assistantStaticReply('can I undo removed water?')!.text, /not retained as an undo history/);
+  assert.equal(assistantStaticReply('how much water should I drink for kidney disease?'), null);
+});
+
 test('status paths stay free at zero credits/during cooldown, and ambiguous food never reads member tables', async t => {
   process.env.MEMBER_ASSISTANT_ENABLED = 'true';
   t.mock.method(Usage, 'allowance', async () => ({ tier: 'FREE', cap: 5, used: 5, remaining: 0,

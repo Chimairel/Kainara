@@ -10,11 +10,12 @@ import ProfileProposalCard from '@/features/clinical-clarification/ProfilePropos
 import CanvasToolButton from '@/features/nutritionist-reviews/CanvasToolButton';
 import { ClipboardCheck, FileCheck, Pencil } from '@/components/ui/icons';
 import RndProfileProposals, { useProfileProposalDraft } from '@/features/clinical-clarification/RndProfileProposals';
-import ProfileClinicalReview from './ProfileClinicalReview';
+import ProfileClinicalReview, { ProfileDecisionActions } from './ProfileClinicalReview';
 import ProfileDocumentReview from './ProfileDocumentReview';
 import ProfileReportNavigation from './ProfileReportNavigation';
 import { savedProfile } from './ProfileWorkPanel.shared';
 import type { useProfileWorkPanelModel } from './useProfileWorkPanelModel';
+import styles from './ProfileReviewDialogs.module.css';
 
 export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof useProfileWorkPanelModel> }) {
   const { detail, expanded, setExpanded, clearSelection, claimProfile, busy, selectedReport, selectedDocument } = model;
@@ -41,6 +42,8 @@ export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof 
         hideDecisionDock
         tools={<>
           {review?.clarifications?.enabled && <ClarificationTool
+            dialogPresentation="workspace" dialogContentClassName={styles.body}
+            dialogContext={<p className="mt-3 text-sm font-medium text-brand-text">{detail.name} · Profile revision {review.profileRevision}</p>}
             userId={detail.userId} profileRevision={review.profileRevision} scopeKey={review.scopeKey}
             workspace={{ ...review.clarifications, forms: review.clarifications.forms.filter(form => form.status === 'ANSWERED') }}
             canWrite={!busy && !!review.claim?.mine} onUpdated={model.reloadDetail} draft={clarificationDraft}
@@ -164,9 +167,12 @@ export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof 
           </ReviewDocumentPage>
         ))}
       </RndQueueDocument>
-      <Modal isOpen={tool !== null} onClose={() => { if (!busy && !toolBusy) setTool(null); }} layer="canvas" size="xl"
-        title={tool === 'document' ? 'Review clinical document' : 'Propose profile corrections'}>
-        {tool === 'document' && <ProfileDocumentReview model={model} section="decision" />}
+      <Modal isOpen={tool !== null} onClose={() => { if (!busy && !toolBusy) setTool(null); }} layer="canvas" size="2xl"
+        presentation="workspace" contentClassName={styles.body}
+        title={tool === 'document' ? 'Review clinical document' : 'Propose profile corrections'}
+        description={tool === 'document' ? undefined : 'Use information reviewed with this member. The member must acknowledge the recorded changes before they apply.'}
+        headerContent={<p className="mt-3 text-sm font-medium text-brand-text">{detail.name} · Profile revision {review?.profileRevision}</p>}>
+        {tool === 'document' && <div className="space-y-6"><ProfileDocumentReview model={model} section="decision" /></div>}
         {tool === 'corrections' && review && <RndProfileProposals
           userId={detail.userId} profileRevision={review.profileRevision} scopeKey={review.scopeKey}
           workspace={review.profileProposals} clarifications={review.clarifications}
@@ -178,15 +184,19 @@ export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof 
       <Modal
         isOpen={decisionOpen}
         onClose={() => {
-          if (!busy) setDecisionOpen(false);
+          if (!busy && !toolBusy) setDecisionOpen(false);
         }}
         layer="canvas"
-        size="lg"
+        size="2xl"
+        presentation="workspace"
+        contentClassName={styles.body}
         title="Record profile decision"
         description="Confirm the current profile for planning, request correction, or ask for more details."
+        headerContent={<p className="mt-3 text-sm font-medium text-brand-text">{detail.name} · Profile revision {review?.profileRevision}</p>}
+        footer={<ProfileDecisionActions model={{ ...model, busy: busy || toolBusy }} />}
       >
         {review?.clarifications?.forms.some(form => form.status === 'ANSWERED') && (
-          <div className="mb-5 space-y-3">
+          <div className="mb-6 space-y-4 border-b border-brand-border pb-6">
             <h3 className="font-display text-lg font-semibold">Review clarification answers</h3>
             <RndClarifications
               userId={detail.userId} profileRevision={review.profileRevision} scopeKey={review.scopeKey}
@@ -196,7 +206,7 @@ export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof 
             />
           </div>
         )}
-        <ProfileClinicalReview model={model} section="decision" />
+        <ProfileClinicalReview model={{ ...model, busy: busy || toolBusy }} section="decision" showActions={false} />
       </Modal>
     </>
   );

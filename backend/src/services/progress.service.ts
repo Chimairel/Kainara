@@ -4,6 +4,7 @@ import { calculateDailyTarget } from '@/lib/calculations';
 import { HealthConditionType } from '@prisma/client';
 import { lockUserProfile, advanceProfileRevision } from './profile-revision.service';
 import { isSupportedWeightKg, normalizeWeightNote } from '@/policies/weight-entry.policy';
+import { WaterService } from './water.service';
 
 export class ProgressService {
   /**
@@ -73,6 +74,7 @@ export class ProgressService {
     return {
       weightLogs,
       dailyNutritionLogs,
+      waterHistory: await WaterService.getHistory(userId),
     };
   }
 }

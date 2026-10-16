@@ -198,10 +198,10 @@ export default function RndClarifications({
               event.preventDefault();
               void publish();
             }}
-            className="space-y-3"
+            className="space-y-5"
           >
-            <fieldset disabled={!canWrite || busy} className="space-y-3">
-              <label className="block text-sm">
+            <fieldset disabled={!canWrite || busy} className="min-w-0 space-y-5">
+              <label className="block text-sm font-medium">
                 Form title
                 <input
                   value={title}
@@ -209,12 +209,12 @@ export default function RndClarifications({
                   maxLength={160}
                   required
                   onChange={(event) => setTitle(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
+                  className="mt-2 w-full rounded-xl border border-brand-border bg-brand-surface p-3 font-normal"
                 />
               </label>
               {questions.map((q, index) => (
-                <div key={q.id} className="space-y-3 rounded-xl border border-brand-border p-3">
-                  <label className="block text-sm">
+                <div key={q.id} className="space-y-4 border-t border-brand-border pt-5">
+                  <label className="block text-sm font-medium">
                     Question {index + 1}
                     <textarea
                       value={q.label}
@@ -223,22 +223,31 @@ export default function RndClarifications({
                       maxLength={500}
                       rows={2}
                       onChange={(event) => updateQuestion(q.id, { label: event.target.value })}
-                      className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
+                      className="mt-2 w-full rounded-xl border border-brand-border bg-brand-surface p-3 font-normal"
                     />
                   </label>
-                  <label className="block text-sm">
+                  <div className="flex flex-wrap items-end gap-4">
+                  <label className="block min-w-40 flex-1 text-sm font-medium">
                     Answer type
                     <NativeSelect
                       value={q.type}
                       onChange={(event) => updateQuestion(q.id, { type: event.target.value as DraftQuestion['type'] })}
-                      className="mt-1 w-full"
+                      className="mt-2 w-full text-sm"
                     >
                       <option value="TEXT">Text</option>
                       <option value="CHOICE">Single choice</option>
                     </NativeSelect>
                   </label>
+                  <label className="flex min-h-11 items-center gap-3 text-sm">
+                    <input type="checkbox" checked={q.required}
+                      onChange={(event) => updateQuestion(q.id, { required: event.target.checked })} />
+                    Required
+                  </label>
+                  <Button type="button" variant="secondary"
+                    onClick={() => setQuestions((items) => items.filter((item) => item.id !== q.id))}>Remove question</Button>
+                  </div>
                   {q.type === 'CHOICE' && (
-                    <label className="block text-sm">
+                    <label className="block text-sm font-medium">
                       Choices, one per line
                       <textarea
                         value={q.choices}
@@ -246,28 +255,13 @@ export default function RndClarifications({
                         maxLength={1000}
                         rows={3}
                         onChange={(event) => updateQuestion(q.id, { choices: event.target.value })}
-                        className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
+                        className="mt-2 w-full rounded-xl border border-brand-border bg-brand-surface p-3 font-normal"
                       />
                     </label>
                   )}
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={q.required}
-                      onChange={(event) => updateQuestion(q.id, { required: event.target.checked })}
-                    />
-                    Required
-                  </label>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setQuestions((items) => items.filter((item) => item.id !== q.id))}
-                  >
-                    Remove question
-                  </Button>
                 </div>
               ))}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap justify-between gap-3 border-t border-brand-border pt-5">
                 <Button
                   type="button"
                   variant="secondary"

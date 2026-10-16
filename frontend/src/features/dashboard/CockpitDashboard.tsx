@@ -1,6 +1,7 @@
 'use client';
 
 import CardDecoration from '@/components/ui/CardDecoration';
+import Link from 'next/link';
 
 import { motion } from 'motion/react';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
@@ -202,7 +203,8 @@ export function CockpitDashboard({
                     <div className="mb-2 flex items-center justify-between gap-3 text-sm">
                       <div className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full shrink-0 bg-sky-400" />
-                        <span className="font-medium text-brand-text">Water</span>
+                        <Link href="/progress#water-history" aria-label="View water history"
+                          className="font-medium text-brand-text underline underline-offset-4 hover:text-brand-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-green">Water</Link>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-brand-muted font-mono text-xs flex items-center gap-1">

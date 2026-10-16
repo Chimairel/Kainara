@@ -1,0 +1,55 @@
+.body {
+  overflow-wrap: anywhere;
+}
+
+.body :where(fieldset, section, form) {
+  min-width: 0;
+}
+
+.body :where(h3) {
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+.body :where(h4) {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.body :global(.text-xs) {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.body :where(textarea, input:not([type='checkbox']), select) {
+  min-width: 0;
+  max-width: 100%;
+  color: var(--brand-text);
+  background: var(--brand-surface);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.body :where(textarea) {
+  resize: vertical;
+}
+
+.body :where(input[type='checkbox']) {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--brand-green);
+}
+
+.body :where(textarea, input, select):focus-visible {
+  outline: 2px solid var(--brand-green);
+  outline-offset: 2px;
+}
+
+.body :where(textarea, input, select):disabled {
+  cursor: not-allowed;
+}
+
+.body :where(label) {
+  line-height: 1.6;
+}

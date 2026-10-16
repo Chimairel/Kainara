@@ -13,6 +13,8 @@ interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   contentClassName?: string;
+  presentation?: 'default' | 'workspace';
+  headerContent?: React.ReactNode;
   layer?: 'default' | 'canvas';
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
 }
@@ -25,10 +27,13 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   footer,
   contentClassName = '',
+  presentation = 'default',
+  headerContent,
   size = 'md',
   layer = 'default',
 }) => {
   const desktopVisible = useDesktopWorkspaceVisible();
+  const workspace = presentation === 'workspace';
   const opener = React.useRef<HTMLElement | null>(null);
   const sizeClasses = {
     sm: 'max-w-sm',
@@ -44,7 +49,7 @@ export const Modal: React.FC<ModalProps> = ({
     <Dialog.Root open={isOpen && desktopVisible} onOpenChange={(open) => desktopVisible && !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay
-          className={`fixed inset-0 ${layer === 'canvas' ? 'z-[100]' : 'z-50'} bg-[#020806]/75 backdrop-blur-md transition-all duration-300`}
+          className={`fixed inset-0 ${layer === 'canvas' ? 'z-[100]' : 'z-50'} bg-[#020806]/75 ${workspace ? 'transition-opacity duration-200 motion-reduce:transition-none' : 'backdrop-blur-md transition-all duration-300'}`}
         />
         <Dialog.Content
           onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }}
@@ -57,14 +62,14 @@ export const Modal: React.FC<ModalProps> = ({
           }}
           className={`
             fixed left-1/2 top-1/2 ${layer === 'canvas' ? 'z-[101]' : 'z-50'} w-[92vw] ${sizeClasses[size]}
-            max-h-[90vh] -translate-x-1/2 -translate-y-1/2 ${layer === 'canvas' ? 'overflow-hidden' : 'overflow-y-auto'} rounded-[28px]
-            border border-brand-border bg-brand-surface p-6 text-brand-text shadow-card-lg
-            outline-none transition-all duration-300
+            ${workspace ? 'max-h-[90dvh] overflow-hidden p-0' : `max-h-[90vh] ${layer === 'canvas' ? 'overflow-hidden' : 'overflow-y-auto'} p-6`} -translate-x-1/2 -translate-y-1/2 rounded-[28px]
+            border border-brand-border bg-brand-surface text-brand-text shadow-card-lg
+            outline-none ${workspace ? '' : 'transition-all duration-300'}
           `}
         >
-          <div className={`flex flex-col gap-4 ${layer === 'canvas' ? 'max-h-[calc(90dvh-3rem)]' : ''}`}>
-            <div className="flex shrink-0 items-start justify-between gap-5">
-              <div>
+          <div className={`flex min-h-0 flex-col ${workspace ? 'max-h-[90dvh]' : `gap-4 ${layer === 'canvas' ? 'max-h-[calc(90dvh-3rem)]' : ''}`}`}>
+            <div className={`flex shrink-0 items-start justify-between gap-5 ${workspace ? 'border-b border-brand-border px-5 py-5 sm:px-7 sm:py-6' : ''}`}>
+              <div className="min-w-0">
                 <Dialog.Title className="font-display text-xl font-bold tracking-tight text-brand-text">
                   {title}
                 </Dialog.Title>
@@ -73,6 +78,7 @@ export const Modal: React.FC<ModalProps> = ({
                 >
                   {description || `${title} dialog`}
                 </Dialog.Description>
+                {headerContent}
               </div>
               <Dialog.Close
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-brand-border bg-brand-bgAlt text-brand-muted outline-none transition-colors hover:border-brand-green hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green/30"
@@ -82,12 +88,12 @@ export const Modal: React.FC<ModalProps> = ({
               </Dialog.Close>
             </div>
             <div
-              className={`py-2 text-sm leading-relaxed text-brand-text ${layer === 'canvas' ? 'min-h-0 overflow-y-auto overscroll-contain pr-2 custom-scrollbar' : ''} ${contentClassName}`}
+              className={`text-sm leading-relaxed text-brand-text ${workspace ? 'min-h-0 overflow-y-auto overscroll-contain px-5 py-6 sm:px-7 custom-scrollbar' : `py-2 ${layer === 'canvas' ? 'min-h-0 overflow-y-auto overscroll-contain pr-2 custom-scrollbar' : ''}`} ${contentClassName}`}
             >
               {children}
             </div>
             {footer && (
-              <div className="mt-2 flex shrink-0 items-center justify-end gap-3 border-t border-brand-border pt-4">
+              <div className={`flex shrink-0 items-center justify-end gap-3 border-t border-brand-border ${workspace ? 'bg-brand-bgAlt/40 px-5 py-4 sm:px-7' : 'mt-2 pt-4'}`}>
                 {footer}
               </div>
             )}

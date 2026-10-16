@@ -17,7 +17,9 @@ const questions = [
   'does a checked grocery mean I ate it?', 'can I log a future meal as eaten?',
   'why can I not mark a meal done?', 'how do I report an issue?', 'how do I change my health condition?',
   'how do I log my weight?', 'how do I log outside food?', 'where is the meal library?',
-  'how do AI credits work?', 'how do I change my shopping day?', 'how do I download my data?', 'what is KAINARA?',
+  'how do AI credits work?', 'how do I change my shopping day?', 'how do I download my data?',
+  'what is RND?', 'why do I need an RND?', 'what are the meal planning requirements?',
+  'where can I see my water history?', 'why did my water reset at midnight?', 'what is KAINARA?',
 ] as const;
 const guide = questions.flatMap((question, index) => {
   const information = assistantStaticReply(question);

@@ -31,7 +31,7 @@ export class MemberAssistantPlanService {
     return { source: 'SYSTEM', creditsUsed: 0,
       text: `Planning status checked ${getManilaDateKey(now)} (Asia/Manila).\n${readiness.title}\n${readiness.message}\n\n${guidance}\nThese are planning notices, not approval of every meal. Profile questions are in Health details; meal questions and exact serving notices are in Meal plan. Acknowledging a report does not clear a pending meal. I have not applied a report, answered a form or changed your plan.`,
       links: [{ label: 'Next planning step', href: actionPath }, { label: 'Nutrition guidance', href: '/profile/nutrition-report' },
-        { label: 'Meal plan', href: '/meals' }, { label: 'Health details', href: '/profile/clinical-evidence' }],
+        { label: 'Meal plan', href: '/meals' }, { label: 'Health details', href: '/profile/clinical-evidence' }, { label: 'Help', href: '/help' }],
     };
   }
 
