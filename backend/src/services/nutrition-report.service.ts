@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 import { reportProfileSummary } from '@/domain/report-profile-summary.policy';
 import { loadPlanningRules } from './planning-rule-screening.service';
-import { effectivePatientLimits } from '@/domain/planning-rule-screening.policy';
+import { effectivePatientLimits, reportPatientLimits } from '@/domain/planning-rule-screening.policy';
 import { reportCalorieCalculation } from '@/domain/report-calorie-calculation.policy';
 import { buildFoodGuidance, type FoodGuidance } from '@/domain/food-guidance.policy';
 import { reportActivationTier } from '@/domain/planning-membership.policy';
@@ -340,14 +340,14 @@ export class NutritionReportService {
       foodGuidance.sources.push({ code: sourceCode, title: rule.sourceTitle, url: rule.sourceCitation });
     }
     const latestLimits = new Map<string, typeof recordedPatientLimits[number]>();
+    const visibleLimitIds = new Set(reportPatientLimits(screening.overrides, userId, new Date()).map(row => row.id));
     for (const limit of recordedPatientLimits) {
-      const key = limit.scopeKey;
-      if (!latestLimits.has(key)) latestLimits.set(key, limit);
+      if (visibleLimitIds.has(limit.id)) latestLimits.set(limit.id, limit);
     }
     for (const limit of latestLimits.values()) {
       if (limit.revokedAt || limit.validUntil && limit.validUntil <= new Date()) continue;
       const sourceCode = `PATIENT_LIMIT_${limit.id}`;
-      foodGuidance.limit.push({ name: `Patient-specific ${limit.nutrient.replace(/_/g, ' ').toLowerCase()} limit`,
+      foodGuidance.limit.push({ name: `Patient-specific ${limit.nutrient.replace(/_/g, ' ').toLowerCase()} limit (version ${limit.version})`,
         reason: `${limit.condition}: ${limit.operator.replace(/_/g, ' ').toLowerCase()} ${limit.threshold} ${limit.unit} (${limit.basis.replace(/_/g, ' ').toLowerCase()}). ${limit.rationale}`,
         tip: `Effective ${limit.validFrom.toISOString()}${limit.validUntil ? ` until ${limit.validUntil.toISOString()}` : ''}. This recorded constraint does not approve individual meals.`, sourceCode });
       foodGuidance.sources.push({ code: sourceCode, title: limit.sourceTitle, url: limit.sourceCitation });

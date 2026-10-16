@@ -24,6 +24,8 @@ export class UpcomingPlanPreparationService {
           .catch((error) => console.error('[UpcomingPreparation] Recovery trigger failed:', error))
           .finally(() => {
             this.inFlight.delete(userId);
+            const queuedAt = this.pending.get(userId);
+            if (queuedAt) this.triggerNonBlocking(userId, queuedAt);
             resolve();
           });
       });

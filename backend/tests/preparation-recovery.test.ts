@@ -51,3 +51,22 @@ test('background page recovery does not retry future jobs while the first plan f
     MealGenerationService.ensureUpcomingPlanForUser = originalUpcoming;
   }
 });
+
+test('a wakeup arriving as the drain finishes is not lost during finalization', async () => {
+  const original = UpcomingPlanPreparationService.ensureForUser;
+  const dates: number[] = [];
+  UpcomingPlanPreparationService.ensureForUser = (_user, date) => {
+    dates.push(date!.getTime());
+    const result = { state: 'NOT_OPEN' as const, planGroupId: null };
+    if (dates.length > 1) return Promise.resolve(result);
+    return { then(resolve: (value: typeof result) => void) {
+      resolve(result);
+      queueMicrotask(() => UpcomingPlanPreparationService.triggerNonBlocking('finishing-race', new Date(2)));
+    } } as unknown as ReturnType<typeof original>;
+  };
+  try {
+    UpcomingPlanPreparationService.triggerNonBlocking('finishing-race', new Date(1));
+    for (let index = 0; index < 10 && dates.length < 2; index++) await new Promise<void>(resolve => setImmediate(resolve));
+    assert.deepEqual(dates, [1, 2]);
+  } finally { UpcomingPlanPreparationService.ensureForUser = original; }
+});

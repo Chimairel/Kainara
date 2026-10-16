@@ -20,6 +20,15 @@ export function effectivePatientLimits(limits: readonly PatientLimitLike[], user
   return [...latest.values()].filter(row => !row.revokedAt && (!row.validUntil || row.validUntil > now));
 }
 
+/** Show the current constraint and actual scheduled changes, rather than
+ * hiding today's limit when a newer version starts in the future. */
+export function reportPatientLimits(limits: readonly PatientLimitLike[], userId: string, now: Date) {
+  const visible = new Map(effectivePatientLimits(limits, userId, now).map(row => [row.id, row]));
+  for (const row of limits.filter(limit => limit.userId === userId && limit.validFrom > now))
+    for (const effective of effectivePatientLimits(limits, userId, row.validFrom)) visible.set(effective.id, effective);
+  return [...visible.values()];
+}
+
 export function screenPlanningRules(input: {
   conditions: readonly string[]; rules: readonly PlanningNutrientRule[];
   overrides: readonly PatientLimitLike[]; userId: string; now: Date;

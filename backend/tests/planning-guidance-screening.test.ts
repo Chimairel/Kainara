@@ -4,7 +4,7 @@ import { effectiveRecipeMealTypes } from '../src/domain/meal-applicability.polic
 import { MealType } from '@prisma/client';
 import { foodChoicePreference } from '../src/domain/food-choice-rules.policy';
 import { reportProfileSummary } from '../src/domain/report-profile-summary.policy';
-import { screenPlanningRules, effectivePatientLimits, type PatientLimitLike, type PlanningNutrientRule } from '../src/domain/planning-rule-screening.policy';
+import { screenPlanningRules, effectivePatientLimits, reportPatientLimits, type PatientLimitLike, type PlanningNutrientRule } from '../src/domain/planning-rule-screening.policy';
 import { planningDayTotals } from '../src/services/planning-rule-screening.service';
 import { patientNutritionLimitSchema } from '../src/validation/patient-nutrition-limit.schemas';
 import { clinicalRuleKey, clinicalRuleSnapshot } from '../src/domain/clinical-rule-stamp.policy';
@@ -66,6 +66,12 @@ test('independent patient minima and maxima survive unrelated updates', () => {
   assert.equal(effectivePatientLimits([floor, ceiling], 'member', now).length, 2);
   const updatedCeiling = { ...ceiling, id: 'ceiling-v2', version: 2, threshold: 1600 };
   assert.deepEqual(new Set(effectivePatientLimits([floor, ceiling, updatedCeiling], 'member', now).map(row => row.id)), new Set(['patient-floor', 'ceiling-v2']));
+});
+
+test('a scheduled version does not hide the current limit in saved guidance', () => {
+  const upcoming = { ...override, id: 'future-limit', version: 2, validFrom: new Date('2026-10-20'), threshold: 1200 };
+  assert.deepEqual(new Set(reportPatientLimits([override, upcoming], 'member', now).map(row => row.id)), new Set([override.id, upcoming.id]));
+  assert.deepEqual(reportPatientLimits([override, upcoming], 'member', new Date('2026-10-21')).map(row => row.id), [upcoming.id]);
 });
 
 test('approval rule stamps change with applicable versions, suspension and patient effective dates', () => {
