@@ -81,10 +81,12 @@ export class MealPlanCycleService {
         ? (client as Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'>)
         : prisma;
     if (!(await ClinicalProfileReviewService.hasCurrentApproval(userId, profileClient))) return [];
-    const exactApprovals = client === prisma || '$queryRaw' in client
-      ? await reconcileExactMealApprovals(userId, cycleId, client as Prisma.TransactionClient)
-      : new Set<string>();
+    const exactApprovals =
+      client === prisma || '$queryRaw' in client
+        ? await reconcileExactMealApprovals(userId, cycleId, client as Prisma.TransactionClient)
+        : new Set<string>();
     const cycle = await client.mealPlanCycle.findFirst({
+      relationLoadStrategy: 'join',
       where: { id: cycleId, userId },
       select: {
         user: {
@@ -340,6 +342,7 @@ export class MealPlanCycleService {
     clearedIdsByCycle?: Map<string, string[]>
   ): Promise<void> {
     const cycles = await client.mealPlanCycle.findMany({
+      relationLoadStrategy: 'join',
       where: {
         userId,
         // Completed cycles are immutable history. Rechecking every past meal
@@ -472,6 +475,7 @@ export class MealPlanCycleService {
     await this.synchronizeLifecycle(userId, now);
     const businessDay = this.getBusinessDay(now);
     return prisma.mealPlanCycle.findFirst({
+      relationLoadStrategy: 'join',
       where: {
         userId,
         startDate: { lte: businessDay },
@@ -489,6 +493,7 @@ export class MealPlanCycleService {
     await this.synchronizeLifecycle(userId, now, prisma, clearedIdsByCycle);
     const businessDay = this.getBusinessDay(now);
     const cycle = await prisma.mealPlanCycle.findFirst({
+      relationLoadStrategy: 'join',
       where: {
         userId,
         startDate: { lte: businessDay },
@@ -510,6 +515,7 @@ export class MealPlanCycleService {
     await this.synchronizeLifecycle(userId, now);
     const businessDay = this.getBusinessDay(now);
     return prisma.mealPlanCycle.findFirst({
+      relationLoadStrategy: 'join',
       where: {
         userId,
         startDate: { gt: businessDay },
@@ -529,6 +535,7 @@ export class MealPlanCycleService {
     const businessDay = this.getBusinessDay(now);
     const [current, upcoming] = await Promise.all([
       prisma.mealPlanCycle.findFirst({
+        relationLoadStrategy: 'join',
         where: {
           userId,
           startDate: { lte: businessDay },
@@ -539,6 +546,7 @@ export class MealPlanCycleService {
         select: mealPlanCycleSummarySelect,
       }),
       prisma.mealPlanCycle.findFirst({
+        relationLoadStrategy: 'join',
         where: {
           userId,
           startDate: { gt: businessDay },

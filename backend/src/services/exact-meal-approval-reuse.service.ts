@@ -37,6 +37,27 @@ export async function reconcileExactMealApprovals(
   if (!env.CLINICAL_CLARIFICATIONS_ENABLED) return new Set();
   const signingSecret = env.JWT_SECRET;
   if (!signingSecret) return new Set();
+  const candidateWhere = {
+    userId,
+    planGroupId: cycleId,
+    supersededByMealPlanId: null,
+    OR: [
+      {
+        status: 'PENDING_REVIEW',
+        reviewApprovalCount: 0,
+        claimedByNutritionistId: null,
+        reviewDecisions: { none: {} },
+      },
+      {
+        status: 'APPROVED',
+        selectionEvidence: { path: ['exactApprovalReuse', 'policyVersion'], equals: REVIEW_REFERENCE_POLICY },
+      },
+    ],
+  } satisfies Prisma.MealPlanWhereInput;
+  // Most dashboard reads have no reusable decisions to apply or invalidate.
+  // Avoid locking the member (and delaying unrelated reads) for an empty cycle.
+  // Re-read this predicate inside the transaction before changing any decision.
+  if (!(await client.mealPlan.findFirst({ where: candidateWhere, select: { id: true } }))) return new Set();
   const available = await client.mealReviewReference.findFirst({
     where: {
       policyVersion: { in: [REVIEW_REFERENCE_POLICY, 'EXACT_REVIEW_REFERENCE_V1'] },
@@ -61,7 +82,11 @@ export async function reconcileExactMealApprovals(
     await lockUserProfile(tx, userId);
     const valid = new Set<string>();
     if (!(await ClinicalProfileReviewService.hasCurrentApproval(userId, tx))) return valid;
-    const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, include: userInclude });
+    const user = await tx.user.findFirstOrThrow({
+      relationLoadStrategy: 'join',
+      where: { id: userId },
+      include: userInclude,
+    });
     const detailsReady = healthDetailsRequirements(user).every((requirement) => requirement.state === 'READY');
     const cycle = await tx.mealPlanCycle.findFirst({
       where: {
@@ -75,23 +100,7 @@ export async function reconcileExactMealApprovals(
     });
     if (!cycle) return valid;
     const plans = await tx.mealPlan.findMany({
-      where: {
-        userId,
-        planGroupId: cycleId,
-        supersededByMealPlanId: null,
-        OR: [
-          {
-            status: 'PENDING_REVIEW',
-            reviewApprovalCount: 0,
-            claimedByNutritionistId: null,
-            reviewDecisions: { none: {} },
-          },
-          {
-            status: 'APPROVED',
-            selectionEvidence: { path: ['exactApprovalReuse', 'policyVersion'], equals: REVIEW_REFERENCE_POLICY },
-          },
-        ],
-      },
+      where: candidateWhere,
       select: { id: true, status: true, selectionEvidence: true, requiresSafetyRevalidation: true },
     });
     if (!plans.length) return valid;
