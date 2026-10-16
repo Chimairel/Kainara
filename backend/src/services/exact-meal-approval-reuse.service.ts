@@ -6,7 +6,7 @@ import { object, reusableClinicalContextKey, REVIEW_REFERENCE_POLICY } from '@/d
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import { loadMealReviewContexts } from './meal-case-context.service';
-import { matchingReviewKeys } from './reusable-review-reference.service';
+import { matchingReviewKeys, loadResolvedReviewForms } from './reusable-review-reference.service';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import { lockUserProfile } from './profile-revision.service';
 import { userInclude } from './clinical-profile-review.context';
@@ -109,16 +109,42 @@ export async function reconcileExactMealApprovals(
       plans.map((plan) => plan.id),
       tx
     );
+    // A changed profile often has no exact clinical reference at all. Check
+    // that once before repeated recipe/source reads for every weekly slot.
+    const formsByScope = new Map<string, Awaited<ReturnType<typeof loadResolvedReviewForms>>>();
+    const prepared = new Map<string, { forms: unknown[]; current: string; legacy: string }>();
+    for (const [id, opened] of contexts) {
+      if (!opened.guidanceReady || !detailsReady) continue;
+      const scope = `${opened.snapshot.userId}:${opened.profileRevision}:${opened.scopeKey}`;
+      if (!formsByScope.has(scope)) formsByScope.set(scope, await loadResolvedReviewForms(tx, opened));
+      const forms = formsByScope.get(scope);
+      if (!forms) continue;
+      const current = reusableClinicalContextKey(opened.snapshot, forms, signingSecret);
+      const legacy = reusableClinicalContextKey(opened.snapshot, forms, signingSecret, 'EXACT_REVIEW_REFERENCE_V1');
+      if (current && legacy) prepared.set(id, { forms, current, legacy });
+    }
+    const scopes = [...new Map<string, { policyVersion: string; contextKey: string }>([...prepared.values()].flatMap(row => [
+      [`${REVIEW_REFERENCE_POLICY}:${row.current}`, { policyVersion: REVIEW_REFERENCE_POLICY, contextKey: row.current }] as const,
+      [`EXACT_REVIEW_REFERENCE_V1:${row.legacy}`, { policyVersion: 'EXACT_REVIEW_REFERENCE_V1', contextKey: row.legacy }] as const,
+    ])).values()];
+    const matchingScopes = scopes.length ? await tx.mealReviewReference.groupBy({
+      by: ['policyVersion', 'contextKey'], where: { OR: scopes },
+    }) : [];
+    const availableScopes = new Set(matchingScopes.map(row => `${row.policyVersion}:${row.contextKey}`));
     for (const plan of plans) {
       const reuse = object(object(plan.selectionEvidence).exactApprovalReuse);
       // An invalidated approval needs a fresh decision, not automatic resurrection.
       if (plan.status === 'PENDING_REVIEW' && Object.keys(reuse).length) continue;
       const opened = contexts.get(plan.id);
+      const clinical = prepared.get(plan.id);
+      const clinicalMatch = clinical && (availableScopes.has(`${REVIEW_REFERENCE_POLICY}:${clinical.current}`) ||
+        availableScopes.has(`EXACT_REVIEW_REFERENCE_V1:${clinical.legacy}`));
       const documentsCurrent = (
         Array.isArray(opened?.snapshot.clinicalDocuments) ? opened.snapshot.clinicalDocuments : []
       ).every((value) => !object(value).validUntil || new Date(String(object(value).validUntil)) > new Date());
       const keys =
-        opened?.guidanceReady && detailsReady && documentsCurrent ? await matchingReviewKeys(tx, opened) : null;
+        opened?.guidanceReady && detailsReady && documentsCurrent && clinicalMatch
+          ? await matchingReviewKeys(tx, opened, clinical.forms) : null;
       const rows = keys
         ? await tx.mealReviewReference.findMany({
             where: {

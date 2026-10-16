@@ -15,20 +15,9 @@ import { admittedLibraryBaseIds } from './meal-base-admission.service';
 import { certifiedLibraryMealInclude } from './meal-library-candidate-query.service';
 
 type OpenedContext = { snapshot: Prisma.InputJsonObject; scopeKey: string; profileRevision: number };
-export async function matchingReviewKeys(tx: Prisma.TransactionClient, opened: OpenedContext) {
-  const snapshot = opened.snapshot,
-    meal = object(snapshot.meal),
-    userId = String(snapshot.userId);
-  // Meal-specific answers stay in their own review rather than another member's reference.
-  if (Array.isArray(snapshot.mealQuestions) && snapshot.mealQuestions.length) return null;
-  const facts = referencePlateFacts(snapshot);
-  if (
-    !facts ||
-    !env.JWT_SECRET ||
-    typeof meal.baseRecipeSignature !== 'string' ||
-    typeof meal.composedServingSignature !== 'string'
-  )
-    return null;
+/** May be shared within one locked reconciliation, never cached across requests. */
+export async function loadResolvedReviewForms(tx: Prisma.TransactionClient, opened: OpenedContext) {
+  const userId = String(opened.snapshot.userId);
   const forms = await tx.clinicalClarificationForm.findMany({
     relationLoadStrategy: 'join',
     where: { userId, purpose: 'PROFILE', profileRevision: opened.profileRevision, scopeKey: opened.scopeKey },
@@ -50,6 +39,17 @@ export async function matchingReviewKeys(tx: Prisma.TransactionClient, opened: O
       }))
     );
   }
+  return resolvedForms;
+}
+
+export async function matchingReviewKeys(tx: Prisma.TransactionClient, opened: OpenedContext, preparedForms?: unknown[]) {
+  const snapshot = opened.snapshot, meal = object(snapshot.meal);
+  // Meal-specific answers stay in their own review rather than another member's reference.
+  if (Array.isArray(snapshot.mealQuestions) && snapshot.mealQuestions.length) return null;
+  const facts = referencePlateFacts(snapshot);
+  if (!facts || !env.JWT_SECRET || typeof meal.baseRecipeSignature !== 'string' || typeof meal.composedServingSignature !== 'string') return null;
+  const resolvedForms = preparedForms ?? await loadResolvedReviewForms(tx, opened);
+  if (!resolvedForms) return null;
   const contextKey = reusableClinicalContextKey(snapshot, resolvedForms, env.JWT_SECRET);
   if (!contextKey) return null;
   let source: unknown = null;
