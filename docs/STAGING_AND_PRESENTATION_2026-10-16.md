@@ -6,9 +6,12 @@ Owner approved one existing Vercel project with a branch preview, a temporary la
 
 | Environment | Frontend/code | API | Database |
 | --- | --- | --- | --- |
-| Live | Existing `nutrimindv1` Vercel production, Git `demo`, `efdc6923c300dde0a1f25b1eb0a2dbb52c74b03f` | Existing Railway deployment | Existing Neon `nameless-dust-38810716` / `br-round-art-b355gp02` |
+| Live, promoted at 10:47 UTC+8 | Existing `nutrimindv1` Vercel production, Git `demo`, `7b96e8b5b2d698e90f52aa9ef2003425c0b655cb` | Existing Railway service | Neon `late-grass-59329912` / `br-floral-paper-aoa7pln0` / `kainara_demo` |
 | Staging | Same Vercel project, preview `codex/staging`, `c8675a149969177bd8f42ba8f0a57c4672b20f19` | Laptop port 5102 through Cloudflare quick tunnel | Neon `dark-cake-36096216` / `br-royal-sky-azsc3kcv` |
-| Presentation preparation | No application connected yet | None | Neon `late-grass-59329912` / `br-floral-paper-aoa7pln0` |
+| Initial presentation snapshot | Preserved, no application binding | None | Neon `late-grass-59329912` / `br-floral-paper-aoa7pln0` / `neondb` |
+| Original live preservation | Preserved after cutover, no active binding | None | Neon `nameless-dust-38810716` / `br-round-art-b355gp02` / `neondb` |
+
+The owner subsequently accepted staging and authorized a fresh live backup and cutover. The current live database uses that fresh **10:19** backup, not staging records or the initial 07:13 copy. Current deployment, migrations, settings, verification and recovery evidence are in [Demo database cutover](DEMO_DATABASE_CUTOVER_2026-10-16.md). Earlier timestamps and unchanged-production statements below describe the initial setup and staging checks, before this later authorization.
 
 Staging alias: `https://nutrimindv1-git-codex-staging-chimairels-projects.vercel.app`. Current ready deployment: `dpl_AAPD2QsCtZE2i8nGfYVgpACpdhMk`, superseding the initial `dpl_G3uQ3yGVQpsC57pNoGnos5LtcrjN` at `33455a61`. Vercel project: `prj_DxetpuW3fd5zY2ezP4wpdOtQrk8K`. Production branch tracking stays `demo`.
 
@@ -18,7 +21,7 @@ Project-wide deployment protection remains enabled. A seven-day shareable link w
 
 ## Database preservation and migration evidence
 
-Both new databases were restored independently from the same live snapshot started **October 16, 2026 at 07:13:38 UTC+8**. They do not continuously synchronize. Staging test actions will not be copied into the presentation database. New activity on live after the snapshot is absent from both copies.
+The initial staging and presentation `neondb` copies were restored independently from the same live snapshot started **October 16, 2026 at 07:13:38 UTC+8**. They do not continuously synchronize. New activity after that snapshot is absent from these initial copies. The later final `kainara_demo` restore uses a fresh live backup and excludes staging test actions.
 
 The archive is 15,325,271 bytes; SHA256:
 
@@ -26,7 +29,7 @@ The archive is 15,325,271 bytes; SHA256:
 
 Snapshot counts: 31 users, 11 accounts, 15 nutritionist profiles, 410 meal plans, 20 meal logs, 3 clinical clarification forms, 5 responses, 15,072 food records, 2,036 library records and 1,967 raw recipe candidates. The export transport timed out, but the completed archive passed a full transactional restore into disposable local PostgreSQL before cloud restoration. The interrupted first staging restore rolled back to an empty database; the saved archive was reused without another live export.
 
-Presentation retains the source ledger: **110 rows, 109 successful plus one historical rolled-back entry**. Staging applies `20261015100000_member_assistant` and `20261015140000_water_residual_precision`: **112 rows, 111 successful plus that historical rolled-back entry**, no unresolved failed entries. Inherited migration names/checksums match the snapshot, and the two additional migration checksums match the exact candidate Git bytes. Previously documented delivery-format differences and unmatched baseline hashes were retained; no migration ledger rewrite or `db push` occurred.
+At initial preparation, presentation retained the source ledger: **110 rows, 109 successful plus one historical rolled-back entry**. Staging applied `20261015100000_member_assistant` and `20261015140000_water_residual_precision`: **112 rows, 111 successful plus that historical rolled-back entry**, no unresolved failed entries. The initial presentation copy and final `kainara_demo` now also have those two additions. Inherited migration names/checksums match their snapshots, and the additions match the exact candidate Git bytes. Previously documented delivery-format differences and unmatched baseline hashes were retained; no migration ledger rewrite or `db push` occurred.
 
 The snapshot contains personal records. Credentials, encryption keys, dump, detailed receipts and access links remain in the private local task directory, excluded from Git. Keep the archive and its required document encryption key together securely; deleting or losing that local folder removes this local recovery material.
 
@@ -82,4 +85,4 @@ Candidate `c8675a14` adds the profile-dialog improvements, free planning/RND/wat
 
 HTTP checks return 200/SYSTEM/zero credits for the RND definition, the reported availability wording and water-history help. The preview progress response includes seven owner-scoped days with bounded entries. Before/after assistant receipts and usage counts are unchanged by those checks. No actual Gemini work was admitted. Production metadata/configuration remains at the original `efdc6923` deployment and database binding. These use short-lived server-issued test tokens; ordinary browser login and fresh visual layout checks are separate from HTTP verification. See [water history and local verification](WATER_HISTORY.md).
 
-No live cutover is authorized by this setup. When staging is accepted, explicitly review the code SHA, database age, migrations, environment settings and rollback target before connecting an app to the presentation copy or promoting code to `demo`. Preserve environment-owned records; do not import staging test changes into presentation.
+This initial setup did not authorize a live cutover. The owner later accepted staging and explicitly selected “Switch live after a fresh backup.” The subsequent [completed cutover](DEMO_DATABASE_CUTOVER_2026-10-16.md) records that authorization and its checks. Preserve environment-owned records; staging test changes are never imported into live.

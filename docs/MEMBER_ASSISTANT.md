@@ -1,6 +1,6 @@
 # Member assistant
 
-Branch: `codex/member-assistant`. Status: implemented on this feature branch; shared/hosted activation is separate.
+Branch: `codex/member-assistant`. Status: released to demo on October 16, 2026 as `7b96e8b5`, using the tested `c8675a14` tree and the final `kainara_demo` database. Nara is enabled with weekly credits 5/15/30. Staging remains separate. See [deployment evidence and verification limits](DEMO_DATABASE_CUTOVER_2026-10-16.md); older “no demo release” statements below describe their original implementation dates.
 
 The [October 15 system audit](verification/NARA_SYSTEM_AUDIT_2026-10-15.md) found missing support help and overly narrow food/nutrition routing. Its six findings are addressed on this branch. The [audited general guide](NARA_SYSTEM_GUIDE.md) now informs expanded prepared help and reference-based nutrition handlers. [Implementation and refresh-recovery evidence](verification/NARA_GUIDE_AND_RECOVERY_2026-10-15.md) records scope and remaining limits.
 

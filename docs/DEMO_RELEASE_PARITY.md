@@ -14,7 +14,7 @@ Useful local inspections include `git diff --name-only origin/demo..HEAD`, `git 
 
 ## Complete the authorized rollout
 
-1. Verify the hosted target: defense Neon project `nameless-dust-38810716`, main branch `br-round-art-b355gp02`, database `neondb`, while that remains the owner-approved deployment target.
+1. Verify the hosted target: as of the approved October 16 cutover, Neon project `late-grass-59329912`, branch `br-floral-paper-aoa7pln0`, database `kainara_demo`. The previous `nameless-dust-38810716` database is preserved and is no longer the live target. Reconfirm actual host bindings before each operation; see [cutover evidence](DEMO_DATABASE_CUTOVER_2026-10-16.md).
 2. Rehearse reviewed additive migrations and any data updates locally first. Apply needed hosted migrations with `prisma migrate deploy` in the compatibility order defined by the feature. Never use `db push`, resets, automatic test seeds or local database restores for parity.
 3. Ensure all API/worker readers support new enum/schema values. Deploy compatible backend code, check readiness, deploy/promote the matching frontend and activate required features in the order established by their rollout contract. Both hosts must be verified; a branch push or one successful host is insufficient.
 4. Apply intentional reference-data changes through the reviewed bounded idempotent process and verify affected identities/counts or content signatures. Preserve live account identities, passwords, member records, decisions and immutable attribution. QA fixture changes are not automatically promoted.
@@ -35,11 +35,11 @@ Record the following in the release/engineering record before reporting completi
 
 If one requirement is missing, the release is **incomplete**. State the missing item and continue the already authorized work. Request input only when the release needs genuinely missing information, a new external permission or an action beyond the authorized scope.
 
-## Current pending example: member assistant
+## Completed example: member assistant and final demo database
 
-At the October 15 check, local `kainara_local_development@127.0.0.1:55432` has **109** applied migrations; defense Neon has **108**. `20261015100000_member_assistant` is absent on Neon. Local code is on `codex/member-assistant`, while the latest verified hosted API is `demo` commit `6212344e`. The feature is enabled locally and not released on demo.
+On October 16, tested tree `c8675a14` was promoted as `demo` release `7b96e8b5`; both actual hosts are ready on that release. The final database was restored from a fresh, write-frozen live backup, independently of staging, and has the assistant and water-residual migrations: 112 ledger rows, 111 successful and one historical rolled-back entry. Nara is enabled with weekly Free/Lifestyle/Health credits **5/15/30**, with conservative provider budgets and preserved live secrets. Public authenticated free-reply, consent, role and water-history checks passed without spending credits or admitting Gemini work.
 
-An authorized assistant promotion must include its migration, compatible frontend/API/worker code, `MEMBER_ASSISTANT_ENABLED=true`, the intended weekly allowances (Free 5 / Lifestyle 20 / Health 40), project provider limits and actual hosted launcher/free-response/credit-consent checks. Follow [the assistant rollout contract](MEMBER_ASSISTANT.md#rollout). Do not report the assistant as released while only its Git code has been pushed.
+See [actual IDs, migration/data checks and verification limits](DEMO_DATABASE_CUTOVER_2026-10-16.md), including the lack of fresh browser/OAuth/provider verification. Future assistant promotions must preserve the [rollout contract](MEMBER_ASSISTANT.md#rollout). A code push alone still does not complete a release.
 
 ## Enforcement boundary
 
