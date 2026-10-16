@@ -1,3 +1,4 @@
+import './helpers/gemini-unit-key';
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import prisma from '../src/lib/prisma';
