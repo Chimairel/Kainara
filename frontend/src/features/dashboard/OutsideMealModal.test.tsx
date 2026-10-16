@@ -37,7 +37,7 @@ describe('OutsideMealModal', () => {
   it('renders food logging with a snack category', () => {
     render(<OutsideMealModal {...defaultProps} />);
 
-    expect(screen.getByText('LOG FOOD OR A MEAL')).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Log food or a meal' })).toBeDefined();
     expect(screen.getByText('Breakfast')).toBeDefined();
     expect(screen.getByText('Lunch')).toBeDefined();
     expect(screen.getByText('Dinner')).toBeDefined();
@@ -50,6 +50,27 @@ describe('OutsideMealModal', () => {
 
     fireEvent.click(screen.getByText('Dinner'));
     expect(onMealTypeChange).toHaveBeenCalledWith('DINNER');
+  });
+
+  it('explains AI provenance before requesting an estimate and exposes labeled macro inputs', () => {
+    render(<OutsideMealModal {...defaultProps} />);
+    expect(screen.getByText(/does not search the web or provide cited sources/)).toBeVisible();
+    expect(screen.getByText(/Gemini does not analyze the photo/)).toBeVisible();
+    for (const label of ['Calories (kcal)', 'Protein (g)', 'Carbs (g)', 'Fat (g)']) {
+      expect(screen.getByRole('spinbutton', { name: label })).toBeVisible();
+    }
+    expect(screen.getByRole('button', { name: 'Breakfast' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Lunch' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Upload Photo or Use Camera (Optional)' })).toBeEnabled();
+  });
+
+  it.each(['empty', 'unavailable'])('distinguishes %s suggestions without invoking AI', async (state) => {
+    if (state === 'empty') vi.mocked(api.get).mockResolvedValueOnce({ data: { success: true, data: { eligible: [], otherKnown: [] } } } as never);
+    else vi.mocked(api.get).mockRejectedValueOnce(new Error('Offline'));
+    render(<OutsideMealModal {...defaultProps} />);
+    fireEvent.change(screen.getByLabelText('Food or Meal Eaten (required)'), { target: { value: 'Tempura' } });
+    expect(await screen.findByText(state === 'empty' ? /No saved match found/ : /suggestions could not load/)).toBeVisible();
+    expect(defaultProps.onSubmit).not.toHaveBeenCalled();
   });
 
   it('allows user to manually edit calories, protein, carbs, and fat freely', () => {
@@ -219,7 +240,11 @@ describe('OutsideMealModal', () => {
     render(<OutsideMealModal {...defaultProps} mealName="Rice" onSubmit={onSubmit} />);
     fireEvent.change(screen.getByLabelText('Food or Meal Eaten (required)'), { target: { value: 'Ric' } });
     fireEvent.click(await screen.findByText('Rice, well-milled, boiled'));
+    expect(screen.getByText('FNRI composition')).toBeVisible();
+    fireEvent.change(screen.getByLabelText('Calories (kcal)'), { target: { value: '200' } });
+    expect(screen.getByText('Your entered values')).toBeVisible();
     fireEvent.change(screen.getByLabelText('Amount eaten (grams)'), { target: { value: '150' } });
+    expect(screen.getByText('FNRI composition')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: /Preview nutrition/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       false,

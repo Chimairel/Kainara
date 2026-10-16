@@ -19,6 +19,7 @@ export function useOutsideMealFormModel(props: Props) {
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchFeedback, setSearchFeedback] = useState<'idle' | 'empty' | 'unavailable'>('idle');
   const [showDropdown, setShowDropdown] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -97,6 +98,7 @@ export function useOutsideMealFormModel(props: Props) {
       const version = searchVersion.current;
       setSuggestions([]);
       setShowDropdown(false);
+      setSearchFeedback('idle');
       props.onMealNameChange(value);
       if (selectedSuggestion && value.trim() !== formatMealTitle(selectedSuggestion.name)) {
         setSelectedSuggestion(null);
@@ -136,14 +138,17 @@ export function useOutsideMealFormModel(props: Props) {
             const combined = [...eligible, ...otherKnown];
             setSuggestions(combined);
             setShowDropdown(combined.length > 0);
+            setSearchFeedback(combined.length > 0 ? 'idle' : 'empty');
           } else {
             setSuggestions([]);
             setShowDropdown(false);
+            setSearchFeedback('unavailable');
           }
         } catch {
           if (version !== searchVersion.current) return;
           setSuggestions([]);
           setShowDropdown(false);
+          setSearchFeedback('unavailable');
         } finally {
           if (version === searchVersion.current) setIsSearching(false);
         }
@@ -172,6 +177,7 @@ export function useOutsideMealFormModel(props: Props) {
       setManual(emptyMacros);
     }
     setShowDropdown(false);
+    setSearchFeedback('idle');
   };
 
   // Quick portion multiplier presets (keeps all values freely editable!)
@@ -340,6 +346,8 @@ export function useOutsideMealFormModel(props: Props) {
     suggestions,
     setShowDropdown,
     isSearching,
+    searchFeedback,
+    setSearchFeedback,
     cancelSearch,
     setSuggestions,
     setSelectedSuggestion,

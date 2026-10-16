@@ -65,7 +65,7 @@ beforeEach(() => {
 });
 it('saves an estimate separately from requesting one whole-meal review', () => {
   render(<PreviewConfirmation {...props} />);
-  fireEvent.click(screen.getByRole('button', { name: 'Use estimate' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save food' }));
   expect(props.onSubmit).toHaveBeenLastCalledWith(true);
   fireEvent.click(screen.getByRole('button', { name: 'Get RND feedback' }));
   expect(props.onSubmit).toHaveBeenLastCalledWith(true, undefined, true);
@@ -81,10 +81,35 @@ it.each(['quota', 'lifestyle', 'loading', 'error'])(
     if (state === 'error') membership.error = 'Unavailable';
     render(<PreviewConfirmation {...props} />);
     expect(screen.getByRole('button', { name: 'Get RND feedback' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Use estimate' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save food' })).toBeEnabled();
     if (state === 'error') {
       fireEvent.click(screen.getByRole('button', { name: 'Retry allowance' }));
       expect(membership.refresh).toHaveBeenCalledOnce();
     }
   }
 );
+
+it('shows Gemini values as an uncited estimate with its range and assumed portion', () => {
+  render(<PreviewConfirmation {...props} />);
+  expect(screen.getByText('Gemini estimate · no cited source')).toBeVisible();
+  expect(screen.getByText(/did not search the web or return source citations/)).toBeVisible();
+  expect(screen.getByText(/typical serving was assumed/)).toBeVisible();
+  expect(screen.queryByRole('link', { name: /source/i })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Edit food' }));
+  expect(props.onWarningCancel).toHaveBeenCalledOnce();
+});
+
+it('distinguishes source records, user edits and excluded unknowns in a mixed preview', () => {
+  const sources = ['FNRI', 'VERIFIED_LIBRARY', 'USER_REPORTED', 'USER_ADJUSTED_LIBRARY', 'UNRESOLVED'] as const;
+  const items = sources.map((source) => ({ ...props.warning.items[0], source, name: source,
+    portionGrams: 150, calorieLow: null, calorieHigh: null, includedInTotals: source !== 'UNRESOLVED' }));
+  render(<PreviewConfirmation {...props} warning={{ ...props.warning, usedAi: false, items,
+    summary: { ...props.warning.summary, unresolvedItemCount: 1, completeness: 'PARTIAL' } }} />);
+  expect(screen.getByText('Partial nutrition total')).toBeVisible();
+  expect(screen.getByText(/scaled from per-100 g values/)).toBeVisible();
+  expect(screen.getByText(/saved library nutrition/)).toBeVisible();
+  expect(screen.getByText(/not been independently checked/)).toBeVisible();
+  expect(screen.getByText(/do not inherit recipe verification/)).toBeVisible();
+  expect(screen.getByText('Not counted')).toBeVisible();
+  expect(screen.queryByText(/Gemini did not search/)).not.toBeInTheDocument();
+});

@@ -37,23 +37,24 @@ export default function OutsideMealForm(props: Props) {
       }}
       className="text-left"
     >
-      <fieldset disabled={props.isLoading} className="flex min-w-0 flex-col gap-3.5">
+      <fieldset disabled={props.isLoading} aria-busy={props.isLoading} className="flex min-w-0 flex-col gap-5">
         {/* 1. Meal Category Segmented Control */}
         <fieldset className="flex flex-col gap-1.5">
-          <legend className="text-xs font-semibold text-brand-muted">
-            When did you eat it? <span className="text-brand-muted/60 text-[11px] font-normal">(required)</span>
+          <legend className="mb-2 font-display text-sm font-semibold text-brand-text">
+            Meal category <span className="text-xs font-normal text-brand-muted">(required)</span>
           </legend>
-          <div className="grid grid-cols-4 gap-1 p-1 rounded-xl border border-brand-border/70 bg-brand-bgAlt/50 text-center text-xs font-semibold">
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-brand-bgAlt p-1 text-center sm:grid-cols-4">
             {(Object.keys(mealLabels) as MealType[]).map((type) => {
               const isSelected = props.mealType === type;
               return (
                 <button
                   key={type}
                   type="button"
+                  aria-pressed={isSelected}
                   onClick={() => props.onMealTypeChange(type)}
-                  className={`rounded-lg py-1.5 px-1 text-xs font-bold outline-none transition-all duration-150 ${
+                  className={`min-h-11 rounded-lg px-2 py-2 text-sm font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green/40 ${
                     isSelected
-                      ? 'bg-brand-green text-white shadow-xs dark:bg-brand-accent dark:text-[#07100d]'
+                      ? 'bg-brand-accent text-brand-dark'
                       : 'text-brand-muted hover:text-brand-text hover:bg-brand-surface/70'
                   }`}
                 >
@@ -95,18 +96,19 @@ export default function OutsideMealForm(props: Props) {
           </div>
         )}
 
-        {/* 4. Side-by-Side Reference Block: Photo Upload on Left, Notes on Right */}
+        {/* Optional preparation context and saved-log photo */}
         <OutsideMealPhotoSection model={model} />
 
         {/* 5. AI Assistant Fallback */}
         <OutsideMealConfirmationSection model={model} />
 
-        {/* 6. Primary action: preview recorded values (Sticky Bottom on Mobile & Small Screens) */}
-        <div className="sticky bottom-0 -mx-6 -mb-6 bg-brand-surface/95 backdrop-blur-md px-6 py-3 border-t border-brand-border/60 z-20 flex flex-col gap-2">
+        {/* Preview does not commit a food log. */}
+        <div className="space-y-3 border-t border-brand-border pt-5">
+          <p className="text-xs text-brand-muted">Preview first. Your intake changes only after you save.</p>
           <Button
             type="submit"
             variant="primary"
-            className="w-full py-3 text-xs font-black uppercase tracking-wider rounded-xl shadow-neon"
+            className="min-h-11 w-full text-sm"
             disabled={
               props.isLoading ||
               !props.mealName.trim() ||

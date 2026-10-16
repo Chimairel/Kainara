@@ -173,14 +173,14 @@ for (const width of [390, 1440]) {
     await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Temporary estimation failure' })).toBeVisible();
     await expect(numbers.nth(1)).toHaveValue('200');
     await dialog.getByRole('button', { name: 'Preview nutrition' }).click();
-    await expect(dialog.getByRole('button', { name: 'Use estimate' })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Save food' })).toBeVisible();
     expect(requests[0].requestKey).toBe(requests[1].requestKey);
-    await dialog.getByRole('button', { name: 'Back', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Edit food', exact: true }).click();
     await expect(numbers.nth(1)).toHaveValue('200');
     await dialog.getByRole('button', { name: 'Preview nutrition' }).click();
-    await dialog.getByRole('button', { name: 'Use estimate' }).click();
+    await dialog.getByRole('button', { name: 'Save food' }).click();
     await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Logging your food' })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: 'Use estimate' })).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: 'Processing...' })).toBeDisabled();
     expect(confirmations).toBe(1);
     releaseSave();
     await expect(dialog).not.toBeVisible();

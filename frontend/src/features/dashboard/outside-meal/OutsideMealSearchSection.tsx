@@ -16,6 +16,8 @@ type SectionProps = {
     | 'suggestions'
     | 'setShowDropdown'
     | 'isSearching'
+    | 'searchFeedback'
+    | 'setSearchFeedback'
     | 'cancelSearch'
     | 'setSuggestions'
     | 'setSelectedSuggestion'
@@ -40,6 +42,8 @@ export default function OutsideMealSearchSection({ model }: SectionProps) {
     suggestions,
     setShowDropdown,
     isSearching,
+    searchFeedback,
+    setSearchFeedback,
     cancelSearch,
     setSuggestions,
     setSelectedSuggestion,
@@ -58,9 +62,9 @@ export default function OutsideMealSearchSection({ model }: SectionProps) {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-start">
+      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-5">
         <div ref={searchContainerRef} className="sm:col-span-3 relative flex flex-col gap-1">
-          <label htmlFor="mealNameInput" className="text-xs font-semibold text-brand-muted">
+          <label htmlFor="mealNameInput" className="font-display text-sm font-semibold text-brand-text">
             Food or Meal Eaten (required)
           </label>
           <div className="relative flex items-center">
@@ -78,7 +82,9 @@ export default function OutsideMealSearchSection({ model }: SectionProps) {
               }}
               disabled={props.isLoading}
               required
-              className="w-full rounded-xl border border-brand-border/80 bg-brand-surface pl-9 pr-8 py-2 text-xs font-semibold text-brand-text placeholder-brand-muted/60 outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+              aria-describedby="outside-food-search-help outside-food-search-status"
+              autoComplete="off"
+              className="min-h-12 w-full rounded-xl border border-brand-border bg-brand-bgAlt py-3 pl-9 pr-12 text-sm font-medium text-brand-text placeholder:text-brand-muted outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
             {isSearching ? (
               <Loader2 className="absolute right-3 h-4 w-4 animate-spin text-brand-green" />
@@ -97,22 +103,29 @@ export default function OutsideMealSearchSection({ model }: SectionProps) {
                   setRiceGrams(0);
                   setManual(emptyMacros);
                   setPortionGrams('');
+                  setSearchFeedback('idle');
                 }}
-                className="absolute right-3 text-brand-muted hover:text-brand-text"
+                aria-label="Clear food name"
+                className="absolute right-1 flex h-10 w-10 items-center justify-center rounded-lg text-brand-muted hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40"
               >
                 <X className="h-4 w-4" />
               </button>
             ) : null}
           </div>
-          <p className="mt-0.5 text-[11px] text-brand-muted leading-tight">
-            For multiple foods, separate each one with a comma. Add a measured portion like{' '}
+          <p id="outside-food-search-help" className="mt-1 text-xs leading-relaxed text-brand-muted">
+            Search saved recipes and FNRI foods. For multiple foods, use commas. Add grams like{' '}
             <strong className="text-brand-text font-semibold">rice (150g)</strong> for FNRI matching.
+          </p>
+          <p id="outside-food-search-status" role="status" className="text-xs leading-relaxed text-brand-muted">
+            {isSearching ? 'Searching saved foods…' : searchFeedback === 'empty'
+              ? 'No saved match found. You can enter label values or request an AI estimate.'
+              : searchFeedback === 'unavailable' ? 'Saved suggestions could not load. Try typing again, or enter label values.' : ''}
           </p>
 
           {/* Autocomplete Dropdown List */}
           {showDropdown && suggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-2xl border border-brand-border/80 bg-brand-surface shadow-card-lg backdrop-blur-md">
-              <div className="p-1.5 border-b border-brand-border/40 text-[10px] font-bold uppercase tracking-wider text-brand-muted px-3 pt-2 pb-1">
+            <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-brand-border bg-brand-surface shadow-card-lg" aria-label="Matching recipes and foods">
+              <div className="border-b border-brand-border px-3 py-2 text-xs font-semibold text-brand-muted">
                 Matching Recipes & Foods ({suggestions.length})
               </div>
               {suggestions.map((dish) => (
@@ -120,7 +133,7 @@ export default function OutsideMealSearchSection({ model }: SectionProps) {
                   key={`${dish.kind}-${dish.id}`}
                   type="button"
                   onClick={() => handleSelectSuggestion(dish)}
-                  className="flex w-full items-center justify-between gap-2 border-b border-brand-border/30 px-3.5 py-2 text-left text-xs transition hover:bg-brand-green/10 last:border-b-0"
+                  className="flex min-h-12 w-full items-center justify-between gap-2 border-b border-brand-border px-3.5 py-3 text-left text-sm transition-colors hover:bg-brand-green/10 focus-visible:bg-brand-bgAlt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-green/40 last:border-b-0"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
@@ -131,7 +144,7 @@ export default function OutsideMealSearchSection({ model }: SectionProps) {
                       )}
                       <span className="truncate font-semibold text-brand-text">{formatMealTitle(dish.name)}</span>
                     </div>
-                    <span className="text-[10px] text-brand-muted">
+                    <span className="text-xs text-brand-muted">
                       {dish.serving ? `${dish.label} · ${dish.serving}` : dish.label}
                     </span>
                   </div>
@@ -152,7 +165,7 @@ export default function OutsideMealSearchSection({ model }: SectionProps) {
         {/* Portion Field */}
         {selectedSuggestion?.kind === 'FNRI_FOOD' && baseNutrition ? (
           <div className="sm:col-span-2 flex flex-col gap-1">
-            <label htmlFor="fnriPortionGrams" className="text-xs font-semibold text-brand-muted">
+            <label htmlFor="fnriPortionGrams" className="font-display text-sm font-semibold text-brand-text">
               Amount eaten (grams)
             </label>
             <div className="relative">
@@ -179,15 +192,15 @@ export default function OutsideMealSearchSection({ model }: SectionProps) {
                       : emptyMacros
                   );
                 }}
-                className="w-full rounded-xl border border-brand-border/80 bg-brand-surface px-3 py-2 text-xs font-semibold text-brand-text outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+                className="min-h-12 w-full rounded-xl border border-brand-border bg-brand-bgAlt py-3 pl-3 pr-8 text-sm font-semibold text-brand-text outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
               />
-              <span className="pointer-events-none absolute right-3 top-2 text-xs font-bold text-brand-muted">g</span>
+              <span className="pointer-events-none absolute right-3 top-4 text-xs font-bold text-brand-muted">g</span>
             </div>
-            <p className="mt-0.5 text-[11px] text-brand-muted leading-tight">Per 100g reference.</p>
+            <p className="mt-1 text-xs leading-relaxed text-brand-muted">Scales the FNRI values from 100 g.</p>
           </div>
         ) : selectedSuggestion?.kind !== 'ELIGIBLE_LIBRARY' ? (
           <div className="sm:col-span-2 flex flex-col gap-1">
-            <label htmlFor="outsidePortionGrams" className="text-xs font-semibold text-brand-muted">
+            <label htmlFor="outsidePortionGrams" className="font-display text-sm font-semibold text-brand-text">
               Approximate portion in grams (optional)
             </label>
             <div className="relative">
@@ -201,18 +214,18 @@ export default function OutsideMealSearchSection({ model }: SectionProps) {
                 value={portionGrams}
                 onChange={(event) => setPortionGrams(event.target.value)}
                 disabled={props.isLoading}
-                className="w-full rounded-xl border border-brand-border/80 bg-brand-surface px-3 py-2 text-xs font-semibold text-brand-text outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+                className="min-h-12 w-full rounded-xl border border-brand-border bg-brand-bgAlt py-3 pl-3 pr-8 text-sm font-semibold text-brand-text outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
               />
-              <span className="pointer-events-none absolute right-3 top-2 text-xs font-bold text-brand-muted">g</span>
+              <span className="pointer-events-none absolute right-3 top-4 text-xs font-bold text-brand-muted">g</span>
             </div>
-            <p className="mt-0.5 text-[11px] text-brand-muted leading-tight">Optional measured grams.</p>
+            <p className="mt-1 text-xs leading-relaxed text-brand-muted">Measured grams help describe your portion.</p>
           </div>
         ) : (
-          <div className="sm:col-span-2 flex flex-col justify-center rounded-xl border border-brand-border/60 bg-brand-bgAlt/40 p-2 text-center h-[58px]">
-            <span className="text-[11px] font-semibold text-brand-green flex items-center justify-center gap-1">
+          <div className="flex flex-col justify-center gap-1 rounded-xl bg-brand-bgAlt p-3 sm:col-span-2">
+            <span className="flex items-center gap-1 text-sm font-semibold text-brand-text">
               <CheckCircle2 className="h-3.5 w-3.5" /> 1 serving
             </span>
-            <span className="text-[10px] text-brand-muted truncate">
+            <span className="break-words text-xs text-brand-muted">
               {selectedSuggestion.serving || 'Recipe serving'}
             </span>
           </div>

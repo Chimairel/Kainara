@@ -12,9 +12,10 @@ export function OutsideMealModal(props: Props) {
       onClose={() => {
         if (!props.isLoading) props.onClose();
       }}
-      title="LOG FOOD OR A MEAL"
+      title={props.warning ? 'Review your food log' : 'Log food or a meal'}
       size="xl"
-      description="Track meals, snacks, drinks, or individual foods outside your plan."
+      presentation="workspace"
+      description={props.warning ? 'Check the portion, nutrition basis and any warnings before saving.' : 'Add what you ate outside your plan, then review the nutrition before saving.'}
     >
       <div className="flex flex-col gap-5 text-left">
         {props.warning && <PreviewConfirmation {...props} warning={props.warning} />}
