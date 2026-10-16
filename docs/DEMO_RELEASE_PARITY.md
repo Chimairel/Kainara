@@ -47,6 +47,8 @@ If one requirement is missing, the release is **incomplete**. State the missing 
 
 On October 16, tested tree `c8675a14` was promoted as `demo` release `7b96e8b5`; both actual hosts are ready on that release. The final database was restored from a fresh, write-frozen live backup, independently of staging, and has the assistant and water-residual migrations: 112 ledger rows, 111 successful and one historical rolled-back entry. Nara is enabled with weekly Free/Lifestyle/Health credits **5/15/30**, with conservative provider budgets and preserved live secrets. Public authenticated free-reply, consent, role and water-history checks passed without spending credits or admitting Gemini work.
 
+This is the initial cutover evidence, before the owner restricted further demo tests. The subsequent **12:56 release `8d4bd49f`** passed local and online-staging checks and was promoted as the exact same commit; both production hosts report it ready/successful with unchanged configuration. No demo functional requests or test SQL were sent. [Current audit and deployment identities](LOCAL_STAGING_ALIGNMENT_2026-10-16.md).
+
 See [actual IDs, migration/data checks and verification limits](DEMO_DATABASE_CUTOVER_2026-10-16.md), including the lack of fresh browser/OAuth/provider verification. Future assistant promotions must preserve the [rollout contract](MEMBER_ASSISTANT.md#rollout). A code push alone still does not complete a release.
 
 ## Enforcement boundary

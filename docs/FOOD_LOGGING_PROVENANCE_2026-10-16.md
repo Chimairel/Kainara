@@ -1,5 +1,7 @@
 # Outside-food logging: nutrition provenance and interface
 
+Release update: the interface was tested locally and on online staging, then promoted unchanged to demo in **`8d4bd49f`**, verified by hosting metadata at 12:56 UTC+8. See [alignment and release evidence](LOCAL_STAGING_ALIGNMENT_2026-10-16.md). The original local-only scope below describes its first implementation checkpoint.
+
 ## Observed behavior
 
 The owner reported an AI food estimate without source citations. Code inspection of `MealLogService.logOutsideMeal`, `resolveFreeItem`, `estimateWithAi`, `outside-meal-ai.policy.ts` and `generateGenerativeJSON` establishes:

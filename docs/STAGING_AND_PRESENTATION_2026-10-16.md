@@ -6,14 +6,14 @@ Owner approved one existing Vercel project with a branch preview, a temporary la
 
 | Environment | Frontend/code | API | Database |
 | --- | --- | --- | --- |
-| Live, promoted at 10:47 UTC+8 | Existing `nutrimindv1` Vercel production, Git `demo`, `7b96e8b5b2d698e90f52aa9ef2003425c0b655cb` | Existing Railway service | Neon `late-grass-59329912` / `br-floral-paper-aoa7pln0` / `kainara_demo` |
-| Staging | Same Vercel project, preview `codex/staging`, `c8675a149969177bd8f42ba8f0a57c4672b20f19` | Laptop port 5102 through Cloudflare quick tunnel | Neon `dark-cake-36096216` / `br-royal-sky-azsc3kcv` |
+| Live, verified at 12:56 UTC+8 | Existing `nutrimindv1` Vercel production, Git `demo`, `8d4bd49fdad41c540fae769819911255e395ab81` | Existing Railway service | Neon `late-grass-59329912` / `br-floral-paper-aoa7pln0` / `kainara_demo` |
+| Staging | Same Vercel project, preview `codex/staging`, `8d4bd49fdad41c540fae769819911255e395ab81` | Laptop port 5102 through Cloudflare quick tunnel | Neon `dark-cake-36096216` / `br-royal-sky-azsc3kcv` |
 | Initial presentation snapshot | Preserved, no application binding | None | Neon `late-grass-59329912` / `br-floral-paper-aoa7pln0` / `neondb` |
 | Original live preservation | Preserved after cutover, no active binding | None | Neon `nameless-dust-38810716` / `br-round-art-b355gp02` / `neondb` |
 
 The owner subsequently accepted staging and authorized a fresh live backup and cutover. The current live database uses that fresh **10:19** backup, not staging records or the initial 07:13 copy. Current deployment, migrations, settings, verification and recovery evidence are in [Demo database cutover](DEMO_DATABASE_CUTOVER_2026-10-16.md). Earlier timestamps and unchanged-production statements below describe the initial setup and staging checks, before this later authorization.
 
-Staging alias: `https://nutrimindv1-git-codex-staging-chimairels-projects.vercel.app`. Current ready deployment: `dpl_AAPD2QsCtZE2i8nGfYVgpACpdhMk`, superseding the initial `dpl_G3uQ3yGVQpsC57pNoGnos5LtcrjN` at `33455a61`. Vercel project: `prj_DxetpuW3fd5zY2ezP4wpdOtQrk8K`. Production branch tracking stays `demo`.
+Staging alias: `https://nutrimindv1-git-codex-staging-chimairels-projects.vercel.app`. Current ready deployment: `dpl_EqUNJi1FHdYJ1SLucNsjgdGbtKda`, superseding `dpl_AAPD2QsCtZE2i8nGfYVgpACpdhMk` at `c8675a14` and the initial `dpl_G3uQ3yGVQpsC57pNoGnos5LtcrjN` at `33455a61`. Vercel project: `prj_DxetpuW3fd5zY2ezP4wpdOtQrk8K`. Production branch tracking stays `demo`. The latest [alignment audit](LOCAL_STAGING_ALIGNMENT_2026-10-16.md) records tests, actual hosting identities and the owner's staging-only testing boundary.
 
 Only four Vercel overrides were added, all scoped to **Preview + codex/staging**: `NEXT_PUBLIC_API_URL=/api`, `INTERNAL_API_URL` pointing to the staging tunnel, the existing public Google client ID and `NUTRIMIND_DEPLOYMENT_MODE=capstone-demo`. The owner confirmed adding the staging alias to the existing Google Web client's JavaScript origins, preserving live origins. A complete OAuth round trip remains unverified.
 
@@ -41,7 +41,7 @@ The snapshot contains personal records. Credentials, encryption keys, dump, deta
 - Nara enabled with weekly Free/Lifestyle/Health caps of 5/15/30. Conservative staging provider ceilings: global 2 RPM, 10 attempts per rolling day, one concurrent call, estimated 50,000 TPM; chat four attempts per rolling day with six reserved; background one RPM/two attempts per day. These are application ceilings, not guaranteed Gemini capacity.
 - The Gemini credential still belongs to the same provider project. Separate databases do not isolate provider quotas. Local/live/other tools can consume that shared quota.
 - Email delivery blocked using loopback port 1, push disabled, payments disabled and image-upload credentials omitted. New email registration, password resets, invitations, payment and admin image-upload workflows cannot be fully tested in this configuration. Existing account sign-in is the intended testing path.
-- API initially ran the audited `33455a61` snapshot. It now runs a clean `git archive` of `c8675a14` compiled under `backend/.local/environment-isolation-20261016/releases/c8675a14/backend/dist/server.js`, with the same explicit private staging environment. Private `staging-release.private.json` pins the source SHA and runtime entry used by both startup and preview redeployment helpers. It does not load the shared checkout's ordinary runtime configuration.
+- API initially ran `33455a61`, then `c8675a14`. It now runs a clean `git archive` of `8d4bd49f` compiled under `backend/.local/environment-isolation-20261016/releases/8d4bd49f/backend/dist/server.js`, with the same explicit private staging environment. Private `staging-release.private.json` pins the source SHA and runtime entry used by both startup and preview redeployment helpers. It does not load the shared checkout's ordinary runtime configuration.
 
 ## Verification and limits
 

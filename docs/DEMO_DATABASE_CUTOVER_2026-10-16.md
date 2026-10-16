@@ -1,5 +1,7 @@
 # Demo database cutover — October 16, 2026
 
+This records the 10:19–10:47 database cutover and initial code release. The subsequent **12:56 release `8d4bd49f`** preserves this database/configuration and adds the staging-tested food interface and mixed-seafood classification correction. See [current alignment and hosting evidence](LOCAL_STAGING_ALIGNMENT_2026-10-16.md).
+
 ## Authorization and current topology
 
 After accepting staging, the owner explicitly selected **“Switch live after a fresh backup.”** The existing live Vercel/Railway projects now serve the tested release using a fresh copy of live records in the separate presentation Neon project. No staging test activity was promoted.
