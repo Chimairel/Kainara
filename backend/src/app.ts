@@ -33,8 +33,10 @@ import notificationsRouter from '@/routes/notifications.routes';
 import supportRouter from '@/routes/support.routes';
 import mealReminderRouter from '@/routes/meal-reminder.routes';
 import membershipRouter from '@/routes/membership.routes';
+import memberAssistantRouter from '@/routes/member-assistant.routes';
 import membershipPaymentRouter from '@/routes/membership-payment.routes';
 import { MEMBERSHIP_PRICES, testCheckoutConfig } from '@/domain/membership-checkout.policy';
+import { assistantMembershipBenefits } from '@/domain/member-assistant.policy';
 
 // Initialize Express app
 const app = express();
@@ -105,6 +107,7 @@ app.get('/api/membership/plans', (_req, res) => {
     success: true,
     data: {
       prices: MEMBERSHIP_PRICES,
+      assistant: assistantMembershipBenefits(),
       currency: 'PHP',
       mode: 'TEST',
       autoRenews: false,
@@ -117,6 +120,7 @@ app.get('/api/membership/plans', (_req, res) => {
 app.use('/api/user/progress', progressRouter);
 app.use('/api/user/meal-reminders', mealReminderRouter);
 app.use('/api/user/membership', membershipRouter);
+app.use('/api/user/assistant', memberAssistantRouter);
 app.use('/api/user/meals', mealsRouter);
 app.use('/api/user/grocery', groceryRouter);
 app.use('/api/user', userRouter);

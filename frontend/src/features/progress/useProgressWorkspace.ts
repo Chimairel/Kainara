@@ -10,6 +10,7 @@ import { readSessionResource, writeSessionResource } from '@/lib/session-resourc
 import { getRecentUserProfile, refreshUserProfile } from '@/lib/user-profile-resource';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { groupWeightObservations } from './weight-chart-data';
+import type { WaterHistoryData } from './WaterHistory';
 
 export type ProgressSection = 'overview' | 'profile' | 'safety' | 'history';
 export type ProgressWorkspaceMode = 'progress' | 'health' | 'planning';
@@ -38,6 +39,7 @@ export type ProfileDetails = UserProfileData;
 export interface ProgressHistory {
   weightLogs: WeightLog[];
   dailyNutritionLogs: DailyNutritionLog[];
+  waterHistory?: WaterHistoryData;
 }
 
 interface ProgressPageSnapshot {

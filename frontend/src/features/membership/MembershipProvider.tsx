@@ -6,12 +6,15 @@ import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
 
 type Allowance = { used: number; cap: number; remaining: number };
+export type AssistantBenefits = { enabled: false } | { enabled: true;
+  weeklyCredits: Record<'FREE' | 'LIFESTYLE' | 'HEALTH', number>; allowance?: Allowance };
 export type MembershipView =
   | { enabled: false }
   | {
       enabled: true;
       level: 'FREE' | 'TRIAL_PENDING' | 'TRIAL' | 'MEMBER';
       enhanced: boolean;
+      assistant?: AssistantBenefits;
       tier?: 'FREE' | 'LIFESTYLE' | 'HEALTH';
       healthAccess?: boolean;
       healthUntil?: string | null;

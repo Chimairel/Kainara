@@ -18,8 +18,8 @@ export const gettingStartedChapter: DocsChapter = {
         <>
           <p>
             Register and verify your email. Enter body measurements, activity, goal, and food preferences. Declare
-            conditions, allergies, and food restrictions accurately. Supporting clinical documents are optional to
-            upload during onboarding, although some cases need reviewed evidence before planning.
+            conditions, allergies, and food restrictions accurately. If an RND needs more information, their
+            requested forms appear in Health details. New clinical-document uploads are no longer available.
           </p>
           <p>
             The measurements and activity level help calculate an initial energy target. Diet and food preferences
@@ -29,9 +29,9 @@ export const gettingStartedChapter: DocsChapter = {
           </p>
           <p>
             If a condition is unclear, describe it as accurately as you can rather than choosing a more specific
-            diagnosis you have not received. You can provide a relevant clinical document during the optional onboarding
-            step or later from your profile. Uploading a file does not automatically confirm its contents or unlock
-            planning.
+            diagnosis you have not received. Respond to any questions your RND requests in Health details. Submitting
+            an answer does not automatically confirm the profile or unlock planning. Historical file records may
+            remain available without enabling new uploads.
           </p>
         </>
       ),

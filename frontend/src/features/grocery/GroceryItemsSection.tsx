@@ -19,6 +19,7 @@ type Props = {
     | 'handleSort'
     | 'handleToggleAllVisible'
     | 'allVisibleChecked'
+    | 'dayView'
   >;
 };
 export default function GroceryItemsSection({ model }: Props) {
@@ -35,6 +36,7 @@ export default function GroceryItemsSection({ model }: Props) {
     handleSort,
     handleToggleAllVisible,
     allVisibleChecked,
+    dayView,
   } = model;
 
   return (
@@ -69,6 +71,7 @@ export default function GroceryItemsSection({ model }: Props) {
           onSort={handleSort}
           onToggleAllVisible={handleToggleAllVisible}
           allVisibleChecked={allVisibleChecked}
+          readOnly={dayView}
         />
       )}
     </>

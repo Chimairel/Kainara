@@ -21,6 +21,7 @@ function PricingContent() {
           currentTier={currentTier}
           currentLevel={currentLevel}
           limits={limits}
+          assistant={data?.enabled ? data.assistant : undefined}
           isFullScreenModal={false}
         />
       </main>

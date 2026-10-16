@@ -27,6 +27,7 @@ export default function GroceryWorkspace() {
     projection,
     groceryList,
     pendingMealCount,
+    setSelectedDay,
   } = model;
   return (
     <div className="portal-page max-w-5xl text-brand-text">
@@ -47,6 +48,7 @@ export default function GroceryWorkspace() {
             setQuery('');
             setFilter('all');
             setSelectedCategory('ALL');
+            setSelectedDay('ALL');
           }}
           items={[
             { value: 'CURRENT', label: 'Current week' },
@@ -108,7 +110,7 @@ export default function GroceryWorkspace() {
       ) : (
         <div className="flex flex-col gap-5 text-left">
           {/* REIMAGINED SHOPPING PROGRESS HERO (WITH RETRO WAVE STRIPES & MODERN FEEL) */}
-          <GroceryProgressSection model={model} />
+          {!model.dayView ? <GroceryProgressSection model={model} /> : null}
 
           {/* SEARCH & FILTERS TOOLBAR */}
           <GroceryFiltersSection model={model} />

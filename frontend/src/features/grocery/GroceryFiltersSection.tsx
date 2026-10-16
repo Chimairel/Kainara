@@ -22,6 +22,7 @@ type Props = {
     | 'visibleItems'
     | 'isFiltered'
     | 'handleResetFilters'
+    | 'selectedDay' | 'setSelectedDay' | 'days' | 'dayView' | 'selectedDayData'
   >;
 };
 export default function GroceryFiltersSection({ model }: Props) {
@@ -40,6 +41,7 @@ export default function GroceryFiltersSection({ model }: Props) {
     visibleItems,
     isFiltered,
     handleResetFilters,
+    selectedDay, setSelectedDay, days, dayView, selectedDayData,
   } = model;
 
   return (
@@ -78,7 +80,7 @@ export default function GroceryFiltersSection({ model }: Props) {
                 aria-label="Filter by department category"
                 className="h-10 w-full appearance-none rounded-xl border border-brand-border/70 bg-brand-bgAlt/60 px-3 text-xs font-bold text-brand-text outline-none transition focus:border-brand-green/40 focus:ring-2 focus:ring-brand-green/15 cursor-pointer"
               >
-                <option value="ALL">All Departments ({totalItems})</option>
+                <option value="ALL">All Departments ({dayView ? selectedDayData?.items.length ?? 0 : totalItems})</option>
                 {allCategories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat} ({categoryCounts[cat] || 0})
@@ -88,9 +90,24 @@ export default function GroceryFiltersSection({ model }: Props) {
             </div>
           </div>
 
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <label htmlFor="grocery-day" className="shrink-0 text-sm font-semibold">Ingredients by day</label>
+            <Dropdown id="grocery-day" value={selectedDay} onChange={value => {
+              setSelectedDay(value); setFilter('all'); setSelectedCategory('ALL');
+            }} className="w-full sm:w-56">
+              <option value="ALL">All days · shopping checklist</option>
+              {selectedDay !== 'ALL' && !days.some(day => day.date === selectedDay) ? <option value={selectedDay}>{selectedDay} · unavailable</option> : null}
+              {days.map(day => <option key={day.date} value={day.date}>{new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${day.date}T00:00:00+08:00`))}</option>)}
+            </Dropdown>
+          </div>
+          {dayView ? <p className="text-sm leading-6 text-brand-muted">
+            {selectedDayData ? `${selectedDayData.clearedMealCount} cleared planned meal${selectedDayData.clearedMealCount === 1 ? '' : 's'}. ` : 'This date is not available in the selected cycle. '}
+            Day quantities include recorded rice. Pending meals are excluded. Check your pantry before buying; purchase checkmarks and PDF export apply to All days.
+          </p> : null}
+
           {/* Bottom Row: Status Filter Pills & Summary Counter / Reset */}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-brand-border/40">
-            <div className="w-full sm:w-auto">
+            {!dayView ? <div className="w-full sm:w-auto">
               <WorkspaceTabs
                 value={filter}
                 onChange={setFilter}
@@ -102,11 +119,11 @@ export default function GroceryFiltersSection({ model }: Props) {
                   { value: 'available', label: 'Have it', count: checkedItems },
                 ]}
               />
-            </div>
+            </div> : null}
 
             <div className="flex items-center gap-3 text-[11px] text-brand-muted font-medium">
               <span>
-                Showing <strong className="text-brand-text font-bold">{visibleItems.length}</strong> of {totalItems}{' '}
+                Showing <strong className="text-brand-text font-bold">{visibleItems.length}</strong>{dayView ? '' : ` of ${totalItems}`}{' '}
                 items
               </span>
 

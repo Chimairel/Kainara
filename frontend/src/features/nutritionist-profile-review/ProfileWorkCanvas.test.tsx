@@ -170,3 +170,27 @@ it('shows the answer but disables resolution when another RND owns the profile c
   expect(screen.getByRole('textbox', { name: 'Resolution notes' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Resolve clarification' })).toBeDisabled();
 });
+
+it('keeps decision actions and dismissal unavailable while an answer resolution is being saved', async () => {
+  let complete!: (value: unknown) => void;
+  vi.mocked(api.post).mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }));
+  const reloadDetail = vi.fn().mockResolvedValue(undefined);
+  render(<Fixture answered reloadDetail={reloadDetail} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Profile decision' }));
+  const dialog = within(screen.getByRole('dialog'));
+  fireEvent.change(dialog.getByRole('textbox', { name: 'Review notes' }), { target: { value: 'Reviewed the member profile.' } });
+  const actions = within(dialog.getByRole('group', { name: 'Profile decision actions' }));
+  expect(actions.getByRole('button', { name: 'Confirm for planning' })).toBeEnabled();
+  fireEvent.change(dialog.getByRole('textbox', { name: 'Resolution notes' }), { target: { value: 'Reviewed the latest member response.' } });
+  fireEvent.click(dialog.getByRole('button', { name: 'Resolve clarification' }));
+  expect(actions.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
+  expect(actions.getByRole('button', { name: 'Needs correction' })).toBeDisabled();
+  expect(actions.getByRole('button', { name: 'Request details' })).toBeDisabled();
+  fireEvent.click(dialog.getByRole('button', { name: 'Close' }));
+  expect(screen.getByRole('dialog', { name: 'Record profile decision' })).toBeInTheDocument();
+  complete({ data: { success: true } });
+  await waitFor(() => expect(reloadDetail).toHaveBeenCalledOnce());
+  await waitFor(() => expect(actions.getByRole('button', { name: 'Confirm for planning' })).toBeEnabled());
+  fireEvent.click(dialog.getByRole('button', { name: 'Close' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+});

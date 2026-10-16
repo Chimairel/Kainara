@@ -1,0 +1,452 @@
+/** Reviewed navigation help, kept with the app code; no provider, embeddings or database writes. */
+export type AssistantInformation = { text: string; links: Array<{ label: string; href: string }> };
+export const ASSISTANT_WEEKLY_CREDIT_DEFAULTS = { FREE: 5, LIFESTYLE: 15, HEALTH: 30 } as const;
+type HelpTopic = AssistantInformation & { id: string; subject: RegExp; purpose?: RegExp };
+
+const edit = /\b(change|update|edit|correct|record|log|enter|add|save|set|baguhin|palitan|iupdate|ilagay|usbon|iusab)\b/;
+const navigate = /\b(how|where|open|view|see|show|find|check|use|access|paano|saan|unsaon|asa|tanawon|tan aw|makita)\b/;
+const topics: HelpTopic[] = [
+  { id: 'body', subject: /\b(target weight|goal weight|goals?|age|height|activity level|biological sex)\b/, purpose: edit,
+    text: 'You can update your measurements, activity level and target weight in Health & goals, under Body & goals. Review your entries and save them there. I have not changed your profile.',
+    links: [{ label: 'Health & goals', href: '/profile/health' }] },
+  { id: 'weight', subject: /\b(weight|timbang)\b/, purpose: edit,
+    text: 'To record your latest weight, open Progress and select “Log today’s weight”. Enter your weight in kilograms and save it there. Your weight history is also on that page.',
+    links: [{ label: 'Progress', href: '/progress' }] },
+  { id: 'restrictions', subject: /\b(allerg(?:y|ies|ens?)|conditions?|restrictions?|intolerances?)\b/, purpose: edit,
+    text: 'Open Health & goals and select Conditions & allergies to review or update your saved health information. Save your changes on that page; this chat does not change them.',
+    links: [{ label: 'Health & goals', href: '/profile/health' }] },
+  { id: 'password', subject: /\b(password|security|privacy|delete (?:my )?account)\b/,
+    text: 'Open Security & privacy to manage your password and account controls. Complete any changes on that page. Never send your password or verification codes in chat.',
+    links: [{ label: 'Security & privacy', href: '/profile/security' }] },
+  { id: 'identity', subject: /\b(avatar|profile (?:picture|photo)|name|email|personal details)\b/, purpose: edit,
+    text: 'Open Personal details to review your account information. Use the Account section for available identity settings or the Avatar section to change your picture.',
+    links: [{ label: 'Personal details', href: '/profile/personal' }] },
+  { id: 'planning', subject: /\b(diet(?:ary)?(?: preference)?|rice|shopping (?:day|schedule)|food preferences?|meal reminders?)\b/, purpose: edit,
+    text: 'Open Food & planning to review your dietary preferences, rice preferences, shopping schedule and meal reminder settings. Save any changes there.',
+    links: [{ label: 'Food & planning', href: '/profile/planning' }] },
+  { id: 'outside', subject: /\b(outside (?:food|meals?)|food log|log (?:a |my |an )?(?:food|meals?|snack)|record (?:a |my |an )?meal)\b/,
+    text: 'To record food outside your plan, open Meals and select “Log food or snack”. Enter the food and portion, review its nutrition, then confirm in the form. A nutrition estimate may use AI through that existing flow. I have not logged anything from this chat.',
+    links: [{ label: 'Meals', href: '/meals' }] },
+  { id: 'water', subject: /\b(water|hydration|tubig)\b/, purpose: edit,
+    text: 'Open your Dashboard and use the water controls in Your daily intake to record or adjust today’s water intake (Philippine time). Earlier daily totals and saved entries are in Water history on Progress. I have not added water from this chat.',
+    links: [{ label: 'Dashboard', href: '/dashboard' }] },
+  { id: 'theme', subject: /\b(dark mode|light mode|theme|appearance)\b/,
+    text: 'Use the sun or moon button in the page header to switch between light and dark mode. It stays available above Nara’s desktop chat panel.',
+    links: [] },
+  { id: 'swap', subject: /\b(swaps?|swapping|replace|replacement)\b.*\b(meals?|food)\b|\b(meals?|food)\b.*\b(swaps?|swapping|replace|replacement)\b/,
+    text: 'Open your Meal plan, select a meal and use its swap option when available. Compare the replacement before confirming. Eligibility and your current swap allowance still apply; this chat does not replace meals.',
+    links: [{ label: 'Meal plan', href: '/meals' }] },
+  { id: 'tracking', subject: /\b(mark.*(?:eaten|done|skipped)|skip (?:a |my )?meal|log (?:a |my )?planned meal)\b/,
+    text: 'Open your Meal plan and select the scheduled meal. Use the available eaten or skip action there. Your recorded food contributes to your daily intake; asking me about it does not mark it as eaten.',
+    links: [{ label: 'Meal plan', href: '/meals' }] },
+  { id: 'history', subject: /\b(meal history|food history|past meals|previous meals|logged meals|history)\b/,
+    text: 'Open Meal history to see previously recorded meals and outside-food entries. Select an entry to inspect the information available for it.',
+    links: [{ label: 'Meal history', href: '/meals?tab=history' }] },
+  { id: 'groceries', subject: /\b(grocer(?:y|ies)|shopping list)\b/,
+    text: 'Open Groceries to view your meal-plan shopping list and manage its checklist. The available export controls are on that page.',
+    links: [{ label: 'Groceries', href: '/grocery' }] },
+  { id: 'library', subject: /\b(meal library|recipe library|browse meals|browse recipes)\b/,
+    text: 'Open the Meal library to browse recipes and use the search and filters. Viewing a recipe does not add it to your plan or approve it for your profile.',
+    links: [{ label: 'Meal library', href: '/meals?tab=library' }] },
+  { id: 'guidance', subject: /\b(nutrition (?:guidance|report)|saved guidance)\b/,
+    text: 'Open Nutrition guidance to read your saved planning estimates, nutrient references and their sources. Use the report page to review its current status.',
+    links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { id: 'export', subject: /\b(export|download)\b.*\b(data|records|nutrition|summary|pdf)\b/,
+    text: 'Open Export to see the data and nutrition-summary downloads available for your account.',
+    links: [{ label: 'Export', href: '/export' }] },
+  { id: 'notifications', subject: /\b(notifications?|bell|alerts?)\b/,
+    text: 'Select the notification bell in the page header to read your updates. For meal reminder settings, open Food & planning.',
+    links: [{ label: 'Food & planning', href: '/profile/planning' }] },
+  { id: 'plan', subject: /\b(meal plan|weekly plan|planned meals|scheduled meals)\b/,
+    text: 'Open your Meal plan to view scheduled meals by date. Select a meal to inspect its details and the actions currently available for it.',
+    links: [{ label: 'Meal plan', href: '/meals' }] },
+];
+
+const corrections: Record<string, string> = { wieght: 'weight', weigth: 'weight', grocceries: 'groceries', nutriton: 'nutrition', memebership: 'membership', passowrd: 'password', protien: 'protein', issuse: 'issue', problema: 'problem', ireport: 'report', magreport: 'report', pagreport: 'report' };
+export function normalizeAssistantQuestion(message: string) {
+  return message.normalize('NFKC').toLowerCase().replace(/[’']/gu, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+    .split(/\s+/u).map(word => corrections[word] ?? word).join(' ');
+}
+
+/** Per-message opt-in to AI routing; this is not consent to spend a credit. */
+export function assistantAiQuestion(message: string): string | null {
+  const text = message.trim();
+  return /^\/ai(?:\s|$)/i.test(text) ? text.slice(3).trim() : null;
+}
+
+const librarySuitability = /\b(?:can|may|could) i eat (?:every|any|all|everything)\b.*\blibrary\b|\blibrary\b.*\b(?:all|every|any)\b.*\b(?:safe|approved|eat)\b|\b(?:pwede|puwede)\b.*\b(?:lahat|kahit ano)\b.*\blibrary\b/;
+
+/** Shared by the server fallback and the generated browser guide. */
+export function assistantDirectAction(message: string): 'GREETING' | 'TODAY' | 'GUIDANCE' | 'VIEW_PLAN' | 'CREDITS' | 'CURRENT_MEALS' | 'GROCERIES' | 'PLAN_STATUS' | 'MEAL_STATUS' | null {
+  if (assistantAiQuestion(message) !== null) return null;
+  const text = normalizeAssistantQuestion(message);
+  if (librarySuitability.test(text)) return null;
+  if (/\b(meal planning|meal plans?|planning|meals?)\b/.test(text)
+    && /\b(why|when|how come|cant|cannot|isnt|not|unavailable|bakit|kailan|hindi|wala)\b/.test(text)
+    && /\b(available|unavailable|not ready|unlock|access|wala pa|hindi pa|gamitin)\b/.test(text)) return 'PLAN_STATUS';
+  if (/\b(can|may|could) i eat\b|\bis it safe (?:for me )?to eat\b|\b(is|are) .+ (safe|approved|cleared) for me\b|\b(pwede|puwede) (ba )?(akong |ako )?(kumain|kainin)\b|\b(pwede|puwede) ba (ang|sa akin|sakin)\b/.test(text)
+    || /\b(can|may|could) i have\b/.test(text) && !/\b(membership|subscription|lifestyle|health plan|free plan)\b/.test(text)) return 'MEAL_STATUS';
+  if (/\b(check|show|explain) my (planning|plan|meal) (status|hold)\b|\bwhy (am i|is my plan|is my meal) (blocked|locked|pending|held)\b|\bwhat is (blocking|holding) my plan\b|\b(ano|bakit).*(status ng plan ko|pending ang meal ko|locked ang plan ko)\b/.test(text)) return 'PLAN_STATUS';
+  if (/^(hi|hello|hey|yo|yow|wassup|wazzup|whats up|whatsup|wzp|sup|kumusta|kamusta|musta|thanks|thank you|salamat|maayong (adlaw|buntag)|magandang (umaga|hapon|gabi)|good (morning|afternoon|evening))(?: nara)?$/u.test(text)) return 'GREETING';
+  if (['help', 'what can you do'].includes(text)) return 'GREETING';
+  if (['credits', 'my credits', 'ai credits'].includes(text) || /\bcredits?\b/.test(text) && /\b(how|what|when|balance|remaining|reset|used|renew|weekly|ilan|paano|kailan|ano|natitira)\b/.test(text)
+    && !/\b(compare|difference|lifestyle|health|free plan|pagkakaiba)\b/.test(text)) return 'CREDITS';
+  if (['todays nutrition', 'daily summary', 'nutrition today'].includes(text)) return 'TODAY';
+  // These reads use today's Manila date, never infer a different day or a prescribed food.
+  const anotherDay = /\b(tomorrow|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|\b\d{4} \d{2} \d{2}\b/.test(text);
+  if (!anotherDay && /\b(today|todays|this day|current|now|ngayon|karon)\b/.test(text)
+    && /\b(ingredients?|groceries|grocery|shopping list|buy|bilhin|paliton)\b/.test(text)
+    && /\b(what|whats|which|show|list|need|should|ingredients|ano|unsa)\b/.test(text)) return 'GROCERIES';
+  if (!anotherDay && !/\b(nutrition|facts?|calories|protein|carbs?|fat|should|recommend|change|swap|replace|log|done|eaten)\b/.test(text)
+    && /\b(what|whats|which|show|list|ano|unsa)\b/.test(text)
+    && /\b(meals?|menu|breakfast|lunch|dinner|pagkain|ulam)\b/.test(text)
+    && /\b(my|today|todays|this day|current|now|for me|for breakfast|for lunch|for dinner|ngayon|karon)\b/.test(text)) return 'CURRENT_MEALS';
+  if (['view my plan', 'view meal plan', 'my meal plan'].includes(text)) return 'VIEW_PLAN';
+  if (['my guidance', 'show my guidance', 'explain my guidance'].includes(text)) return 'GUIDANCE';
+  return null;
+}
+
+/** No member facts or balance are inferred here. Dynamic shortcuts return null. */
+export function assistantStaticReply(message: string, action?: string): AssistantInformation | null {
+  const aiQuestion = assistantAiQuestion(message);
+  if (aiQuestion !== null) return aiQuestion ? null : {
+    text: 'Type /ai followed by your question, for example “/ai why do I need a weekly check-in?” This asks for AI instead of a prepared reply. I’ll still ask before using 1 credit. KAINARA, food, nutrition and related health-education limits still apply. The command applies only to that message.', links: [],
+  };
+  const direct = action ?? assistantDirectAction(message);
+  if (['TODAY', 'GUIDANCE', 'CURRENT_MEALS', 'GROCERIES', 'PLAN_STATUS', 'MEAL_STATUS'].includes(direct ?? '')) return null;
+  if (direct === 'CREDITS') return {
+    text: usesTagalog(normalizeAssistantQuestion(message))
+      ? 'Isang Nara credit ang gamit ng bawat matagumpay na AI-assisted request. Hiwalay ang allowance para sa outside-food AI estimates. Libre ang app instructions, greetings at free shortcuts. Nagre-reset ang credits tuwing Lunes, 12:00 AM sa Pilipinas; hindi naiipon ang hindi nagamit. Ang balance sa ibaba ay huling na-check na balance. Maaaring pansamantalang unavailable ang AI dahil sa shared limits kahit may credits pa. Walang member credit na nagagastos sa failed request. Muling chine-check ng server ang allowance bago ang AI request.'
+      : 'One successful AI-assisted request uses one Nara credit. Outside-food AI estimates have a separate allowance. I ask before calling AI. App instructions, greetings and free shortcuts do not spend credits. Credits reset on Monday at 12:00 AM in the Philippines; unused credits do not roll over. The balance below is the last checked balance. Weekly credits are an allowance, not reserved Gemini capacity: shared AI limits can temporarily pause requests even when credits remain. Failed requests do not spend member credits. The server checks your current allowance before any AI request.',
+    links: [{ label: 'View membership', href: '/membership' }],
+  };
+  if (direct === 'VIEW_PLAN') return {
+    text: 'Your current and upcoming meals are in your Meal plan.', links: [{ label: 'Meal plan', href: '/meals' }],
+  };
+  if (direct === 'FIND_MEAL') return {
+    text: 'Tell me the meal, ingredients, or numeric limits you want. For example: “Chicken dinner with at least 25 g protein.” I’ll ask before using an AI credit to interpret your request.',
+    links: [{ label: 'Browse meals without AI', href: '/meals?tab=library' }],
+  };
+  if (direct === 'GREETING') return {
+    text: usesTagalog(normalizeAssistantQuestion(message))
+      ? 'Kumusta! Ako si Nara. Puwede kang magtanong sa Tagalog o Taglish tungkol sa KAINARA, membership, pagkain at nutrisyon. Libre ang gabay sa paggamit ng app. Hihingi muna ako ng pahintulot bago gumamit ng AI credit. May mga gabay din sa Docs & Help.'
+      : 'Hi, I’m Nara. Ask me how to use KAINARA, report an issue, find meals or learn about food and nutrition. App instructions are free. I can also show today’s recorded nutrition and saved guidance. I ask before using an AI credit. Explore Docs & Help for more instructions.',
+    links: [{ label: 'Docs & Help', href: '/docs' }],
+  };
+  return assistantInformationReply(message);
+}
+
+const choices: AssistantInformation = {
+  text: 'Which part of KAINARA do you mean? Tell me the page or what you want to do. I can explain app features and help with food and nutrition questions. You can browse Docs & Help for app instructions. For a specific concern, you can contact support through Help.',
+  links: [{ label: 'Docs & Help', href: '/docs' }, { label: 'Help', href: '/help' }],
+};
+
+function usesTagalog(text: string) {
+  return /\b(ano|anong|paano|saan|nasan|bakit|alin|aling|pwede|puwede|magkano|pagkakaiba|ako|ko|ba|po|mga|meron|mayroon|gusto|kailangan|piliin|baguhin|palitan|timbang|ngayon|kumusta|kamusta|musta|salamat|magandang|tagalog|taglish)\b/.test(text);
+}
+function fallbackInformation(text: string): AssistantInformation {
+  return usesTagalog(text) ? {
+    text: 'Aling bahagi ng KAINARA ang tinutukoy mo? Sabihin ang pahina o kung ano ang gusto mong gawin. Puwede kang magtanong tungkol sa app, pagkain at nutrisyon. May mga gabay sa Docs & Help. Para sa partikular na concern, makipag-ugnayan sa support sa Help.',
+    links: choices.links,
+  } : choices;
+}
+
+/** General plan guidance, not an inferred entitlement, diagnosis or checkout action. */
+function membershipInformation(text: string): AssistantInformation | null {
+  const comparing = /\b(compare|comparison|difference|differences|different|versus|vs|pagkakaiba|kaibahan|ikumpara)\b/.test(text);
+  const planSubject = /\b(plans?|membership|subscription|benefits?|perks?|tier|trial|upgrade|renew|price|cost|magkano|pagkakaiba)\b/.test(text);
+  const named = /\b(membership|subscription|lifestyle|health plan|free plan|paid plan|premium)\b/.test(text)
+    || planSubject && /\b(free|health)\b/.test(text)
+    || comparing && /\bfree\b/.test(text) && /\bhealth\b/.test(text)
+    || /^(?:(?:what|how) about |paano naman )?(?:free|health)(?: plan)?$/.test(text);
+  const choosing = /\b(best|better|suit|suited|suitable|choose|pick|recommend|right|bagay|piliin|alin|aling|pinakamaganda)\b/.test(text);
+  const genericPlan = /\bplans?\b/.test(text) && (comparing || choosing) && !/\b(meal|diet|eating|workout)\b/.test(text);
+  if (!named && !genericPlan) return null;
+  // An ordinary lifestyle/nutrition question is not a subscription question.
+  if (!planSubject && !comparing && !choosing && /\b(eat|consume|food|nutrition|protein|calories|diet|healthy lifestyle)\b/.test(text)) return null;
+  const tl = usesTagalog(text);
+  const links = [{ label: 'Membership', href: '/membership' }, { label: 'Health & goals', href: '/profile/health' }];
+  if (/\b(my current|my membership|my subscription|do i have|am i on|which plan am|anong plan ko|aking plan|plan ko ngayon)\b/.test(text)
+    && !comparing && !choosing) return {
+    text: tl ? 'Makikita sa Membership ang iyong kasalukuyang plan, dates, natitirang allowances at scheduled plan. Hindi ko ipinapalagay ang iyong entitlement mula sa tanong.'
+      : 'Membership shows your current plan, dates, remaining allowances and any scheduled plan. I have not checked or inferred your entitlement from this question.', links: [links[0]],
+  };
+  if (/\b(diabet(?:es|ic)|hypertension|kidney|heart|conditions?|kondisyon|sakit|pregnan\w*)\b/.test(text)) return {
+    text: tl
+      ? 'Sa KAINARA, kapag may nakatalang kondisyon tulad ng diabetes, kailangan ang Health access at kinakailangang RND clearance para sa personalized case planning. Hindi ito nabubuksan ng Lifestyle. Puwede pa ring gamitin ang available na libreng tracking at saved records. Ang aktibong 30-day Health trial ay may Health access; hindi ito nagsisimula habang naghihintay pa ng review. Hindi awtomatikong naaaprubahan ang profile o meals kapag bumili ng Health. Panatilihing tama ang kondisyon sa Health & goals at tingnan ang status sa Membership. Hindi ko pa sinuri ang iyong account mula sa tanong na ito.'
+      : 'In KAINARA, a saved condition such as diabetes requires Health access and the required RND clearance for personalized case planning. Lifestyle does not unlock that workflow. Available Free tracking and saved records remain accessible. An active 30-day Health trial includes Health access; waiting for review does not start it. Buying Health does not automatically approve a profile or meal. Keep declarations accurate in Health & goals and check your actual status in Membership. I have not checked your account from this question.', links,
+  };
+  if (/\b(trial|pagsubok)\b/.test(text)) return {
+    text: tl
+      ? 'Ang 30-day Health trial ay nagsisimula kapag available na ang unang cleared current meal plan mo. Hindi ito nagsisimula habang pending review o para lang sa future plan. Kasama ang Health benefits at default na 30 Nara AI credits bawat linggo, hindi 30 credits bawat araw. Hindi nare-reset ang trial sa check-in o bagong plan. Tingnan ang aktuwal na dates at allowances sa Membership.'
+      : 'The 30-day Health trial starts when your first cleared current meal plan becomes available, not while review is pending or only a future plan exists. It includes Health benefits and a default 30 Nara AI credits per week, not per day. Check-ins and new plans do not restart the trial. Membership shows your actual dates and configured allowances.', links: [links[0]],
+  };
+  if (/\b(renew|renewal|cancel|charge|payment|pay|billing|monthly|yearly|price|cost|magkano|bayad)\b/.test(text)) return {
+    text: tl
+      ? 'May monthly at yearly na pagpipilian sa Membership. Tingnan ang kasalukuyang presyo at quote bago magpatuloy. Ang checkout na kasalukuyang implemented ay PayMongo test mode at walang automatic renewal. Ang pag-renew o paglipat ng plan ay may sariling effective dates; hindi binabago ng chat ang subscription o nagkukumpirma ng payment. Para sa payment concern, pumunta sa Help.'
+      : 'Membership offers monthly and yearly options and shows the current prices and quote before checkout. The currently implemented checkout is PayMongo test mode with no automatic renewal. Renewal and plan changes have their own effective dates; chat does not change your subscription or confirm payment. For a payment concern, contact support through Help.', links: [links[0], { label: 'Help', href: '/help' }],
+  };
+  const c = ASSISTANT_WEEKLY_CREDIT_DEFAULTS;
+  return {
+    text: tl
+      ? `Free: general meal planning gamit ang eligible saved report, tracking at basic allowances. Lifestyle: para sa ordinaryong pagbabago sa goals, activity, preferences at supported allergies, mas maraming swaps at progress insights. Health: may Lifestyle features at case-planning/RND review allowances para sa mga kondisyong nangangailangan ng review. Default Nara AI credits bawat linggo: Free ${c.FREE}, Lifestyle ${c.LIFESTYLE}, Health ${c.HEALTH}. Hiwalay ang outside-food AI estimates, swaps at RND review allowances. Kung sapat ang basic tracking at stable planning, maaaring sapat ang Free; para sa routine planning changes, tingnan ang Lifestyle; para sa declared conditions o restrictions na kailangang i-review, Health at kinakailangang clearance. Hindi ko ipinapalagay ang iyong profile. Tingnan ang aktuwal na configured limits at eligibility sa Membership; hindi garantiya ng agarang AI availability ang credits.`
+      : `Free supports general meal planning with an eligible saved report, tracking and basic allowances. Lifestyle adds ordinary goal, activity, preference and supported-allergy planning changes, more swaps and progress insights. Health adds case planning and bounded RND review allowances for conditions requiring review. Default weekly Nara AI credits: Free ${c.FREE}, Lifestyle ${c.LIFESTYLE}, Health ${c.HEALTH}. Outside-food AI estimates, meal swaps and RND reviews have separate allowances. Free may suit basic tracking and stable planning; Lifestyle supports routine planning changes; declared conditions or restrictions needing review require Health access and required clearance. I have not inferred your profile. Membership shows actual configured limits and eligibility; credits do not guarantee immediate AI availability.`, links,
+  };
+}
+
+function tagalogNavigation(text: string): AssistantInformation | null {
+  if (!usesTagalog(text)) return null;
+  if (/\b(tagalog|taglish|filipino)\b/.test(text) && /\b(speak|understand|answer|reply|talk|pwede|puwede|marunong|ka|can)\b/.test(text)) return {
+    text: 'Oo, puwede kang mag-Tagalog o Taglish. Libre ang nakahandang gabay tungkol sa KAINARA, membership at mga karaniwang tanong sa paggamit ng app. Kapag hindi malinaw ang tanong, hihingi ako ng paglilinaw. Ang mas malawak na tanong sa pagkain o nutrisyon ay maaaring gumamit ng AI; hihingi muna ako ng pahintulot bago gumastos ng credit.', links: [{ label: 'Docs & Help', href: '/docs' }],
+  };
+  if (/\b(report|magreport|ireport|reklamo|support|issue|bug|problem)\b/.test(text) && /\b(paano|saan|nasan|gusto|kailangan|pwede|puwede)\b/.test(text)) return {
+    text: 'Pumunta sa Contact Support para mag-report ng issue. Ilagay ang apektadong pahina, inaasahan mong mangyari at kung ano ang nangyari. Suriin ang reply email bago isumite. Hindi pa ako nagpapadala ng report mula sa chat.', links: [{ label: 'Contact Support', href: '/help' }],
+  };
+  if (/\b(paano|saan|nasan)\b/.test(text) && /\b(baguhin|palitan|update|change|edit|iupdate|itago|itala|record)\b/.test(text)) {
+    if (/\b(timbang|weight)\b/.test(text) && !/\b(target|goal)\b/.test(text)) return {
+      text: 'Para itala ang kasalukuyang timbang, pumunta sa Progress at piliin ang “Log today’s weight”. Ilagay ang timbang sa kilograms at i-save. Makikita rin doon ang weight history. Hindi binabago ng chat ang iyong timbang.', links: [{ label: 'Progress', href: '/progress' }],
+    };
+    if (/\b(kondisyon|condition|conditions|allergy|allergies|target|goal)\b/.test(text)) return {
+      text: 'Pumunta sa Health & goals para baguhin ang iyong saved health information. Piliin ang Body & goals o Conditions & allergies at i-save ang tamang detalye. Maaaring kailanganin ang bagong review bago magamit ang pagbabago sa planning.', links: [{ label: 'Health & goals', href: '/profile/health' }],
+    };
+  }
+  return null;
+}
+
+/** General food/nutrition questions proceed to the consent-based server classifier too. */
+function needsAi(text: string) {
+  if (/\b(nutrition(?:al)?|nutrients?|macros?|micronutrients?|vitamins?|minerals?|calories|kcal|protein|carbohydrates?|carbs?|fats?|fiber|fibre|sodium|potassium|phosphorus|cholesterol|sugar|healthy|balanced diet|hydration|digestion|metabolism|portion|serving|food safety|meal prep)\b/.test(text)) return true;
+  if (/\b(eat|eating|cook|cooking|bake|baking|steam|steaming|boil|boiling|fry|frying|reheat|reheating|leftovers|vegetables?|fruits?|beans|eggs?|bread|pandesal|pan de sal|oats|yogurt|milk|coffee|tea|tempura|adobo|monggo|malunggay|kamunggay)\b/.test(text)) return true;
+  if (/\b(weight|weigh|timbang|exercise|workout|fitness|water|tubig)\b/.test(text) && /\b(should|need|much|lose|loss|gain|maintain|benefits?|affect|enough)\b/.test(text)) return true;
+  const food = /\b(meals?|recipes?|food|ingredients?|breakfast|lunch|dinner|snack|chicken|pork|beef|fish|shrimp|tofu|rice|vegetarian|vegan|protein|carbs?|fat|ulam|pagkain|manok|baboy)\b/.test(text);
+  if (/\b(find|search|suggest|recommend|looking for|look for|pangita|hanap|maghanap)\b/.test(text) && food) return true;
+  if (/\b(protein|carbs?|carbohydrates?|calories|kcal|fat)\b/.test(text) && /\d/.test(text)) return true;
+  if (/\b(breakfast|lunch|dinner|chicken|pork|beef|fish|ulam|manok|baboy)\b/.test(text)) return true;
+  return /\b(explain|understand|interpret|meaning)\b/.test(text) && /\b(my|mine|saved)\b/.test(text) && /\b(guidance|report|nutrition)\b/.test(text);
+}
+
+export function assistantInformationReply(message: string): AssistantInformation | null {
+  const text = normalizeAssistantQuestion(message);
+  const workflow = workflowInformation(text);
+  if (workflow) return workflow;
+  // A question about personal dietary amounts is not app-calculation help.
+  if (/\b(should|safe|allowed|prescribe|treat)\b/.test(text)
+    && /\b(eat|consume|take|protein|carbs|fat|sodium|potassium|calories)\b/.test(text)
+    && /\b(diabetes|diabetic|kidney|hypertension|pregnant|heart|condition)\b/.test(text)) return null;
+  const localHelp = tagalogNavigation(text) ?? membershipInformation(text);
+  if (localHelp) return localHelp;
+  // Identify the member's app estimate independently of a particular number,
+  // unit abbreviation or word order. Do not interpret typed values as saved facts.
+  const ownEstimate = /\b(my|mine|our|kainara|system|app)\b/.test(text);
+  const energyEstimate = /\b(kcals?|kilocalories?|calories?|daily target|daily goal|energy target|energy needs|energy budget)\b/.test(text);
+  const explainEstimate = /\b(calculate|calculates|calculated|calculating|calculation|calculations|compute|computes|computed|computing|explain|determined|formula|math|why|how come|come from|came from|based on|basis)\b/.test(text);
+  const personalPrescription = /\b(should i|should my|should be|should eat|should consume|should take|how much.*need|how many.*need)\b/.test(text);
+  if (ownEstimate && energyEstimate && personalPrescription) return null;
+  if (ownEstimate && energyEstimate && explainEstimate && !personalPrescription) return {
+    text: 'KAINARA derives the daily energy estimate from the profile saved in your acknowledged planning report. First, BMR = 10 × weight (kg) + 6.25 × height (cm) − 5 × age, then +5 for male or −161 for female. TDEE = BMR × activity factor: sedentary 1.2, lightly active 1.375, active 1.55 or very active 1.725. The current draft goal adjustment is −500 kcal for weight loss, +500 for weight gain, 0 for maintenance or +300 for muscle building; the final estimate is rounded to whole kcal. These explain the software estimate, not a new personal prescription. Open Nutrition guidance to see the saved inputs and dated estimate behind the number shown in your account; a number typed into chat does not verify that record. Health & goals is where you can correct your profile details.',
+    links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }, { label: 'Health & goals', href: '/profile/health' }],
+  };
+  const help = extendedHelp.find(entry => entry.match.test(text));
+  if (help) return { text: help.text, links: help.links };
+  if (/\b(?:about|purpose|features)\b|^(?:what is|whats|what does|what can|tell me about|explain|unsa|ano)\b|^how does .+ work\b/.test(text)
+    && /\b(?:system|app|kainara|nara)\b/.test(text)
+    && /\b(?:about|purpose|do|does|is|works?|use|features|unsa|ano)\b/.test(text) && !needsAi(text)) return {
+    text: 'KAINARA helps you plan meals, record food and water, track progress, manage groceries and read saved nutrition guidance. RNDs review meals and provide feedback through the system. I’m Nara: I can explain these features, link you to their pages and show supported saved information. App help is free; I ask before using AI for supported requests. Start with your Meal plan or explore Docs & Help.',
+    links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Docs & Help', href: '/docs' }],
+  };
+  if (/\b(plan)\b/.test(text) && edit.test(text) && !/\b(meal|weekly|membership|subscription|health|lifestyle|free)\b/.test(text)) return {
+    text: 'Do you mean your Meal plan or your Membership? Choose the page you want to change. I have not changed either.',
+    links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Membership', href: '/membership' }],
+  };
+  const matches = topics.filter(topic => topic.subject.test(text)
+    && (topic.purpose ? topic.purpose.test(text) || /\b(where|saan|asa)\b/.test(text) : navigate.test(text) || edit.test(text) || text.split(' ').length <= 3));
+  if (matches.length > 1 && !(matches.length === 2 && matches[0].id === 'body' && matches[1].id === 'weight')) return fallbackInformation(text);
+  if (matches.length) return { text: matches[0].text, links: matches[0].links };
+  if (/\bprofile\b/.test(text) && (edit.test(text) || navigate.test(text))) return {
+    text: 'Open your Profile to choose Personal details, Health & goals, Food & planning, Nutrition guidance or Security & privacy. Select the section you want to review; this chat does not edit it.',
+    links: [{ label: 'Profile', href: '/profile' }],
+  };
+  // An uncertain app question gets free clarification, never a speculative provider call.
+  if (needsAi(text)) return null;
+  if (/\b(system|app|kainara|nara|settings?|profile|account|credits?|membership|subscription|plan|onboarding)\b/.test(text)
+    || edit.test(text) && navigate.test(text)) return fallbackInformation(text);
+  // A food name need not appear in a browser-side vocabulary. Interpretation still requires consent,
+  // and the server rejects unrelated scope. Explicit app-help ambiguities stay free above.
+  if (/^(?:what is|whats|what are|tell me about|can you tell me about|could you explain|explain|how does|why|ano ang|unsa ang)\b/u.test(text)) return null;
+  return fallbackInformation(text);
+}
+
+/** Specific purpose/requirement/troubleshooting intents precede broad navigation keywords. */
+function workflowInformation(text: string): AssistantInformation | null {
+  const tl = usesTagalog(text);
+  const result = (en: string, tagalog: string, links: AssistantInformation['links']) => ({ text: tl ? tagalog : en, links });
+  const progress = [{ label: 'Progress', href: '/progress' }, { label: 'Dashboard', href: '/dashboard' }];
+  const report = [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }];
+  const meals = [{ label: 'Meal plan', href: '/meals' }];
+  const questions = [...meals, { label: 'Health details', href: '/profile/clinical-evidence' }];
+  const weight = /\b(weight|timbang)\b/.test(text);
+  const weekly = /\b(weekly|every week|each week|check in|checkin|linggo|lingguhan)\b/.test(text);
+  const why = /\b(why|purpose|reason|bakit|para saan)\b/.test(text);
+  const requirement = /\b(must|required|mandatory|have to|need to|nothing changed|no change|unchanged|kailangan|walang nagbago|pareho)\b/.test(text);
+  if (/^(?:please )?(?:(?:what is|what are|whats|who is|who are|ano ang|ano yung|sino ang|sino yung) (?:an? |the |our )?(?:rnds?|nutritionists?|dietitians?|registered nutritionist dietitians?)(?: (?:in|on|at) (?:kainara|this app|the system))?|(?:what does (?:an? )?rnd (?:stand for|mean|do))|(?:rnd meaning|meaning of rnd)|(?:is (?:nara|the rnd|my rnd|rnd) (?:an? )?(?:ai|bot|person|nutritionist|rnd))|(?:who (?:reviews|checks|approves) (?:my |the )?(?:profile|meals?|meal plan)))$/.test(text)) return result(
+    'RND means Registered Nutritionist-Dietitian. In KAINARA, a verified RND reviews health profiles and meal cases, checks the recorded context and may ask you for more details or request corrections. Profile review and approval of an individual meal are separate steps. Nara is the chatbot, not an RND; an AI reply cannot grant either approval. Profile questions appear in Health details, while meal questions appear with the meal in Meal plan. For a specific support concern, use Help.',
+    'Ang RND ay Registered Nutritionist-Dietitian. Sa KAINARA, verified na RND ang nagre-review ng health profile at meal cases at maaaring humingi ng detalye o correction. Magkaiba ang profile review at approval ng isang meal. Chatbot si Nara, hindi RND; hindi nagbibigay ng approval ang AI reply. Nasa Health details ang profile questions, at nasa Meal plan ang meal questions. Para sa partikular na support concern, pumunta sa Help.',
+    [...questions, { label: 'Help', href: '/help' }]);
+  if (/\b(rnd|nutritionist|dietitian)\b/.test(text)
+    && /\b(why.*need|why.*review|skip.*review|how long|when.*approve|bakit.*kailangan|gaano katagal)\b/.test(text)) return result(
+    'Required RND review checks the member’s recorded health context before the system enables the affected planning or meal actions. A preset condition name does not capture all treatment or dietary details. When required, complete Health details and answer any profile or meal questions in the indicated page. The RND must review and resolve submitted answers; submitting an answer does not automatically approve your profile or meal. Nara cannot skip the review or promise a completion time. Ask “check my planning status” for your current notices, or use Help for a specific concern.',
+    'Sinusuri ng kinakailangang RND review ang recorded health context bago buksan ang apektadong planning o meal actions. Hindi kumpleto sa pangalan ng preset condition ang treatment at dietary details. Kumpletuhin ang Health details at sagutin ang profile o meal questions sa tamang pahina. Kailangan pa ring i-review at i-resolve ng RND ang sagot; hindi automatic approval ang pagsagot. Hindi nilalaktawan ni Nara ang review o nangangako ng completion time. Itanong ang “check my planning status” o pumunta sa Help.',
+    [...questions, { label: 'Help', href: '/help' }]);
+  if (/\b(meal planning|meal plans?|planning)\b/.test(text)
+    && /\b(requirements?|prerequisites?|steps?|unlock|become available|need before|kailangan bago)\b/.test(text)) return result(
+    'Meal planning depends on your current setup and saved planning context. Complete the required profile and consent steps, review and acknowledge the correct Nutrition guidance, and apply that report to planning when the page offers that action. Profiles requiring review also need the required health details, resolved questions/corrections and RND profile confirmation; case planning requires eligible Health access. A prepared meal can still need its own review. Starter and regular cycles have different dates, and preparation can still be running or fail to find an eligible candidate. Ask “why is my meal planning not available yet?” to check your current planning notices. Buying a plan or asking Nara does not bypass these steps. For a persistent issue, use Help.',
+    'Nakadepende ang meal planning sa kumpletong setup at saved planning context. Kumpletuhin ang profile at consent, basahin at i-acknowledge ang tamang Nutrition guidance, at gamitin ang report para sa planning kapag available ang action. Kung kailangan ng review, kumpletuhin ang health details, sagutin at ipa-resolve ang questions/corrections, at hintayin ang RND profile confirmation. Kailangan ng eligible Health access para sa case planning. Maaaring may hiwalay pang meal review, cycle dates o preparation. Itanong ang “bakit hindi available ang meal planning ko?” para sa current notices. Hindi nalalampasan ang mga hakbang sa pagbili ng plan o pagtatanong kay Nara. Para sa paulit-ulit na issue, pumunta sa Help.',
+    [...report, ...questions, { label: 'Membership', href: '/membership' }, { label: 'Help', href: '/help' }]);
+  if (/\b(water|hydration|tubig)\b/.test(text)
+    && /\b(history|graph|chart|trend|past|previous|yesterday|last week|kahapon|nakaraan)\b/.test(text)) return result(
+    'Open Progress and find Water history. It shows seven days of logged water using Philippine dates. Select a day to see its saved entry times and amounts. “No log” means nothing is recorded for that day; it does not prove you drank no water. Totals reflect the current saved entries, including any water you removed or reset. Use the Dashboard water controls to record today’s water; chat does not log it for you.',
+    'Buksan ang Progress at hanapin ang Water history. Makikita ang pitong araw ng logged water ayon sa petsa sa Pilipinas. Piliin ang isang araw para makita ang oras at dami ng saved entries. Ang “No log” ay walang recorded entry, hindi patunay na walang nainom. Kasama sa totals ang adjustments mula sa pag-remove o reset. Sa Dashboard maaaring mag-log ng tubig para sa araw na ito; walang nilolog mula sa chat.', progress);
+  if (/\b(water|hydration|tubig)\b/.test(text)
+    && /\b(reset|resets|midnight|new day|remove|removed|delete|deleted|subtract|nawala|bawas)\b/.test(text)) return result(
+    'The Dashboard water total follows today’s Philippine date. A new day has its own total; earlier saved days remain in Water history on Progress. Removing water subtracts from today’s newest entries, and resetting clears today’s entries. Those removed entries are not retained as an undo history. The graph shows the amounts still saved, not every past button click.',
+    'Ayon sa petsa sa Pilipinas ang daily water total. May sariling total ang bagong araw; nananatili sa Water history sa Progress ang dating saved days. Binabawas ng Remove ang tubig mula sa pinakabagong entries ngayong araw, at nililinis ng Reset ang entries ngayong araw. Walang undo history para sa removed entries. Ang graph ay para sa natitirang saved amounts.', progress);
+  if (librarySuitability.test(text)) return result(
+    'The Meal library is a recipe catalogue, not blanket permission to eat every recipe. Recipe verification and member-specific meal clearance are different. Check the ingredients, serving and your saved restrictions; use Meal plan for the status of an exact scheduled serving. A recipe being visible does not establish suitability for your condition or allergy. Ask your RND about individual concerns.',
+    'Recipe catalogue ang Meal library, hindi automatic permiso na kainin ang lahat. Magkaiba ang recipe verification at clearance ng meal para sa iyo. Suriin ang sangkap, serving at saved restrictions; tingnan sa Meal plan ang status ng eksaktong scheduled serving. Hindi personal clearance ang pagiging visible ng recipe. Para sa indibidwal na concern, magtanong sa RND.',
+    [...meals, { label: 'Meal library', href: '/meals?tab=library' }, { label: 'Health & goals', href: '/profile/health' }]);
+  if ((weight && (weekly || /\b(log|record|update|itala)\b/.test(text)) && (why || requirement))
+    || weekly && /\b(check in|checkin)\b/.test(text) && (why || requirement)) return result(
+    'Weekly check-ins help confirm whether the information used for planning has changed. Weight is one input to the energy estimate and weight history; it is not a test you must pass or a requirement to lose weight. The check-in has an unchanged-details option, so you do not have to invent a new measurement every week. If details changed, enter accurate updates and review any new Nutrition guidance before applying it to planning. Use the Dashboard check-in notice; ordinary weight entries are in Progress. A missed check-in is not automatically proof that all existing meals are blocked.',
+    'Kinukumpirma ng weekly check-in kung nagbago ang impormasyong gamit sa planning. Isa lang ang timbang sa inputs ng energy estimate; hindi ito pagsusulit o obligasyong pumayat. May opsyong walang nagbago, kaya hindi kailangang mag-imbento ng bagong timbang bawat linggo. Kung may pagbabago, ilagay ang tamang detalye at basahin ang bagong Nutrition guidance kung kailangan. Buksan ang check-in sa Dashboard; nasa Progress ang weight history. Hindi awtomatikong ibig sabihin ng missed check-in na locked ang lahat ng dating meals.',
+    [...progress, ...report]);
+  if (weekly && /\b(miss|missed|skip|forgot|late|nakalimutan|hindi)\b/.test(text)) return result(
+    'A missed check-in is recorded as missed, not silently treated as unchanged. Open the Dashboard check-in notice and confirm your current details when available, then review any new guidance. A check-in does not restart your trial. Whether planning or a particular meal is held depends on its current report, access and review status; do not assume every existing meal was cancelled. Ask “check my planning status” or open Meal plan for the current notices.',
+    'Ang missed check-in ay hindi itinuturing na sagot na walang nagbago. Buksan ang check-in sa Dashboard at kumpirmahin ang kasalukuyang detalye kapag available, saka basahin ang bagong guidance kung mayroon. Hindi nito nire-restart ang trial. Nakadepende ang hold sa report, access at review status. Puwedeng itanong ang “check my planning status”.', [...progress, ...meals]);
+  if (weight && /\b(cant|cannot|wont|failed|not saving|not save|error|hindi.*save|ayaw)\b/.test(text)) return result(
+    'Check the weight value and any validation message in Progress, then save it through the form. A weekly check-in that is not due is a different action from recording weight. Do not repeatedly submit if the first save may have completed; check the weight history first. If it still fails, send the page and error through Help. I have not saved a weight from chat.',
+    'Suriin ang timbang at validation message sa Progress. Magkaiba ang pag-log ng timbang at check-in na hindi pa due. Tingnan muna ang history bago paulit-ulit na mag-save. Kung ayaw pa rin, ipadala ang pahina at error sa Help. Walang na-save na timbang mula sa chat.', [...progress, { label: 'Help', href: '/help' }]);
+  if (/\b(acknowledge|acknowledgment|acknowledgement|acknowledged|acknowledging|apply|applying|accept|confirm|read|basahin|nabasa|iacknowledge)\b/.test(text)
+    && /\b(report|guidance|nutrition|planning)\b/.test(text)) return result(
+    'Nutrition guidance records the dated inputs and estimates used for planning. Reading it, acknowledging it, choosing “Use this report for meal planning”, and RND approval are different steps. Open Nutrition guidance and follow the available action for the correct version. A newer report or changed profile can need attention even if you acknowledged an older version. Ordinary planning changes may require Lifestyle, while case planning requires Health and required clearance. Acknowledging is not permission for a pending meal, and chat does not acknowledge or apply a report for you. If you are still blocked, ask “check my planning status”.',
+    'Magkaiba ang pagbasa, pag-acknowledge, pagpili ng “Use this report for meal planning”, at RND approval. Buksan ang Nutrition guidance at sundin ang action para sa tamang version. Maaaring may bagong report o profile update kahit na-acknowledge ang luma. Maaaring kailangan ang Lifestyle para sa ordinaryong pagbabago, o Health at clearance para sa case planning. Hindi nito inaaprubahan ang pending meal. Walang ina-apply na report mula sa chat. Para sa current status, itanong ang “check my planning status”.', report);
+  if (/\b(starter|bridge)\b/.test(text) && /\b(plan|plans|day|days|week|weekly|start|end|trial|bakit|ano|araw)\b/.test(text)
+    || /\b(plan|meals)\b/.test(text) && /\b(only one day|only three days|not seven days|not 7 days|isang araw|ilang araw)\b/.test(text)) return result(
+    'A starter plan bridges the days from when you begin until the next regular cycle. The regular seven-day cycle starts the day after your configured shopping day, so a starter can be as short as one day. Starter and weekly plans are separate selections, not a copy of the same day. Check the dates in Meal plan and your shopping settings in Food & planning. Preparing the next cycle still depends on current guidance, access and required reviews; it does not restart the trial or clear pending meals.',
+    'Ang starter plan ay para sa mga araw bago ang susunod na regular cycle. Nagsisimula ang regular na seven-day cycle sa araw pagkatapos ng nakatakdang shopping day, kaya puwedeng isang araw lang ang starter. Magkahiwalay ang starter at weekly selections. Tingnan ang dates sa Meal plan at shopping settings sa Food & planning. Kailangan pa rin ang current guidance, access at reviews; hindi nito nire-restart ang trial o inaaprubahan ang pending meals.', [...meals, { label: 'Food & planning', href: '/profile/planning' }]);
+  if (/\b(question|questions|clarification|clarify|answer|answered|tanong|sagot|nasagot)\b/.test(text)
+    && /\b(rnd|nutritionist|meal|profile|review|pending|health|saan|where)\b/.test(text)) return result(
+    'Answer a meal question in Meal plan and a profile question in Health details. They are separate workflows: a meal question pauses that meal; a profile clarification concerns the saved health context. After submitting, an RND still needs to review and resolve the answer—it is not automatically an approval or rejection. Check the form’s current status; do not delete your account to clear a hold. For a specific concern, contact support through Help.',
+    'Sagutin ang meal question sa Meal plan at profile question sa Health details. Magkahiwalay ang mga ito. Pagkasagot, kailangan pang i-review at i-resolve ng RND; hindi ito automatic approval o rejection. Tingnan ang form status. Hindi kailangang burahin ang account para mawala ang hold. Para sa concern, pumunta sa Help.', [...questions, { label: 'Help', href: '/help' }]);
+  if (/\b(profile|health details|health information|kondisyon)\b/.test(text)
+    && /\b(pending|review|approved|blocked|locked|again|still|bakit)\b/.test(text)) return result(
+    'Profile review confirms the recorded health context; it is separate from base recipe verification and each meal’s required case clearance. Changes to conditions, allergies or the review context can require another check. Open Health details for requested profile clarifications and Nutrition guidance for report actions. I cannot infer a reviewer’s private notes or promise a completion time. Ask “check my planning status” for the current public planning notice.',
+    'Magkaiba ang profile review, recipe verification at clearance ng meal. Maaaring kailanganin ang bagong review kapag may pagbabago sa kondisyon, allergy o review context. Tingnan ang Health details para sa profile questions at Nutrition guidance para sa report action. Hindi ko ipinapalagay ang private notes o oras ng approval. Puwedeng itanong ang “check my planning status”.', [...questions, ...report]);
+  if (/\b(pending|awaiting|waiting|flagged|approved|verified|cleared)\b/.test(text)
+    && /\b(meals?|recipe|eat|eaten|food|pagkain|ulam)\b/.test(text)) return result(
+    'Recipe verification, profile review and member-specific meal clearance are separate checks. A recipe marked verified is not automatically cleared for your profile. A pending or flagged meal must not be presented as approved; an older approval can stop matching after profile, ingredient, serving or evidence changes. Open Meal plan for its current notice. Ask “check my planning status”, or “can I eat [exact meal name]?” to inspect recorded plan status. Nara cannot approve a meal or promise when the RND will finish.',
+    'Magkaiba ang recipe verification, profile review at clearance ng meal para sa iyo. Hindi automatic personal approval ang verified recipe. Ang pending o flagged meal ay hindi pa cleared; puwedeng kailanganin ang bagong review kapag nagbago ang profile, sangkap, serving o evidence. Tingnan ang current notice sa Meal plan, o itanong ang “check my planning status”. Hindi ako nag-aapprove ng meal o nangangako ng oras ng RND review.', meals);
+  if (/\b(no meals|no meal|empty plan|missing meals|still preparing|next week|next cycle|walang meals|walang pagkain)\b/.test(text)
+    && /\b(why|where|when|how|cant|cannot|bakit|kailan|saan|prepare|loading)\b/.test(text)) return result(
+    'A plan or slot may still be preparing, waiting for required review, or missing an eligible candidate. Current and upcoming cycles have separate dates and clearance. Check Meal plan and use only the retry or preparation action offered there; repeated generation is not a way around a hold. An empty slot is a system limitation, not an instruction to skip eating. Ask “check my planning status” for current planning notices. For a persistent failure, send the date and error through Help.',
+    'Maaaring naghahanda pa ang plan, naghihintay ng review o walang eligible candidate. Magkahiwalay ang current at upcoming cycle. Tingnan ang Meal plan at gamitin lang ang available retry action; hindi nalalampasan ang hold sa paulit-ulit na generate. Hindi utos na huwag kumain ang empty slot. Para sa paulit-ulit na failure, ipadala ang date at error sa Help.', [...meals, { label: 'Help', href: '/help' }]);
+  if (/\b(swaps?|swapping|replace|replacement|palitan)\b/.test(text) && /\b(cant|cannot|why|no|none|empty|limit|failed|bakit|wala|ayaw)\b/.test(text)) return result(
+    'Swaps depend on remaining cycle allowance, the meal/cycle state and eligible replacement evidence. No results can mean no candidate meets the current filters or constraints; it is not permission to remove a declared allergy or condition. Compare the whole recorded serving, including paired rice, before confirming. A successful swap can recalculate grocery requirements. Check the current notice and allowance in Meal plan and Membership; persistent errors go to Help.',
+    'Nakadepende ang swap sa natitirang cycle allowance, meal status at eligible replacements. Maaaring walang pasok sa filters o restrictions; huwag alisin ang totoong allergy o kondisyon para lang may result. Ihambing ang buong serving kasama ang rice. Maaaring magbago ang groceries pagkatapos ng swap. Tingnan ang Meal plan at Membership; para sa error, pumunta sa Help.', [...meals, { label: 'Membership', href: '/membership' }, { label: 'Help', href: '/help' }]);
+  if (/\b(groceries|grocery|shopping list|checklist)\b/.test(text) && /\b(check|checked|tick|eaten|ate|amount|quantity|quantities|changed|bakit)\b/.test(text)) return result(
+    'A grocery checkbox tracks shopping, not food eaten. Ingredients by day are requirements for cleared scheduled meals; All days uses the cycle purchase checklist. Pending meals, later clearance and swaps can change the requirements. Check your pantry before buying; Nara does not infer pantry inventory or consumption from checked items.',
+    'Para sa shopping ang grocery checkbox, hindi sa pagkain ng meal. Ang Ingredients by day ay sangkap para sa cleared scheduled meals; cycle purchase checklist ang All days. Maaaring magbago ang listahan pagkatapos ng clearance o swap. Suriin muna ang pantry; hindi ipinapalagay ng chat ang stock o nakain mula sa checkboxes.', [{ label: 'Groceries', href: '/grocery' }]);
+  if (/\b(skip|skipped|yesterday|future|tomorrow|kahapon|bukas)\b/.test(text)
+    && /\b(eaten|done|mark|log|count|meal|intake|calories)\b/.test(text)) return result(
+    'Only food recorded as eaten contributes to consumed intake; a skipped or merely scheduled meal does not. You cannot mark a future meal eaten early. Past planned meals have a seven-day logging window and still need current clearance. Check the scheduled date and available action in Meal plan; History shows recorded entries. I have not changed any log.',
+    'Nakain na food logs lang ang kasama sa consumed intake; hindi ang skipped o scheduled lang. Hindi puwedeng mark eaten ang future meal. May seven-day logging window ang past planned meals at kailangan pa rin ang current clearance. Tingnan ang date at action sa Meal plan, at records sa History. Walang binagong log sa chat.', [...meals, { label: 'Meal history', href: '/meals?tab=history' }]);
+  return null;
+}
+
+/** Reviewed against NARA_SYSTEM_GUIDE.md and current routes; these replies require no account reads. */
+const extendedHelp: Array<AssistantInformation & { match: RegExp }> = [
+  { match: /\b(cant|cannot|unable|couldnt|why wont|why can t|not allowed|disabled|locked)\b.*\b(mark|done|eaten|complete|meal)\b|\b(mark|meal)\b.*\b(disabled|locked|not working|cant|cannot)\b/,
+    text: 'A planned meal must be cleared before you can mark it as eaten. A saved condition or allergy can require profile and meal review; this does not mean every member with a condition is blocked. Changed safety information, an RND question, a flag or an outdated approval can also hold a meal. Future meals cannot be logged early; past meals have a seven-day logging window. Open Meal plan and read the meal’s current notice. Answer meal questions there; profile questions are in Health details. Keep your declared conditions and allergies accurate. For a specific concern, you can contact support through Help.',
+    links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Health details', href: '/profile/clinical-evidence' }, { label: 'Help', href: '/help' }] },
+  { match: /\b(bmr|basal metabolic rate|mifflin)\b/,
+    text: 'KAINARA estimates resting energy using Mifflin–St Jeor: BMR = 10 × weight (kg) + 6.25 × height (cm) − 5 × age + a sex term (+5 male, −161 female). Activity is applied afterward to estimate daily expenditure. This explains the app’s calculation, not a measured metabolism or a personal medical prescription. Your saved Nutrition guidance shows the inputs and dated estimates used for planning.',
+    links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { match: /\b(tdee|activity multiplier|activity factor|daily energy expenditure)\b/,
+    text: 'KAINARA estimates TDEE by multiplying BMR by your recorded activity factor: sedentary 1.2, lightly active 1.375, active 1.55, very active 1.725. Its current draft goal adjustments are −500 kcal for weight loss, +500 for weight gain, 0 for maintenance and +300 for muscle building. These are software planning estimates, not individually prescribed targets. Read your saved Nutrition guidance; correct activity or goal details in Health & goals.',
+    links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }, { label: 'Health & goals', href: '/profile/health' }] },
+  { match: /\b(how|why|what|explain)\b.*\b(macros?|protein|carbs?|carbohydrates?|fats?)\b.*\b(calculate|calculated|calculates|calculation|computed|compute|target|split|allocated)\b|\b(how|why)\b.*\b(calculate|compute|split)\b.*\b(macros?|protein|carbs?|fats?)\b/,
+    text: 'The general planning point allocates 12.5% of energy to protein, 25% to fat and the remaining 62.5% to carbohydrate. Grams = allocated kcal ÷ 4 for protein/carbohydrate, or ÷ 9 for fat. For eligible unrestricted adults aged 19 or above with a muscle-building goal, the code can instead use 1.6 g protein/kg if it fits within 35% of energy; carbohydrate uses the energy left after protein and fat. Restricted or younger profiles use review references, not automatic therapeutic targets. Saved review references may differ. Nutrition guidance shows your recorded basis.',
+    links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { match: /\b(breakfast|lunch|dinner|meal|slot)\b.*\b(30|40|split|allocation|allocated|range|tolerance|percent|percentage)\b|\b(how|why)\b.*\b(split|allocate|allocated|divide)\b.*\b(meals?|calories|energy)\b|\bwhy\b.*\b(breakfast|lunch|dinner)\b.*\b(calories|energy)\b.*\b(different|higher|lower|more|less)\b/,
+    text: 'The usual daily energy allocation is breakfast 30%, lunch 40% and dinner 30%. A meal’s target is the daily estimate × its share, rounded to the nearest kcal. Its usual candidate range is 15% below to 15% above that target, with the lower bound rounded down and upper bound rounded up. Portions, paired rice and all applicable safety/review rules still matter. Matching calories alone does not approve a meal or guarantee an exact daily total. Check the actual serving in Meal plan.',
+    links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { match: /\b(how|why|explain|what)\b.*\b(calculate|calculated|calculates|calculation|calculations|compute|computed|computes|math|formula|formulas|behind the scenes|choose|chooses|chosen|select|selected|picked|decide)\b.*\b(meals?|plan|calories?|nutrition|energy|kainara)\b|\b(how|why)\b.*\b(meals?|calories?|target)\b.*\b(calculated|computed|chosen|selected)\b/,
+    text: 'KAINARA uses your acknowledged planning report and saved profile to estimate energy from age, sex, height, weight, activity and goal. It balances protein, carbohydrate and fat, then usually allocates energy 30% to breakfast, 40% to lunch and 30% to dinner. Existing recipes are screened for preferences, restrictions, evidence and required reviews, then portions and suitable rice are fitted to the slot. Nutrition comes from recorded composition or recipe data, scaled to the serving; missing evidence stays unknown. AI may help with an unmatched recipe, but it does not grant approval. Planned totals sum scheduled servings; consumed totals sum food recorded as eaten. These are planning estimates. Ask about BMR, TDEE, macro calculations, meal allocation or rice for the specific math, and read Nutrition guidance for your saved inputs.',
+    links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }, { label: 'Meal plan', href: '/meals' }] },
+  { match: /\b(how|why|what)\b.*\b(nutrition|calories|nutrients?|ingredients?)\b.*\b(source|scaled|scale|serving|portion|per 100|come from)\b|\b(how|why)\b.*\b(rice|serving|portion)\b.*\b(calculate|calculated|compute|computed|nutrition|calories)\b/,
+    text: 'For a composition record measured per 100 g, amount in a serving = recorded nutrient × serving grams ÷ 100. A recipe’s stored serving uses its recorded serving basis and any saved scaling factor. A planned plate can add a separately calculated cooked-rice component; its displayed totals include that component when recorded. KAINARA sums the actual components, so a base recipe and a planned plate can differ. Unknown nutrients are not zero, and estimates or package variants can differ. Check the meal’s serving label and source in Meal plan or Meal library.',
+    links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Meal library', href: '/meals?tab=library' }] },
+  { match: /\b(ingredients?|groceries|grocery|shopping list)\b.*\b(tomorrow|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday|another day|specific day|date)\b|\b\d{4} \d{2} \d{2}\b.*\b(ingredients?|groceries)\b/,
+    text: 'Open Groceries and use Ingredients by day to choose a date in your current or next cycle. Day quantities cover that date’s currently cleared meals, including recorded rice. Check your pantry before buying. All days shows the cycle shopping checklist; purchase checkmarks apply to that cycle.',
+    links: [{ label: 'Groceries', href: '/grocery' }] },
+  { match: /\b(answer|reply|respond|where)\b.*\b(meal question|question about (?:a |my |the )?meal|meal clarification)\b|\b(meal question|meal clarification)\b/,
+    text: 'Open Meal plan to answer a question about a specific meal. After you submit, the RND reviews your answer and resolves the question before deciding on that meal. A meal question does not reopen an approved profile. Questions about your health profile are in Health details.',
+    links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Health details', href: '/profile/clinical-evidence' }] },
+  { match: /\b(report|submit|send|raise|file)\b.*\b(issues?|problems?|bugs?|errors?|complaints?|tickets?)\b|\b(contact|reach|message)\b.*\b(support|admin|administrator|team|developer)\b|\b(found|have|got)\b.*\b(bug|issue|problem)\b|\b(contact support|technical support|help desk)\b/,
+    text: 'Open Contact Support to report a problem. Choose a topic and include the page, what you expected and what happened. Verified signed-in members can send the form. Check the reply email; your request goes to the admin support inbox and an admin can reply by email. I have not submitted anything from this chat.', links: [{ label: 'Contact Support', href: '/help' }] },
+  { match: /\b(forgot|forgotten|reset|recover)\b.*\b(password|login)\b|\b(cannot|cant|unable to) (?:log in|login|sign in)\b/,
+    text: 'Use Password recovery for password sign-in. Google-only accounts should continue with Google sign-in. For a persistent access problem, open Contact Support. Never send a password or verification code in chat.', links: [{ label: 'Password recovery', href: '/forgot-password' }, { label: 'Contact Support', href: '/help' }] },
+  { match: /\b(verification code|verify (?:my )?email|resend (?:the )?(?:code|otp)|email verification|otp)\b/,
+    text: 'Open Email verification and use its resend option when available. Check your inbox and spam folder. I cannot read your email or confirm delivery, and you should not send the code in chat.', links: [{ label: 'Email verification', href: '/verify-email' }] },
+  { match: /\b(register|registration|sign up|signup|create (?:an? |my )?account|make (?:an? )?account|onboarding)\b/,
+    text: 'Use Register to create a member account, verify your email and complete the onboarding steps shown for your account. Enter your actual measurements, preferences and restrictions, then review your nutrition guidance.', links: [{ label: 'Register', href: '/register' }, { label: 'Docs & Help', href: '/docs#getting-started' }] },
+  { match: /\b(weekly check in|weekly checkin|check in due|checkin due|overdue check in|still the same)\b/,
+    text: 'Use the weekly check-in reminder on your Dashboard to confirm whether your details changed. Review any new dated Nutrition guidance and choose “Use this report for meal planning” when prompted. A check-in does not restart your trial.', links: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { match: /\b(rnd|nutritionist|dietitian)\b.*\b(feedback|advice|contact|message|questions?|answers?)\b|\b(feedback|advice|contact|message|answer|respond)\b.*\b(rnd|nutritionist|dietitian)\b/,
+    text: 'For logged outside food, open Meal history, select the entry and choose “Get RND feedback” when available. Your current access and allowance apply. Feedback does not rewrite its nutrition. Answer meal questions in Meal plan and profile questions in Health details. Nara is not a live chat with an RND.', links: [{ label: 'Meal history', href: '/meals?tab=history' }, { label: 'Meal plan', href: '/meals' }, { label: 'Health details', href: '/profile/clinical-evidence' }] },
+  { match: /\b(health details|clinical documents?|upload.*(?:medical|clinical|evidence|document)|requested forms?)\b/,
+    text: 'Open Health details to answer forms requested by your RND. New declarations do not automatically create a form. New clinical-document uploads are retired; existing historical files do not make uploading available. I have not submitted any health details.', links: [{ label: 'Health details', href: '/profile/clinical-evidence' }] },
+  { match: /\b(pending|flagged|verification|verified|approval|approved|rejected|quarantined)\b.*\b(mean|means|status|review|meal|recipe|profile)\b|\b(what|why)\b.*\b(pending|flagged|verification|approval|quarantined)\b/,
+    text: 'Meal verification checks the base recipe. Profile review checks recorded health context. Case approval checks a particular serving for that context. A flag holds the affected recipe or approval for review; quarantine requires an admin decision. Follow the status on your Meal plan. I cannot clear these checks in chat.', links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Docs & Help', href: '/docs#professional-review' }] },
+  { match: /\b(meals?|dishes?|recipes?|plan)\b.*\b(missing|empty|repeat|repeats|repeated|repeating|not showing|not loading)\b|\b(missing|repeated|repeating)\b.*\b(meal|dish|recipe)\b/,
+    text: 'A missing meal can still be preparing, awaiting review or have no eligible candidate. Check its status and any retry action in your Meal plan. A small suitable recipe pool can also cause repeated dishes. A missing slot is not an instruction to skip eating. If it persists, report the date and meal through Contact Support.', links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Contact Support', href: '/help' }] },
+  { match: /\b(acknowledge|acknowledgment|use this report|unapplied|apply.*report|apply.*guidance)\b/,
+    text: 'Saving profile details and applying a report for planning are separate steps. Open Nutrition guidance, review the dated report and choose “Use this report for meal planning” when available. Follow any membership or RND review action shown there.', links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { match: /\b(nutrition|calories|totals?)\b.*\b(include|includes|included|count|counts)\b.*\brice\b|\brice\b.*\b(included|counted)\b/,
+    text: 'Check the serving label on your meal. When a rice side is recorded, its amount is shown and the displayed meal totals include it. Extra rice changes actual consumption. Nara’s recipe-search results explicitly exclude separately paired rice.', links: [{ label: 'Meal plan', href: '/meals' }] },
+  { match: /\b(outside food|outside meal|logged food|ai estimate|food estimate)\b.*\b(wrong|inaccurate|accurate|different|accuracy|nutrition|calories)\b|\b(wrong|inaccurate)\b.*\b(estimate|food log)\b/,
+    text: 'Outside-food nutrition can be estimated or incomplete. Check the portion, ingredients, brand, preparation and package label. Inspect the entry in Meal history. Optional RND feedback advises future choices; it does not rewrite the recorded nutrition.', links: [{ label: 'Meal history', href: '/meals?tab=history' }] },
+  { match: /\b(photo|picture|image|logo)\b.*\b(meal|recipe|missing|wrong|instead|placeholder)\b|\b(meal|recipe)\b.*\b(photo|picture|image|logo)\b/,
+    text: 'The KAINARA logo is a placeholder when a meal photo is missing or cannot load. It is not an approval status. Check the recipe details and report incorrect photos through Contact Support.', links: [{ label: 'Contact Support', href: '/help' }] },
+  { match: /\b(trial|free trial)\b.*\b(start|end|expire|expired|expires|restart|work|works|mean)\b|\b(when|how|what)\b.*\btrial\b/,
+    text: 'The 30-day trial begins when your first cleared current plan becomes available. Waiting for review and a future plan do not start it. Moving from starter to weekly planning or completing a check-in does not restart it. Open Membership for your actual status and dates.', links: [{ label: 'Membership', href: '/membership' }] },
+  { match: /\b(renew automatically|auto renew|automatic renewal|charge.*automatically|real money|test payment|paymongo)\b/,
+    text: 'Current checkout is an explicitly enabled PayMongo test flow, and memberships do not automatically renew. Review the current quote and status in Membership. I cannot complete checkout or infer payment success from chat.', links: [{ label: 'Membership', href: '/membership' }] },
+  { match: /\b(estimate|estimates)\b.*\b(chat|nara|credit|credits)\b|\b(chat|nara)\b.*\b(estimate allowance|estimate limits|same credits)\b/,
+    text: 'Nara AI credits and outside-food AI estimate allowances are separate counters. Meal swaps and RND feedback have their own allowances too. Check Membership and the balance in this chat for their current values.', links: [{ label: 'Membership', href: '/membership' }] },
+  { match: /\b(grocery|groceries|shopping list)\b.*\b(pending|held|locked|cant|cannot|unable|partial)\b|\b(cant|cannot|unable)\b.*\b(check|tick)\b.*\bgrocery\b/,
+    text: 'A grocery item can be held because its linked meal is not cleared or the cycle has unresolved slots. Open its explanation. If offered, acknowledge the partial list before using available items. A held checkbox does not record a purchase.', links: [{ label: 'Groceries', href: '/grocery' }] },
+  { match: /\b(notification|notifications|banner|push)\b.*\b(not showing|not appearing|not working|missing|permission|phone)\b/,
+    text: 'Read in-app updates through the header bell. Device notifications also depend on browser permission, operating-system settings and Focus or Do Not Disturb. Provider acceptance does not prove a banner appeared. Review reminder settings in Food & planning.', links: [{ label: 'Food & planning', href: '/profile/planning' }] },
+  { match: /\b(why|how)\b.*\b(consumed calories|intake.*zero|calories.*zero|zero calories)\b/,
+    text: 'Consumed totals come from recorded eaten food, not merely scheduled meals. Missing entries do not prove you ate nothing. Check your Dashboard and Meal history. For your actual current totals, use Today’s nutrition.', links: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Meal history', href: '/meals?tab=history' }] },
+  { match: /\b(today s menu|todays menu|today s meals|todays meals|daily menu|where.*menu)\b/,
+    text: 'Open your Dashboard and choose the date to see On your menu. Scheduled meals describe the plan; consumed totals depend on food you actually recorded as eaten.', links: [{ label: 'Dashboard', href: '/dashboard' }] },
+  { match: /^(?!.*\b(nutrition|calories|protein|carbs|fat|healthy|safe|should)\b)(?:i (?:just )?(?:ate|had)|kumain ako|nikaon ko) [\p{L}\p{N} ]{1,100}$/u,
+    text: 'To record food you ate outside your plan, open Meals and choose “Log food or snack”. Enter the food and known portion, review the preview and confirm there. I have not logged food from this chat.', links: [{ label: 'Meals', href: '/meals' }] },
+  { match: /\bestimat(?:e|es|ion)\b.*\b(wrong|inaccurate|different|accurate|accuracy)\b/,
+    text: 'A food estimate can differ with portion, brand, ingredients, oil and preparation. Check the actual packaging and the entry in Meal history. Optional RND feedback advises future choices without rewriting its recorded nutrition.', links: [{ label: 'Meal history', href: '/meals?tab=history' }] },
+  { match: /\b(food|log|meal)\b.*\b(wait|count|counts|counted)\b.*\b(rnd|approval|review)\b|\b(food|log|meal)\b.*\b(rnd|approval|review)\b.*\b(count|counts|counted)\b/,
+    text: 'Saving an outside-food log records intake. Optional RND feedback is separate; the log does not wait for that feedback to count. Logging food does not make it a verified reusable recipe.', links: [{ label: 'Meal history', href: '/meals?tab=history' }] },
+  { match: /\b(reviewed|approved|review)\b.*\b(again|waiting|recheck)\b/,
+    text: 'An earlier review applies to its recorded profile, ingredients and serving. Changes or flags can invalidate that context and require a new check. A similar dish or diagnosis does not establish a reusable approval. Follow the current status in your Meal plan.', links: [{ label: 'Meal plan', href: '/meals' }] },
+  { match: /\b(happens?|effect|affect|after)\b.*\b(update|change|save)\b.*\b(profile|allergies|conditions|weight)\b/,
+    text: 'Planning changes follow the next-cycle and current-report workflow. Safety restrictions can immediately hold conflicting uneaten meals. Already recorded meals retain their history. Review the actual notice in Health & goals and any updated Nutrition guidance.', links: [{ label: 'Health & goals', href: '/profile/health' }, { label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { match: /\b(copy|export|download)\b.*\b(account data|personal data|my data|my records)\b/,
+    text: 'Open Security & privacy for account-data controls, or Export for the nutrition summary and available downloads. Complete the download on the page; I have not exported anything from this chat.', links: [{ label: 'Security & privacy', href: '/profile/security' }, { label: 'Export', href: '/export' }] },
+  { match: /\b(download|export|print|pdf)\b.*\b(grocer(?:y|ies)|shopping list)\b|\b(grocer(?:y|ies)|shopping list)\b.*\b(download|export|print|pdf)\b/,
+    text: 'Use the available PDF export controls in Groceries. The file reflects the recorded list at that time; check the current list again after meal changes.', links: [{ label: 'Groceries', href: '/grocery' }] },
+  { match: /\b(what|which)\b.*\bplan\b.*\b(have|on|using)\b/,
+    text: 'Open Membership to see your current plan, dates, remaining allowances and any scheduled next plan. I do not infer your entitlement from this question.', links: [{ label: 'Membership', href: '/membership' }] },
+  { match: /\b(not working|doesnt work|does not work|isnt working|something.*broken)\b/,
+    text: 'Open Contact Support and describe the affected page, what you expected and what happened. Check the reply email before sending. I have not submitted a report.', links: [{ label: 'Contact Support', href: '/help' }] },
+];

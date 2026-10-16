@@ -110,12 +110,13 @@ export default function ProfileDocumentReview({ model, section = 'all' }: Sectio
           </section>}
           </>}
           {section !== 'evidence' && selectedDocument.pending && (
-            <section className="rounded-xl border border-brand-border p-4 text-xs">
-              <h3 className="font-bold text-brand-text">Facts from document</h3>
+            <section className={section === 'decision' ? 'border-b border-brand-border pb-6 text-sm' : 'rounded-xl border border-brand-border p-4 text-xs'}>
+              <h3 className="font-display text-lg font-semibold text-brand-text">Facts from document</h3>
               {documentDetail.facts.map((fact) => (
-                <label key={fact.id} className="mt-2 flex items-center gap-2">
+                <label key={fact.id} className="mt-3 flex items-start gap-3">
                   <input
                     type="checkbox"
+                    className="mt-1 h-4 w-4 shrink-0 accent-brand-green"
                     checked={confirmedFactIds.includes(fact.id)}
                     onChange={(event) =>
                       setConfirmedFactIds((ids) =>
@@ -126,12 +127,12 @@ export default function ProfileDocumentReview({ model, section = 'all' }: Sectio
                   {fact.code}: {fact.valueText ?? fact.valueNumber} {fact.unit ?? ''} ({fact.reviewStatus})
                 </label>
               ))}
-              <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_2fr_auto]">
+              <div className="mt-5 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]">
                 <Dropdown
                   aria-label="Fact code"
                   value={factCode}
                   onChange={(event) => setFactCode(event)}
-                  className="rounded-lg border border-brand-border bg-brand-surface p-2"
+                  className="w-full"
                 >
                   {(factCodes[documentDetail.area] ?? ['OTHER']).map((code) => (
                     <option key={code} value={code}>
@@ -144,7 +145,7 @@ export default function ProfileDocumentReview({ model, section = 'all' }: Sectio
                   value={factValue}
                   onChange={(event) => setFactValue(event.target.value)}
                   placeholder="Exact value shown in record"
-                  className="rounded-lg border border-brand-border bg-brand-surface p-2"
+                  className="min-w-0 rounded-xl border border-brand-border bg-brand-surface p-3"
                 />
                 <Button
                   size="sm"
@@ -166,14 +167,14 @@ export default function ProfileDocumentReview({ model, section = 'all' }: Sectio
             </section>
           )}
           {section !== 'evidence' && selectedDocument.pending && (
-            <section className="space-y-3 rounded-xl border border-brand-border p-4 text-xs">
-              <h3 className="font-bold text-brand-text">Document decision</h3>
-              <label className="block">
+            <section className={section === 'decision' ? 'space-y-5 text-sm' : 'space-y-3 rounded-xl border border-brand-border p-4 text-xs'}>
+              <h3 className="font-display text-lg font-semibold text-brand-text">Document decision</h3>
+              <label className="block font-medium">
                 Decision
                 <Dropdown
                   value={decision}
                   onChange={(event) => setDecision(event as typeof decision)}
-                  className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2"
+                  className="mt-2 block w-full"
                 >
                   <option value="NEEDS_CLARIFICATION">Needs clarification</option>
                   <option value="SUFFICIENT">Sufficient for nutrition review</option>
@@ -181,23 +182,23 @@ export default function ProfileDocumentReview({ model, section = 'all' }: Sectio
                 </Dropdown>
               </label>
               {decision === 'SUFFICIENT' && (
-                <label className="block">
+                <label className="block font-medium">
                   Review valid until
                   <input
                     type="date"
                     value={validUntil}
                     onChange={(event) => setValidUntil(event.target.value)}
-                    className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2"
+                    className="mt-2 block w-full rounded-xl border border-brand-border bg-brand-surface p-3 font-normal"
                   />
                 </label>
               )}
-              <label className="block">
+              <label className="block font-medium">
                 Review rationale
                 <textarea
                   value={rationale}
                   onChange={(event) => setRationale(event.target.value)}
-                  rows={3}
-                  className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2"
+                  rows={4}
+                  className="mt-2 block w-full rounded-xl border border-brand-border bg-brand-surface p-3 font-normal"
                 />
               </label>
               <Button

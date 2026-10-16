@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const { chromium } = require('../../frontend/node_modules/@playwright/test');
 const fixture = require('./fixtures.cjs');
+const { freezeMealGallery, flattenLandingMedia } = require('./freeze-meal-gallery.cjs');
 const root = path.resolve(__dirname, '..');
 const sharedRoot = 'C:/Users/chima/Desktop/Nutrimind';
 if (path.resolve(root, '..').toLowerCase() !== path.resolve(sharedRoot).toLowerCase()) throw new Error('Run the exporter from the Desktop Nutrimind checkout.');
@@ -132,6 +133,10 @@ async function cssFor(page) {
   return text;
 }
 async function snapshot(page, item) {
+  if (item[0] === 'index') {
+    await freezeMealGallery(page);
+    await flattenLandingMedia(page);
+  }
   // Video is visual material, so preserve its current frame as an embedded still.
   // Surrounding headings, controls and vectors stay editable HTML/SVG.
   const videos=page.locator('video');
@@ -233,7 +238,7 @@ async function snapshot(page, item) {
   html=html.replace('</body>',`<script data-local-preview>${fs.readFileSync(path.join(root,'scripts/templates/prototype.js'),'utf8')}</script></body>`);
   html = html.replace(/<!--\$[!?]?-->|<!--\/\$-->/g, '');
   fs.writeFileSync(path.join(root, item[0] + '.html'), html);
-  manifest.push({ file: item[0] + '.html', route: item[1], group: item[2], title: item[3], selfContained:true,bytes:Buffer.byteLength(html),sourceDirectory:sharedRoot });
+  manifest.push({ file: item[0] + '.html', route: item[1], group: item[2], title: item[3], selfContained:true,bytes:Buffer.byteLength(html),sourceDirectory:sharedRoot,...(item[0]==='index'?{renderAdaptation:'Embedded static diagonal meal-gallery images'}:{}) });
   saveManifest();
 }
 function saveManifest(){fs.writeFileSync(path.join(root,'manifest.json'),JSON.stringify({generatedAt:new Date().toISOString(),sourceCommit,sourceDirectory:sharedRoot,sourceUrl:source,sourceIncludesWorkingTreeChanges:true,selfContained:true,viewport:{width:1440,height:1000},syntheticData:true,pages:manifest},null,2));}

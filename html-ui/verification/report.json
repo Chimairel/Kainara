@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-14T06:41:40.973Z",
+  "checkedAt": "2026-10-15T12:40:54.431Z",
   "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind",
   "sourceCommit": "29da350e4fdcb670a631b1c745c9eee037c70f0b",
   "mode": "Single HTML copied in isolation; network disabled; no supporting folders",
@@ -15,11 +15,22 @@
       "externalCss": [],
       "hasExternalImports": false,
       "errorPage": false,
-      "textLength": 5486,
+      "textLength": 4942,
       "heading": "Eat with intention.",
-      "editableText": 182,
+      "editableText": 150,
       "embeddedFontRules": 12,
       "sourceRoute": "/",
+      "mealGallery": {
+        "staticFrames": 3,
+        "movingTracks": 0,
+        "visibleFrames": 1
+      },
+      "flatPrototype": {
+        "transform": "none",
+        "shadow": "none",
+        "staticPreview": true,
+        "videos": 0
+      },
       "partialLoadError": false,
       "hiddenLandingContent": [],
       "attemptedRequests": [],
@@ -1002,11 +1013,22 @@
       "externalCss": [],
       "hasExternalImports": false,
       "errorPage": false,
-      "textLength": 5412,
+      "textLength": 4868,
       "heading": "Eat with intention.",
-      "editableText": 182,
+      "editableText": 150,
       "embeddedFontRules": 12,
       "sourceRoute": "/",
+      "mealGallery": {
+        "staticFrames": 3,
+        "movingTracks": 0,
+        "visibleFrames": 1
+      },
+      "flatPrototype": {
+        "transform": "none",
+        "shadow": "none",
+        "staticPreview": true,
+        "videos": 0
+      },
       "partialLoadError": false,
       "hiddenLandingContent": [],
       "attemptedRequests": [],

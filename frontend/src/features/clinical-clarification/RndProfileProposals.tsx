@@ -115,7 +115,7 @@ export default function RndProfileProposals({
           void publish();
         }}
       >
-        <fieldset disabled={!!blocked} className="space-y-4">
+        <fieldset disabled={!!blocked} className="min-w-0 space-y-5">
           <h3 className="font-bold">Propose a correction</h3>
           <p className="text-xs text-brand-muted">
             Use information reviewed with this member. The member must acknowledge the recorded changes before they
@@ -125,8 +125,8 @@ export default function RndProfileProposals({
           {(['CONDITION', 'ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT'] as SafetyInput['domain'][]).map((domain) => {
             const section = draft.domains.find((d) => d.domain === domain);
             return (
-              <div key={domain} className="space-y-2">
-                <label className="flex items-center gap-2 text-sm">
+              <div key={domain} className="space-y-3 border-b border-brand-border pb-5">
+                <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
                   <input
                     type="checkbox"
                     checked={!!section}
@@ -154,7 +154,7 @@ export default function RndProfileProposals({
                       Choose a recorded option or describe the declaration. Existing safety checks still apply.
                     </p>
                     {section.entries.map((entry, i) => (
-                      <div key={i} className="flex gap-2">
+                      <div key={i} className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]">
                         <NativeSelect
                           aria-label={`${domain} entry ${i + 1} type`}
                           value={entry.provenance}
@@ -269,8 +269,8 @@ export default function RndProfileProposals({
           {availableAreas.map((area) => {
             const selected = draft.healthDetails.find((d) => d.area === area);
             return (
-              <div key={area} className="space-y-2">
-                <label className="flex items-center gap-2 text-sm">
+              <div key={area} className="space-y-3 border-b border-brand-border pb-5">
+                <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
                   <input
                     type="checkbox"
                     checked={!!selected}
@@ -297,7 +297,7 @@ export default function RndProfileProposals({
                 </label>
                 {selected &&
                   healthCorrectionFields.map((field) => (
-                    <label key={field} className="block text-sm">
+                    <label key={field} className="block text-sm font-medium">
                       {proposalFieldLabel(field)}
                       <textarea
                         value={selected[field]}
@@ -306,7 +306,7 @@ export default function RndProfileProposals({
                         required={field !== 'measurements'}
                         minLength={field === 'conditionDetails' ? 10 : field === 'measurements' ? 0 : 2}
                         onChange={(e) => updateDetail(area, field, e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-brand-border p-3"
+                        className="mt-2 w-full rounded-xl border border-brand-border bg-brand-surface p-3 font-normal"
                       />
                     </label>
                   ))}
@@ -327,7 +327,7 @@ export default function RndProfileProposals({
               Use resolved clarification: {f.title}
             </label>
           ))}
-          <label className="block text-sm">
+          <label className="block text-sm font-medium">
             Correction rationale
             <textarea
               value={draft.rationale}
@@ -336,7 +336,7 @@ export default function RndProfileProposals({
               required
               minLength={10}
               maxLength={2000}
-              className="mt-1 w-full rounded-xl border border-brand-border p-3"
+              className="mt-2 w-full rounded-xl border border-brand-border bg-brand-surface p-3 font-normal"
             />
           </label>
           <Button type="submit" disabled={!draft.domains.length && !draft.healthDetails.length}>

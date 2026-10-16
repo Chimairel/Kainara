@@ -7,19 +7,25 @@ import ThemeToggle from '@/components/ui/ThemeToggle';
 import AuthMascot, { authMascotAssets } from './AuthMascot';
 import styles from './AuthHeroPanel.module.css';
 
-export default function AuthHeroPanel({ header, embedded = false }: { header?: ReactNode; embedded?: boolean }) {
+export default function AuthHeroPanel({ header, embedded = false, mascot, mascotAssets = authMascotAssets }: {
+  header?: ReactNode;
+  embedded?: boolean;
+  mascot?: ReactNode;
+  mascotAssets?: typeof authMascotAssets;
+}) {
   const [houseReady, setHouseReady] = useState(false);
   const [photoReady, setPhotoReady] = useState(false);
   const [mascotReady, setMascotReady] = useState(false);
   const sceneReady = houseReady && photoReady && mascotReady;
 
-  for (const src of Object.values(authMascotAssets)) {
+  for (const src of Object.values(mascotAssets)) {
     preload(src, { as: 'image', fetchPriority: 'high' });
   }
 
   useEffect(() => {
     let active = true;
-    const images = Object.values(authMascotAssets).map((src) => {
+    setMascotReady(false);
+    const images = Object.values(mascotAssets).map((src) => {
       const image = new window.Image();
       image.src = src;
       return image.decode();
@@ -31,7 +37,7 @@ export default function AuthHeroPanel({ header, embedded = false }: { header?: R
     return () => {
       active = false;
     };
-  }, []);
+  }, [mascotAssets]);
 
   return (
     <div className={`flex h-full flex-col ${embedded ? '' : 'p-4 xl:p-6'}`}>
@@ -58,7 +64,7 @@ export default function AuthHeroPanel({ header, embedded = false }: { header?: R
               onError={() => setPhotoReady(true)}
             />
             <div className={styles.nara}>
-              <AuthMascot size={1024} />
+              {mascot ?? <AuthMascot size={1024} />}
             </div>
           </div>
           <Image

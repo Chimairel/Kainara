@@ -8,6 +8,8 @@ import GroceryListPage from './page';
 const toastMock = vi.hoisted(() => ({ info: vi.fn() }));
 vi.mock('sonner', () => ({ toast: toastMock }));
 const authState = vi.hoisted(() => ({ userId: 'grocery-user' }));
+const navigation = vi.hoisted(() => ({ day: null as string | null }));
+vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(navigation.day ? { day: navigation.day } : {}) }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: authState.userId } }) }));
 vi.mock('@/lib/axios', () => ({ default: { get: vi.fn(), patch: vi.fn(), post: vi.fn() } }));
 
@@ -63,11 +65,40 @@ const get = vi.mocked(api.get);
 const patch = vi.mocked(api.patch);
 
 beforeEach(() => {
+  navigation.day = null;
   authState.userId = 'grocery-user';
   clearSessionResourceCache();
   get.mockReset();
   patch.mockReset();
   get.mockResolvedValue({ data: { success: true, data: workspace } });
+});
+
+it('filters requirements by date without fetching again or changing cycle purchases', async () => {
+  get.mockResolvedValue({ data: { success: true, data: { ...workspace, current: { ...workspace.current,
+    days: [{ date: '2026-10-16', clearedMealCount: 1, items: [{ key: 'rice|g', ingredientName: 'Rice', category: 'Grains', quantity: 45, unit: 'g', sourceMealCount: 1 }] }],
+  } } } });
+  render(<GroceryListPage />);
+  await screen.findByRole('checkbox', { name: 'Mark as available: Rice' });
+  fireEvent.click(screen.getByLabelText('Ingredients by day'));
+  fireEvent.click(screen.getByRole('option', { name: 'Fri, Oct 16' }));
+  expect(screen.getByText('45 g')).toBeInTheDocument();
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Download PDF' })).not.toBeInTheDocument();
+  expect(screen.getByText(/Pending meals are excluded/)).toBeInTheDocument();
+  expect(get).toHaveBeenCalledTimes(1); expect(patch).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByLabelText('Ingredients by day'));
+  fireEvent.click(screen.getByRole('option', { name: 'All days · shopping checklist' }));
+  expect(screen.getByRole('checkbox', { name: 'Mark as available: Rice' })).toBeInTheDocument();
+  expect(screen.getByText('100 g')).toBeInTheDocument();
+});
+
+it('honors the Nara day link and keeps an unavailable date explicit', async () => {
+  navigation.day = '2026-10-16';
+  render(<GroceryListPage />);
+  await screen.findByText('This date is not available in the selected cycle.', { exact: false });
+  expect(screen.getByLabelText('Ingredients by day')).toHaveTextContent('2026-10-16 · unavailable');
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  expect(screen.getByText('No ingredients found')).toBeInTheDocument();
 });
 
 describe('grocery checklist', () => {

@@ -20,6 +20,16 @@ The owner requires Codex and Antigravity to implement and verify ongoing work in
 5. Record significant architecture, clinical-safety, schema, data, or cross-role decisions and their verification in the engineering record using its existing change IDs. Routine edits need a clear commit and relevant checks.
 6. For simultaneous work on overlapping files, coordinate ownership and finish one tool's changes before the other edits them. Use separate branches or worktrees only when the owner explicitly requests them, then review integration explicitly.
 
+## Required localhost/demo release parity
+
+The owner requires feature parity after every authorized demo promotion. Follow [Demo release parity](docs/DEMO_RELEASE_PARITY.md). A successful Git push alone does not complete a release.
+
+1. Before promotion, compare the intended tested commit with the currently deployed frontend/API, both databases' applied migration names/checksums, and feature flags/behavior settings needed by the changed features. Record deliberate environment-specific differences and all pending rollout work. Normal localhost uses the isolated local database; preserve that isolation for testing.
+2. Include reviewed additive migrations, required feature activation/configuration and intentional catalogue/reference-data updates in the same authorized release scope. Use the confirmed hosted project/branch, preserve existing secrets, apply changes in a compatible order, and wait for both hosts to become ready. New features must not silently stay disabled on demo after being advertised as released.
+3. Promote intentional data changes using reviewed, bounded, idempotent migrations/imports with explicit targets and verification. Local test accounts, member activity, clinical decisions and audit history remain environment-owned. Never restore a local database over live to obtain parity or copy local credentials/secrets as configuration synchronization.
+4. After deployment, compare actual deployment commits, migration state and relevant behavior settings, then perform a bounded authenticated live check of each changed user flow against the verified local behavior. Record evidence and any remaining differences. Mark a release incomplete if a required migration, setting, data update, worker or host is missing; report the specific gap instead of claiming that the push finished the work.
+5. These are mandatory agent/release checks, not an automatic database-sync service. Existing CI alone does not verify private database or deployed environment parity. Run repeated regression/provider/load work on the isolated local target; keep hosted checks bounded under the defense transfer budget.
+
 ## UI reuse
 
 Before adding workspace markup, consult [frontend/src/components/README.md](frontend/src/components/README.md). Reuse the shared card, split pane, dropdown, tabs, meal presentations, library grid, pagination and password field. Keep role-specific authorization and eligibility in existing handlers and services.

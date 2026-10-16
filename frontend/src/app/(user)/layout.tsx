@@ -12,6 +12,7 @@ import { MembershipProvider } from '@/features/membership/MembershipProvider';
 import WeeklyProfileNotice from '@/features/reports/WeeklyProfileNotice';
 import MembershipNotice from '@/features/membership/MembershipNotice';
 import BackgroundResourceBoundary from '@/features/navigation/BackgroundResourceBoundary';
+import MemberAssistantShell from '@/features/member-assistant/MemberAssistantShell';
 import {
   PortalAnnouncementsProvider,
   PortalAnnouncements,
@@ -32,9 +33,10 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
       <PortalAnnouncementsProvider key={user?.userId}>
         <MembershipProvider key={user?.userId}>
           <BackgroundResourceBoundary ownerId={user?.userId} />
-          <div className="portal-shell flex h-screen w-full p-0 md:p-4">
+          <MemberAssistantShell key={user?.userId} ready={Boolean(user?.role === 'USER' && user.onboardingDone && user.tosAccepted)}>
             <Sidebar />
-            <div className="relative z-10 flex min-w-0 flex-1 flex-col md:pl-4">
+            {/* Let the navbar's menus stack above the floating assistant. */}
+            <div className="relative flex min-w-0 flex-1 flex-col md:pl-4">
               <Navbar />
               {isReportPending && (
                 <PortalAnnouncement
@@ -59,7 +61,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             </div>
             <BottomNav />
             <MembershipNotice />
-          </div>
+          </MemberAssistantShell>
         </MembershipProvider>
       </PortalAnnouncementsProvider>
     </RouteGuard>

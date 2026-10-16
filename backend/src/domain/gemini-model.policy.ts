@@ -25,6 +25,7 @@ export function getGeminiModelSequence(
   usage: { operation?: string; purpose?: string } = {}
 ): readonly NutriMindGeminiModel[] {
   const routine =
+    usage.operation === 'MEMBER_ASSISTANT' ||
     usage.operation === 'OUTSIDE_MEAL_ESTIMATE' ||
     usage.operation === 'MEAL_PLAN_CORPUS_LOOKUP' ||
     (usage.operation === 'OTHER' &&

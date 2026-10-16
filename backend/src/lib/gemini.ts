@@ -80,7 +80,7 @@ export async function generateGenerativeJSON<T = any>(
   prompt: string,
   systemInstruction?: string,
   schema?: ZodType<T>,
-  usage: { operation?: AiUsageOperation | keyof typeof AiUsageOperation; purpose?: string; signal?: AbortSignal } = {}
+  usage: { operation?: AiUsageOperation | keyof typeof AiUsageOperation; purpose?: string; signal?: AbortSignal; maxOutputTokens?: number; maxAttempts?: number } = {}
 ): Promise<T> {
   const startedAt = Date.now();
   if (!apiKey) {
@@ -100,7 +100,7 @@ export async function generateGenerativeJSON<T = any>(
   let lastModel: string | undefined;
 
   // Try each model sequentially in the cascade sequence
-  for (const modelName of getGeminiModelSequence(usage)) {
+  for (const modelName of getGeminiModelSequence(usage).slice(0, usage.maxAttempts ?? Infinity)) {
     usage.signal?.throwIfAborted();
     let reservationId: string | null = null;
     try {
@@ -124,7 +124,10 @@ export async function generateGenerativeJSON<T = any>(
 
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: buildGeminiGenerationConfig(),
+        generationConfig: {
+          ...buildGeminiGenerationConfig(),
+          ...(usage.maxOutputTokens ? { maxOutputTokens: usage.maxOutputTokens } : {}),
+        },
       });
 
       const response = result.response;

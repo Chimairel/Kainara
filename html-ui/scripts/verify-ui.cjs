@@ -55,6 +55,22 @@ const selected=new Set(['index','auth','dashboard','meals','meals-library','groc
         if(metrics.overflow)failures.push('Horizontal document overflow');
         if(metrics.errorPage)failures.push('Invalid exported page state');
         if(metrics.textLength<50)failures.push('Missing visible page content');
+        if(file==='index.html') {
+          const gallery=await page.locator('[data-meal-gallery]').evaluate(element=>({
+            staticFrames:element.querySelectorAll('[data-meal-frame]').length,
+            movingTracks:element.querySelectorAll('[data-slot="marquee"]').length,
+            visibleFrames:[...element.querySelectorAll('[data-meal-frame]')].filter(image=>getComputedStyle(image).display!=='none').length,
+          }));
+          if(gallery.staticFrames!==3||gallery.movingTracks!==0||gallery.visibleFrames!==1)failures.push('Meal gallery is not a single visible static embedded frame');
+          metrics.mealGallery=gallery;
+          const flat=await page.evaluate(()=>{
+            const screen=document.querySelector('[data-scroll-screen], [style*="rotateX("]');
+            return {transform:getComputedStyle(screen).transform,shadow:getComputedStyle(screen).boxShadow,staticPreview:!!document.querySelector('[data-static-dashboard-preview]'),videos:document.querySelectorAll('video').length};
+          });
+          if(flat.transform!=='none'||flat.shadow!=='none'||!flat.staticPreview||flat.videos)failures.push('Landing retained a complex moving media frame');
+          metrics.flatPrototype=flat;
+          await page.screenshot({path:path.join(root,'verification',width===1440?'landing-flat-desktop.png':'landing-flat-mobile.png'),animations:'disabled'});
+        }
         if(selected.has(file.replace('.html','')))await page.screenshot({path:path.join(root,'verification',file.replace('.html','')+`-${width}.png`),fullPage:true,animations:'disabled'});
         results.push({file,width,isolated:true,offline:true,...metrics,...contentCheck,attemptedRequests:requests,failures});
         page.off('request',onRequest);page.off('pageerror',onError);await page.unroute('**/*');

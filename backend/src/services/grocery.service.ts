@@ -6,6 +6,7 @@ import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { checklistPurchaseState, purchaseState } from '@/domain/grocery-purchase.policy';
 import { aggregateGroceryIngredients, groceryItemKey } from '@/domain/grocery-quantity.policy';
 import { deriveGroceryActionability } from '@/domain/grocery-actionability.policy';
+import { buildGroceryDays, groceryMealIngredients } from '@/domain/grocery-day.policy';
 import { MealPlanCycleDeadlineOutcome, MealPlanCycleStatus, ProfileCycleAdaptationState } from '@prisma/client';
 
 export class GroceryService {
@@ -81,28 +82,9 @@ export class GroceryService {
         },
       });
       if (!meals.length) throw new Error('No approved meals are available in this plan cycle for shopping.');
-      const items = aggregateGroceryIngredients(
-        meals.flatMap((meal) => [
-          ...meal.ingredients.map((item) => ({
-            ingredientName: item.ingredientName,
-            category: this.standardizeCategory(item.category || 'Other'),
-            quantity: item.quantity,
-            unit: item.unit,
-          })),
-          ...meal.servingComponents.flatMap((component) =>
-            component.foodItem && component.quantityG
-              ? [
-                  {
-                    ingredientName: component.foodItem.name,
-                    category: this.standardizeCategory(component.foodItem.category || 'Rice and grains'),
-                    quantity: component.quantityG,
-                    unit: 'g',
-                  },
-                ]
-              : []
-          ),
-        ])
-      );
+      const items = aggregateGroceryIngredients(groceryMealIngredients(meals).map(item => ({
+        ...item, category: this.standardizeCategory(item.category || 'Other'),
+      })));
       if (!list)
         list = await tx.groceryList.create({
           data: { userId, planGroupId, weekLabel: 'Shopping list for this plan' },
@@ -265,6 +247,12 @@ export class GroceryService {
     return this.buildCycleProjection(userId, cycle, scope, now);
   }
 
+  static async getTodayIngredients(userId: string, now: Date = new Date()) {
+    const { cycle, clearedIds } = await MealPlanCycleService.getCurrentCycleWithClearance(userId, now);
+    if (!cycle) return null;
+    return this.buildCycleProjection(userId, cycle, 'CURRENT', now, clearedIds);
+  }
+
   private static async buildCycleProjection<
     T extends {
       id: string;
@@ -287,7 +275,14 @@ export class GroceryService {
     ]);
     const clearedMeals = await prisma.mealPlan.findMany({
       where: { userId, planGroupId: cycle.id, id: { in: clearedMealPlanIds } },
-      select: { scheduledDate: true, mealType: true },
+      select: {
+        scheduledDate: true, mealType: true,
+        ingredients: { select: { ingredientName: true, category: true, quantity: true, unit: true } },
+        servingComponents: {
+          where: { componentType: 'COOKED_RICE' },
+          select: { quantityG: true, foodItem: { select: { name: true, category: true } } },
+        },
+      },
     });
     const retained = await retainedMealsForCycle(userId, cycle.id);
     const clearedSlotCount = retainedSlotKeys(clearedMeals).size;
@@ -333,6 +328,8 @@ export class GroceryService {
       // evidence change. Hide it until the safe unaffected projection is
       // rebuilt; zero visible rows is the conservative safe projection.
       groceryList: visibleList,
+      // Separate from purchases: frozen cycle lists need not contain later cleared meals.
+      days: visibleList ? buildGroceryDays(clearedMeals, cycle.startDate, cycle.endDate) : [],
       coverage: {
         clearedSlotCount,
         retainedSlotCount: retainedSlotKeys(retained).size,

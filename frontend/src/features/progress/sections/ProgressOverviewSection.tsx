@@ -6,6 +6,7 @@ import { formatManilaDate } from '@/lib/manila-date';
 import Button from '@/components/ui/Button';
 import WeightGraph from '@/features/progress/WeightGraph';
 import WeightLogHistory from '@/features/progress/WeightLogHistory';
+import WaterHistory from '@/features/progress/WaterHistory';
 
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
@@ -278,6 +279,7 @@ export default function ProgressOverviewSection({ model }: SectionProps) {
           </div>
 
           <WeightLogHistory logs={history?.weightLogs ?? []} goal={goal} onLogWeight={() => setIsLogFormOpen(true)} />
+          <WaterHistory data={history?.waterHistory} />
         </>
       )}
     </>

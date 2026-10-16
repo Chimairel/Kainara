@@ -3,11 +3,13 @@ import Dropdown from '@/components/ui/Dropdown';
 
 import Button from '@/components/ui/Button';
 import Checkbox from '@/components/ui/Checkbox';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import type { useProfileWorkPanelModel } from './useProfileWorkPanelModel';
 type Model = Extract<ReturnType<typeof useProfileWorkPanelModel>, { kind: 'ready' }>;
 type SectionProps = {
   section?: 'evidence' | 'decision' | 'all';
+  showActions?: boolean;
   model: Pick<
     Model,
     | 'reloadDetail'
@@ -25,7 +27,23 @@ type SectionProps = {
     | 'setReviewedDeclarationIds'
   >;
 };
-export default function ProfileClinicalReview({ model, section = 'all' }: SectionProps) {
+export function ProfileDecisionActions({ model }: Pick<SectionProps, 'model'>) {
+  const { detail, busy, profileBlocked, notes, decideProfile } = model;
+  if (!detail?.profileReview) return null;
+  return (
+    <div role="group" aria-label="Profile decision actions" className="grid w-full gap-3 sm:grid-cols-3">
+      <Button disabled={busy || !detail.profileReview.claim?.mine || !!profileBlocked || notes.trim().length < 10}
+        onClick={() => void decideProfile('APPROVED')}>Confirm for planning</Button>
+      <Button variant="secondary" disabled={busy || !detail.profileReview.claim?.mine || notes.trim().length < 10}
+        onClick={() => void decideProfile('DECLINED')}>Needs correction</Button>
+      {!!detail.availableAreas.length && <Button variant="secondary"
+        disabled={busy || !detail.profileReview.claim?.mine || notes.trim().length < 10}
+        onClick={() => void decideProfile('REQUEST_DETAILS')}>Request details</Button>}
+    </div>
+  );
+}
+
+export default function ProfileClinicalReview({ model, section = 'all', showActions = true }: SectionProps) {
   const {
     detail,
     requestArea,
@@ -34,7 +52,6 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
     setNotes,
     profileBlocked,
     busy,
-    decideProfile,
     conditionAssessments,
     setConditionAssessments,
     reviewedDeclarationIds,
@@ -44,7 +61,7 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
   return (
     <>
       {detail.profileReview && (
-        <section className="space-y-3 rounded-xl border border-brand-border bg-brand-surface p-4 text-xs">
+        <section className={section === 'decision' ? 'space-y-6 text-sm' : 'space-y-3 rounded-xl border border-brand-border bg-brand-surface p-4 text-xs'}>
           {section !== 'decision' && (
             <>
               <h4 className="font-bold">Member-provided health details</h4>
@@ -80,17 +97,17 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
           )}
           {section !== 'evidence' && (
             <>
-              <h3 className="font-bold text-brand-text">Profile decision</h3>
+              {section === 'all' && <h3 className="font-display text-lg font-semibold text-brand-text">Profile decision</h3>}
               <p className="text-brand-muted">
                 If the details are complete and correct, confirm this profile as recorded. Send a correction only when a
                 declaration needs to change.
               </p>
               {!!detail.profileReview.conditionReviewEntries?.length && (
                 <fieldset
-                  className="space-y-3 rounded-lg border border-brand-border p-3"
+                  className="min-w-0 space-y-4"
                   disabled={busy || !detail.profileReview.claim?.mine}
                 >
-                  <legend className="px-1 font-bold">Condition relevance to meal planning</legend>
+                  <legend className="mb-2 font-display text-lg font-semibold">Condition relevance to meal planning</legend>
                   <p className="text-brand-muted">
                     Keep each condition recorded. Assess dietary needs, medication or treatment effects, and foodborne
                     illness risk before deciding that it adds no restrictions.
@@ -102,8 +119,8 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
                         items.map((item) => (item.entryId === entry.id ? { ...item, ...patch } : item))
                       );
                     return (
-                      <div key={entry.id} className="space-y-2 rounded-lg border border-brand-border p-3">
-                        <p className="font-semibold">{entry.displayName}</p>
+                      <div key={entry.id} className="space-y-3 border-b border-brand-border pb-5 last:border-0 last:pb-0">
+                        <p className="font-semibold text-brand-text">{entry.displayName}</p>
                         {entry.assessment ? (
                           <p className="text-brand-muted">
                             No additional restrictions identified · {entry.assessment.reviewerName}, RND.{' '}
@@ -111,9 +128,10 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
                           </p>
                         ) : entry.canAssessNoAdditionalRestrictions ? (
                           <>
-                            <label className="flex items-start gap-2">
+                            <label className="flex items-start gap-3">
                               <input
                                 type="checkbox"
+                                className="mt-1 h-4 w-4 shrink-0 accent-brand-green"
                                 checked={!!draft}
                                 onChange={(event) => {
                                   if (event.target.checked)
@@ -137,19 +155,20 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
                             </label>
                             {draft && (
                               <>
-                                <label className="block">
+                                <label className="block font-medium">
                                   Assessment rationale for {entry.displayName}
                                   <textarea
                                     rows={3}
                                     value={draft.rationale}
                                     maxLength={2000}
                                     onChange={(event) => update({ rationale: event.target.value })}
-                                    className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2"
+                                    className="mt-2 block w-full rounded-xl border border-brand-border bg-brand-surface p-3 font-normal"
                                   />
                                 </label>
-                                <label className="flex items-start gap-2">
+                                <label className="flex items-start gap-3">
                                   <input
                                     type="checkbox"
+                                    className="mt-1 h-4 w-4 shrink-0 accent-brand-green"
                                     checked={draft.reviewedDietaryAndTreatmentEffects}
                                     onChange={(event) =>
                                       update({ reviewedDietaryAndTreatmentEffects: event.target.checked })
@@ -157,9 +176,10 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
                                   />
                                   I reviewed dietary needs and medication or treatment effects.
                                 </label>
-                                <label className="flex items-start gap-2">
+                                <label className="flex items-start gap-3">
                                   <input
                                     type="checkbox"
+                                    className="mt-1 h-4 w-4 shrink-0 accent-brand-green"
                                     checked={draft.reviewedFoodborneIllnessRisk}
                                     onChange={(event) => update({ reviewedFoodborneIllnessRisk: event.target.checked })}
                                   />
@@ -181,7 +201,7 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
               )}
               {!!detail.profileReview.clarificationEntries?.length && (
                 <fieldset disabled={busy || !detail.profileReview.claim?.mine} className="space-y-3">
-                  <legend className="mb-2 font-semibold">Declarations to review</legend>
+                  <legend className="mb-3 font-display text-lg font-semibold">Declarations to review</legend>
                   {detail.profileReview.clarificationEntries.map((entry) => (
                     <div key={entry.id}>
                       {entry.canReviewAsRecorded ? (
@@ -210,17 +230,17 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
                 </fieldset>
               )}
               {detail.requirements.map((item) => (
-                <p key={item.area} className={item.state === 'READY' ? 'text-brand-muted' : 'text-amber-500'}>
+                <p key={item.area} className={item.state === 'READY' ? 'text-brand-muted' : 'text-status-pending-text'}>
                   {item.area.replace(/_/g, ' ')}: {item.message}
                 </p>
               ))}
               {detail.availableAreas.length > 0 && (
-                <label className="block">
+                <label className="block font-medium">
                   Details request area
                   <Dropdown
                     value={requestArea}
                     onChange={(event) => setRequestArea(event)}
-                    className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2"
+                    className="mt-2 block w-full"
                   >
                     {detail.availableAreas.map((area) => (
                       <option key={area} value={area}>
@@ -230,18 +250,17 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
                   </Dropdown>
                 </label>
               )}
-              <label className="block">
+              <label className="block font-medium">
                 Review notes
                 <textarea
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
-                  rows={3}
-                  className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2"
+                  rows={4}
+                  className="mt-2 block w-full rounded-xl border border-brand-border bg-brand-surface p-3 font-normal"
                 />
               </label>
               {(!detail.profileReview.claim?.mine || profileBlocked || notes.trim().length < 10) && (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3" role="status">
-                  <strong>Before confirming for planning:</strong>
+                <FeedbackNotice tone="warning" title="Before confirming for planning:">
                   <ul className="mt-2 list-disc space-y-1 pl-4">
                     {detail.profileReview.profileProposals?.proposals.some((p) =>
                       ['PENDING', 'CORRECTION_REQUESTED'].includes(p.status)
@@ -285,32 +304,9 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
                     ) && <li>Complete each selected condition’s rationale and both assessment checks.</li>}
                     {notes.trim().length < 10 && <li>Add review notes of at least 10 characters.</li>}
                   </ul>
-                </div>
+                </FeedbackNotice>
               )}
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  disabled={busy || !detail.profileReview.claim?.mine || !!profileBlocked || notes.trim().length < 10}
-                  onClick={() => void decideProfile('APPROVED')}
-                >
-                  Confirm for planning
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={busy || !detail.profileReview.claim?.mine || notes.trim().length < 10}
-                  onClick={() => void decideProfile('DECLINED')}
-                >
-                  Needs correction
-                </Button>
-                {!!detail.availableAreas.length && (
-                  <Button
-                    variant="secondary"
-                    disabled={busy || !detail.profileReview.claim?.mine || notes.trim().length < 10}
-                    onClick={() => void decideProfile('REQUEST_DETAILS')}
-                  >
-                    Request details
-                  </Button>
-                )}
-              </div>
+              {showActions && <ProfileDecisionActions model={model} />}
             </>
           )}
         </section>
