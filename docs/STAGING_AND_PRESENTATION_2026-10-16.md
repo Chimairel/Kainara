@@ -7,10 +7,10 @@ Owner approved one existing Vercel project with a branch preview, a temporary la
 | Environment | Frontend/code | API | Database |
 | --- | --- | --- | --- |
 | Live | Existing `nutrimindv1` Vercel production, Git `demo`, `efdc6923c300dde0a1f25b1eb0a2dbb52c74b03f` | Existing Railway deployment | Existing Neon `nameless-dust-38810716` / `br-round-art-b355gp02` |
-| Staging | Same Vercel project, preview `codex/staging`, `33455a61fbf9f71086c5d339fb0e6e126715060b` | Laptop port 5102 through Cloudflare quick tunnel | Neon `dark-cake-36096216` / `br-royal-sky-azsc3kcv` |
+| Staging | Same Vercel project, preview `codex/staging`, `c8675a149969177bd8f42ba8f0a57c4672b20f19` | Laptop port 5102 through Cloudflare quick tunnel | Neon `dark-cake-36096216` / `br-royal-sky-azsc3kcv` |
 | Presentation preparation | No application connected yet | None | Neon `late-grass-59329912` / `br-floral-paper-aoa7pln0` |
 
-Staging alias: `https://nutrimindv1-git-codex-staging-chimairels-projects.vercel.app`. Ready deployment: `dpl_G3uQ3yGVQpsC57pNoGnos5LtcrjN`. Vercel project: `prj_DxetpuW3fd5zY2ezP4wpdOtQrk8K`. Production branch tracking stays `demo`.
+Staging alias: `https://nutrimindv1-git-codex-staging-chimairels-projects.vercel.app`. Current ready deployment: `dpl_AAPD2QsCtZE2i8nGfYVgpACpdhMk`, superseding the initial `dpl_G3uQ3yGVQpsC57pNoGnos5LtcrjN` at `33455a61`. Vercel project: `prj_DxetpuW3fd5zY2ezP4wpdOtQrk8K`. Production branch tracking stays `demo`.
 
 Only four Vercel overrides were added, all scoped to **Preview + codex/staging**: `NEXT_PUBLIC_API_URL=/api`, `INTERNAL_API_URL` pointing to the staging tunnel, the existing public Google client ID and `NUTRIMIND_DEPLOYMENT_MODE=capstone-demo`. The owner confirmed adding the staging alias to the existing Google Web client's JavaScript origins, preserving live origins. A complete OAuth round trip remains unverified.
 
@@ -38,7 +38,7 @@ The snapshot contains personal records. Credentials, encryption keys, dump, deta
 - Nara enabled with weekly Free/Lifestyle/Health caps of 5/15/30. Conservative staging provider ceilings: global 2 RPM, 10 attempts per rolling day, one concurrent call, estimated 50,000 TPM; chat four attempts per rolling day with six reserved; background one RPM/two attempts per day. These are application ceilings, not guaranteed Gemini capacity.
 - The Gemini credential still belongs to the same provider project. Separate databases do not isolate provider quotas. Local/live/other tools can consume that shared quota.
 - Email delivery blocked using loopback port 1, push disabled, payments disabled and image-upload credentials omitted. New email registration, password resets, invitations, payment and admin image-upload workflows cannot be fully tested in this configuration. Existing account sign-in is the intended testing path.
-- API runs the compiled audited candidate snapshot from `backend/.local/nara-release-audit-20261016/backend/dist/server.js`, with its explicit private staging environment, rather than the shared checkout's ordinary runtime configuration.
+- API initially ran the audited `33455a61` snapshot. It now runs a clean `git archive` of `c8675a14` compiled under `backend/.local/environment-isolation-20261016/releases/c8675a14/backend/dist/server.js`, with the same explicit private staging environment. Private `staging-release.private.json` pins the source SHA and runtime entry used by both startup and preview redeployment helpers. It does not load the shared checkout's ordinary runtime configuration.
 
 ## Verification and limits
 
@@ -75,5 +75,11 @@ Private `staging-test-link.private.txt` contains the shareable test URL. If its 
 ## Promotion gate
 
 The owner should verify Google/password login, the Nara composer/confirmation/recovery, member meal swaps and the profile-versus-meal clarification cycle on staging. Confirm acceptable shared Gemini availability before presentation. Passing these HTTP checks does not imply every workflow is regression-free.
+
+### Staging update at October 16, 2026 09:28 UTC+8
+
+Candidate `c8675a14` adds the profile-dialog improvements, free planning/RND/water help and seven-day water history. Vercel confirms its preview READY on the same alias. The pinned API was compiled from the exact committed backend archive and restarted with the existing database/settings and tunnel; no new migration was required. This exercises API restart with a retained tunnel, not a full tunnel replacement/redeployment cycle.
+
+HTTP checks return 200/SYSTEM/zero credits for the RND definition, the reported availability wording and water-history help. The preview progress response includes seven owner-scoped days with bounded entries. Before/after assistant receipts and usage counts are unchanged by those checks. No actual Gemini work was admitted. Production metadata/configuration remains at the original `efdc6923` deployment and database binding. These use short-lived server-issued test tokens; ordinary browser login and fresh visual layout checks are separate from HTTP verification. See [water history and local verification](WATER_HISTORY.md).
 
 No live cutover is authorized by this setup. When staging is accepted, explicitly review the code SHA, database age, migrations, environment settings and rollback target before connecting an app to the presentation copy or promoting code to `demo`. Preserve environment-owned records; do not import staging test changes into presentation.
