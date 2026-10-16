@@ -43,3 +43,9 @@ node backend/scripts/seed-capstone-recipe-reviews.mjs --env-file PATH_TO_PRIVATE
 ```
 
 Review the printed target/count first. Repeat with `--apply --confirm-target TOKEN --expect-count COUNT --backup-dir backend/.local/capstone-seed-20261016/device-backups` only for the intended capstone database. The supplied private file must explicitly contain `NUTRIMIND_DEPLOYMENT_MODE=capstone-demo`. Keep all credentials and before snapshots out of Git. No Prisma generation/migration or application rebuild is required for this data-only operation.
+
+## Requested demo-branch promotion
+
+At the owner's subsequent explicit request, push completed commit `9faec90c` to `codex/staging` and then `demo`; `development` already contains it. This adds only operator scripts, tests, documentation and ignored-path rules. The deployed frontend/backend application source, schema and dependencies remain unchanged. The seeded database records were already committed and are not rerun during deployment.
+
+At **23:25:25 UTC+8**, Railway deployment `6524531c-680f-4294-aedd-3d2027db1027` reports **SUCCESS** at `9faec90c`. Non-platform settings match the retained baseline and the database remains `kainara_demo`. The actual `kainara.site` alias resolves Vercel deployment `dpl_UtAKXJPaxVNdCZ43F4ruYmD5p2DG`, **READY** at `7c5fa1ae`, whose complete frontend tree is identical to `9faec90c`. Component application parity passes without claiming identical provider SHA labels. Verification uses provider/configuration metadata only, with zero demo functional requests or test SQL. A private metadata receipt remains in the ignored fixture directory.
