@@ -40,6 +40,8 @@ import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { MealGenerationService } from './meal-generation.service';
 import { remainingGenerationSlots, continuationRetryAt } from '@/domain/meal-generation-continuation.policy';
 import { recoverPartialPlanJobs } from './partial-plan-recovery.service';
+import { UpcomingPlanPreparationService } from './upcoming-plan-preparation.service';
+import { screenCycleForPlanning, planningCandidateFilter } from './planning-rule-screening.service';
 import { sourceRawRecipeCandidates } from './raw-recipe-candidate.service';
 import { savePreparedCorpusMeals } from './meal-plan-corpus-persistence.service';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
@@ -306,6 +308,7 @@ export class MealAiQueueService {
             completedAt: now,
           },
         });
+        UpcomingPlanPreparationService.triggerNonBlocking(cycle.userId);
         return;
       }
       const restrictions = adaptUserSafetyRestrictions({
@@ -336,6 +339,8 @@ export class MealAiQueueService {
               where: { source: 'FNRI', name: { equals: 'Rice, well-milled, boiled', mode: 'insensitive' } },
             });
       const sourced = await sourceRawRecipeCandidates({
+        acceptCandidate: await planningCandidateFilter({ userId: cycle.userId, conditions, dailyCalorieTarget: cycle.snapshot!.dailyCalorieTarget,
+          weightKg: profile.weightKg, ricePreference: profile.ricePreference, riceFood }),
         slots,
         planningTargets,
         existingNutrition: existingMeals,
@@ -697,6 +702,7 @@ export class MealAiQueueService {
                       completedAt: new Date(),
                     },
               });
+              await screenCycleForPlanning(tx, cycle.userId, cycleId);
               await tx.groceryList.updateMany({
                 where: { userId: cycle.userId, planGroupId: cycleId },
                 data: { isStale: true },
@@ -705,6 +711,9 @@ export class MealAiQueueService {
             { timeout: 30_000 }
           );
           await MealPlanCycleService.synchronizeLifecycle(cycle.userId);
+          // The starter may have been PREPARING when acknowledgment ran. Its
+          // persisted completion must wake the independent weekly preparation.
+          UpcomingPlanPreparationService.triggerNonBlocking(cycle.userId);
           return;
         } catch (error) {
           if (signal.aborted) throw error;

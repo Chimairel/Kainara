@@ -54,6 +54,7 @@ export function reusableClinicalContextKey(
       'planningProvinceHucName',
     ]),
     guidancePolicy: object(object(saved.guidance).selected).policyVersion ?? null,
+    foodRules: saved.foodRules ?? null,
     clinical: pick(clinical, ['conditions', 'allergies', 'customConditions', 'customFoodRestrictions']),
     healthDetails: sorted(array(clinical.healthDetails).map((value) => pick(value, ['area', 'responses']))),
     declarations: sorted(

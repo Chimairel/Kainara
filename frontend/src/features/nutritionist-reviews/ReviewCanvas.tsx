@@ -65,6 +65,7 @@ export default function ReviewCanvas({
   hideDecisionDock = false,
   stackOnMobile = false,
   ariaLabel,
+  showSelectionOutline = true,
 }: {
   title: string;
   contentKey: string;
@@ -77,6 +78,7 @@ export default function ReviewCanvas({
   hideDecisionDock?: boolean;
   stackOnMobile?: boolean;
   ariaLabel?: string;
+  showSelectionOutline?: boolean;
   className?: string;
   focusSheet?: { title: string; request: number };
   tools?: ReactNode;
@@ -423,7 +425,7 @@ export default function ReviewCanvas({
                   left: positions[index]?.x ?? 0,
                   top: positions[index]?.y ?? 0,
                 }}
-                className={compact ? 'relative [&>article]:min-h-0 [&>article]:p-5 [&_h2]:text-2xl' : selected === index ? 'outline outline-2 outline-brand-accent outline-offset-4' : ''}
+                className={compact ? 'relative [&>article]:min-h-0 [&>article]:p-5 [&_h2]:text-2xl' : showSelectionOutline && selected === index ? 'outline outline-2 outline-brand-accent outline-offset-4' : ''}
                 onPointerDown={() => {
                   if (mode === 'select') setSelected(index);
                 }}

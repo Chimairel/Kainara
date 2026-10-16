@@ -46,7 +46,6 @@ export default function CalorieCalculation({ calculation }: { calculation: Nutri
           : ''}
       </p>
       <p className="text-xs text-slate-600">
-        Calculated by KAINARA, without an AI call. Intermediate values are not rounded before the final calculation.
         These are estimates, not measured metabolism or a prescribed calorie minimum. Pregnancy and medical needs
         require individual assessment.
       </p>

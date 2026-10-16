@@ -282,6 +282,12 @@ function workflowInformation(text: string): AssistantInformation | null {
   const result = (en: string, tagalog: string, links: AssistantInformation['links']) => ({ text: tl ? tagalog : en, links });
   const progress = [{ label: 'Progress', href: '/progress' }, { label: 'Dashboard', href: '/dashboard' }];
   const report = [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }];
+  if (/\b(food rules?|meal screening|patient limits?|why.*(?:taho|pandesal)|how.*(?:avoid|limit|choose more often))\b/.test(text))
+    return result(
+      'Nutrition guidance and meal screening share structured food-choice rules. Recorded allergens and explicit exclusions block conflicting selection; limited categories affect ranking, and applicable approved nutrient or patient-specific limits are checked separately. Taho, desserts, drinks and plain bread do not fill complete main-meal slots by themselves, but can still be logged. Missing evidence is not a passing check. Recognized onboarding choices can proceed without routine profile classification; required meal reviews remain. Passing automated checks or acknowledging guidance is not medical clearance.',
+      'Magkaugnay ang Nutrition guidance at meal screening sa structured food-choice rules. Bina-block ang kilalang allergens at excluded ingredients; may ranking preferences para sa dapat limitahan at hiwalay na checks para sa approved nutrient o patient-specific limits. Hindi kumpletong main meal ang taho, dessert, drinks o plain pandesal lamang, pero maaari pa ring i-log. Hindi passing result ang kulang na evidence. Hiwalay pa rin ang required meal review at hindi medical clearance ang acknowledgment.',
+      report
+    );
   const meals = [{ label: 'Meal plan', href: '/meals' }];
   const questions = [...meals, { label: 'Health details', href: '/profile/clinical-evidence' }];
   if (

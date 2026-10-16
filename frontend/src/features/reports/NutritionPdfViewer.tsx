@@ -114,6 +114,7 @@ export default function NutritionPdfViewer({
   }
   return (
     <ReviewCanvas
+      showSelectionOutline={false}
       title={`Nutrition report · Version ${report.version}`}
       ariaLabel="Nutrition report canvas"
       contentKey={`${report.id ?? 'report'}:${report.version}`}

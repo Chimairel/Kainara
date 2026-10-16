@@ -8,6 +8,7 @@ import { planningInputsMatch } from '@/domain/planning-report.policy';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import { context, userInclude } from './clinical-profile-review.context';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
+import { clinicalRuleSnapshot } from '@/domain/clinical-rule-stamp.policy';
 
 type Client = Prisma.TransactionClient;
 const ordered = <T extends { id: string }>(rows: T[]) => [...rows].sort((a, b) => a.id.localeCompare(b.id));
@@ -19,6 +20,9 @@ const mealReviewContextInclude = {
   user: {
     include: {
       ...userInclude,
+      patientNutritionLimits: { include: { nutritionistProfile: {
+        select: { isVerified: true, prcLicenseExpiry: true, user: { select: { role: true, isSuspended: true } } },
+      } } },
       nutritionReport: true,
       clinicalDocuments: {
         select: {
@@ -79,6 +83,22 @@ export async function loadMealReviewContexts(mealPlanIds: string[], client: Clie
 
 async function attachMealQuestions(contexts: Map<string, ReturnType<typeof buildMealReviewContext>>, client: Client) {
   if (!env.CLINICAL_CLARIFICATIONS_ENABLED || !contexts.size) return contexts;
+  const supportedConditions = [...new Set([...contexts.values()].flatMap(opened =>
+    ((opened.snapshot as {clinical?: {conditions?: string[]}}).clinical?.conditions ?? [])))].filter(c => c !== 'NONE');
+  const policies = supportedConditions.length ? await client.conditionRulePolicyVersion.findMany({
+    where: { condition: { in: supportedConditions as import('@prisma/client').HealthConditionType[] }, OR: [{ state: 'ACTIVE' }, { state: 'SUSPENDED', activatedAt: { not: null } }] },
+    select: { id: true, condition: true, policyVersion: true, updatedAt: true, state: true }, orderBy: { id: 'asc' },
+  }) : [];
+  for (const opened of contexts.values()) {
+    const saved = opened.snapshot as Record<string, unknown>;
+    const conditions = (saved.clinical as {conditions?: string[]})?.conditions ?? [];
+    opened.snapshot = JSON.parse(JSON.stringify({ ...saved, foodRules: {
+      ...(saved.foodRules as Record<string, unknown>),
+      policies: policies.filter(row => conditions.includes(row.condition)),
+    } })) as Prisma.InputJsonObject;
+    opened.contextKey = reviewContextKey(opened.snapshot);
+    opened.baseContextKey = opened.contextKey;
+  }
   const forms = await client.clinicalClarificationForm.findMany({
     where: { purpose: 'MEAL', sourceMealPlanId: { in: [...contexts.keys()] } },
     include: { responses: { orderBy: { version: 'desc' }, take: 1 }, resolution: true },
@@ -118,6 +138,10 @@ function buildMealReviewContext(plan: ContextPlan, report: NutritionReportVersio
   const reportVersion = plan.cycle.snapshot?.nutritionReportVersion ?? profile.planningReportVersion;
   const snapshot = {
     policyVersion: 'MEAL_REVIEW_CONTEXT_V1',
+    foodRules: clinicalRuleSnapshot(plan.userId, plan.user.patientNutritionLimits.map(row => ({ ...row,
+        active: isNutritionistEligibleForReview(row.nutritionistProfile), reviewStatus: 'APPROVED',
+        approvedByNutritionistId: row.nutritionistProfileId,
+      })), [], new Date(Math.max(Date.now(), plan.scheduledDate.getTime()))),
     userId: plan.userId,
     profile: planningProfile,
     clinical: current.snapshot,

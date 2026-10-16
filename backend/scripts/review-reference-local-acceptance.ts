@@ -531,10 +531,15 @@ export async function runReviewReferenceAcceptance() {
       'PREGNANT',
     ];
     for (const [index, condition] of conditions.entries()) {
+      // Earlier swap fixtures deliberately leave a claimed replacement open.
+      // Finish that fixture before exercising the next independent case.
+      const held = await db.mealPlan.findMany({ where: { claimedByNutritionistId: reviewer.id, status: 'PENDING_REVIEW' }, select: { id: true } });
+      for (const row of held) await ok(request(rnd, `/nutritionist/queue/${row.id}/release`, 'POST', {}));
       const sourceActor = await cloneProfile(),
         targetActor = await cloneProfile();
       const sourcePlan = await makeSlot(sourceActor),
         targetPlan = await makeSlot(targetActor);
+      await db.mealPlan.update({ where: { id: targetPlan.id }, data: { claimedAt: null, claimedByNutritionistId: null } });
       let sourceId: string | null = null;
       if (index === 2) {
         const raw = await db.rawRecipeCandidate.create({ data: {
@@ -593,7 +598,7 @@ export async function runReviewReferenceAcceptance() {
       assert.equal(capture.detail.reviewContext.contextKey, current.contextKey);
       assert.equal(capture.detail.user.name, sourceActor.name);
       if (index === 3) { assert(capture.related); assert.equal(capture.related.view.condition, 'HEART_CONDITION'); assert(Array.isArray(capture.related.result.rows)); }
-      await ok(request(rnd, `/nutritionist/queue/${targetPlan.id}/release`, 'POST', {}));
+      assert.equal((await db.mealPlan.findUniqueOrThrow({ where: { id: targetPlan.id } })).claimedByNutritionistId, null);
       if (index === 3) {
         const conditionPath = `/nutritionist/queue/${targetPlan.id}/condition-reviews`;
         const targetContext = (await loadMealReviewContext(targetPlan.id))!;
@@ -684,10 +689,10 @@ export async function runReviewReferenceAcceptance() {
           where: { id: targetPlan.id },
           data: { claimedByNutritionistId: null, claimedAt: null },
         });
-        await db.clinicalProfileReview.updateMany({ where: { userId: targetActor.id }, data: { status: 'PENDING' } });
+        await db.clinicalProfileReview.updateMany({ where: { userId: targetActor.id }, data: { status: 'DECLINED' } });
         assert(!(await clear()).includes(targetPlan.id));
         await db.clinicalProfileReview.updateMany({ where: { userId: targetActor.id }, data: { status: 'APPROVED' } });
-        pass('Changed profile, ingredient amount, active claim, and unconfirmed health profile cannot auto-approve');
+        pass('Changed profile, ingredient amount, active claim, and declined health profile cannot auto-approve');
       }
       const [cleared, retry] = await Promise.all([
         MealPlanCycleService.getClearedMealPlanIds(targetActor.id, targetPlan.planGroupId),
@@ -770,7 +775,10 @@ export async function runReviewReferenceAcceptance() {
         const flagVersion = await caseApprovalFlagContext(db, captured.id);
         const notes = { category: 'NUTRITION', affectedFields: ['sodium'], explanation: 'Synthetic sodium facts require independent review.',
           reference: 'Synthetic measured facts.', proposedCorrection: 'Review measured sodium amounts.' };
-        await ok(request(other, `/nutritionist/case-approvals/${captured.id}/flag`, 'POST', { expectedVersion: flagVersion.expectedVersion, notes }));
+        const draft = await ok(request(other, '/nutritionist/flag-drafts/begin', 'POST', {
+          target: { kind: 'CASE', targetId: captured.id }, expectedVersion: flagVersion.expectedVersion,
+        }));
+        await ok(request(other, `/nutritionist/case-approvals/${captured.id}/flag`, 'POST', { flagDraftId: draft.draft.id, expectedVersion: flagVersion.expectedVersion, notes }));
         assert.equal((await request(rnd, `/nutritionist/queue/${extra.id}`)).status, 403);
         assert.equal((await request(other, `/nutritionist/queue/${extra.id}/claim`, 'POST', {})).status, 403);
         const independent = await account('NUTRITIONIST');

@@ -9,6 +9,8 @@ const nutrientKeys = {
 type TargetRule = ConditionRuleLike & {
   condition: string; sourceTitle: string;
   evidenceSource: { state: string; canonicalUrl: string } | null;
+  patientSpecific?: boolean;
+  sourceCitation?: string;
 };
 
 /** Display references only: never changes eligibility or invents a personal nutrient limit. */
@@ -40,7 +42,7 @@ export function reviewNutritionTargets(input: {
     rules: input.rules.flatMap(rule => {
       const nutrient = nutrientKeys[rule.nutrient as keyof typeof nutrientKeys];
       if (!nutrient || !rule.active || rule.reviewStatus !== 'APPROVED' || !rule.approvedByNutritionistId ||
-        rule.evidenceSource?.state !== 'CURRENT') return [];
+        (rule.evidenceSource?.state !== 'CURRENT' && !rule.patientSpecific)) return [];
       const threshold = resolveConditionRuleThreshold(rule, {
         dailyTotals: daily ? { calories: daily.calories } : undefined, bodyWeightKg: input.bodyWeightKg,
       });
@@ -48,7 +50,7 @@ export function reviewNutritionTargets(input: {
       return [{
         nutrient, value: threshold.result, operator: rule.operator, unit: threshold.resultUnit,
         basis: rule.basis === 'PER_SERVING' ? 'MEAL' as const : 'DAY' as const,
-        condition: rule.condition, sourceTitle: rule.sourceTitle, sourceUrl: rule.evidenceSource.canonicalUrl,
+        condition: rule.condition, sourceTitle: rule.sourceTitle, sourceUrl: rule.evidenceSource?.canonicalUrl ?? rule.sourceCitation ?? '',
       }];
     }),
   };

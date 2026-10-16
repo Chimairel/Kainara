@@ -78,3 +78,6 @@ codex/toothless.jpg
 # Private capstone fixture target settings and rollback receipts.
 /backend/.local/capstone-seed-20261016/
 /backend/.local/capstone-prepare.cjs
+
+# Private meal-guidance test databases, rollback receipts and pinned-runtime state.
+/backend/.local/guidance-update/

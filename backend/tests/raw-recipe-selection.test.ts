@@ -292,7 +292,7 @@ test('a published breakfast serving can be adjusted without adding source nutrit
   const ranges: Array<{ minimum?: number; maximum?: number }> = [];
   databaseRecipeCandidateProvider.list = async (input) => {
     ranges.push({ minimum: input.calorieMinimum, maximum: input.calorieMaximum });
-    const breakfast = candidate('breakfast', 'Pandesal', 'flour');
+    const breakfast = candidate('breakfast', 'Breakfast egg sandwich', 'flour');
     breakfast.applicableMealTypes = [MealType.BREAKFAST];
     breakfast.nutrition = { calories: 438, proteinG: 12, carbsG: 72, fatG: 10 };
     breakfast.reviewFreeBaseEligible = true;

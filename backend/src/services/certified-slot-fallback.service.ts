@@ -7,6 +7,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { screenCycleForPlanning } from './planning-rule-screening.service';
 import { lockUserProfile } from './profile-revision.service';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import {
@@ -482,6 +483,9 @@ export class CertifiedSlotFallbackService {
           },
         });
       await tx.mealLibrary.update({ where: { id: latest.id }, data: { usageCount: { increment: 1 } } });
+      const screening = await screenCycleForPlanning(tx, target.userId, replacement.planGroupId);
+      if (screening.blockedIds.includes(replacement.id))
+        throw new AppError('The fallback conflicts with a recorded hard limit.', 409, 'MEAL_PLANNING_CONFLICT');
       await tx.auditEvent.create({
         data: {
           actorUserId: reviewer?.userId ?? null,

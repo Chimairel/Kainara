@@ -1,4 +1,7 @@
 import prisma from '@/lib/prisma';
+import { reportProfileSummary } from '@/domain/report-profile-summary.policy';
+import { loadPlanningRules } from './planning-rule-screening.service';
+import { effectivePatientLimits } from '@/domain/planning-rule-screening.policy';
 import { reportCalorieCalculation } from '@/domain/report-calorie-calculation.policy';
 import { buildFoodGuidance, type FoodGuidance } from '@/domain/food-guidance.policy';
 import { reportActivationTier } from '@/domain/planning-membership.policy';
@@ -32,6 +35,7 @@ const samePlanningTargets = (left: PlanningMacroTargets | null, right: PlanningM
     (['calories', 'proteinG', 'carbsG', 'fatG'] as const).every((key) => Math.abs(left[key] - right[key]) < 1e-9)
   );
 type ReportResponse = StoredNutritionReport & {
+  profileSummary: ReturnType<typeof reportProfileSummary>;
   calorieCalculation: ReturnType<typeof reportCalorieCalculation>;
   foodGuidance?: FoodGuidance;
   planningTargets: PlanningMacroTargets | null;
@@ -81,6 +85,7 @@ export class NutritionReportService {
     }
     return {
       ...report,
+      profileSummary: reportProfileSummary(version?.profileSnapshot),
       calorieCalculation: reportCalorieCalculation(version),
       foodGuidance: content?.foodGuidance as FoodGuidance | undefined,
       isStale: report.isStale || !policyVersion,
@@ -110,6 +115,7 @@ export class NutritionReportService {
     const policyVersion = version.policyVersion === NUTRITION_GUIDANCE_POLICY_VERSION ? version.policyVersion : null;
     return {
       id: version.id,
+      profileSummary: reportProfileSummary(version.profileSnapshot),
       calorieCalculation: reportCalorieCalculation(version),
       foodGuidance: content.foodGuidance as FoodGuidance | undefined,
       userId: version.userId,
@@ -259,6 +265,7 @@ export class NutritionReportService {
       ...version,
       content: {
         ...(version.content as Record<string, unknown>),
+        profileSummary: reportProfileSummary(version.profileSnapshot),
         planningTargets: reportPlanningMacroTargets(version),
         calorieCalculation: reportCalorieCalculation(version),
       },
@@ -313,6 +320,38 @@ export class NutritionReportService {
       dietaryPreference: profile.dietaryPreference ?? 'OMNIVORE',
       declaredEntries: user.safetyProfileEntries,
     });
+    const recordedPatientLimits = await tx.patientNutritionLimit.findMany({
+      where: { userId }, orderBy: [{ version: 'desc' }, { id: 'asc' }],
+    });
+    const screening = await loadPlanningRules(userId, declaredSafetyRestrictions.conditions, tx);
+    const replaced = new Set(effectivePatientLimits(screening.overrides, userId, new Date()).flatMap(row => row.replacesRuleId ? [row.replacesRuleId] : []));
+    for (const rule of screening.rules.filter(row => !replaced.has(row.id))) {
+      const sourceCode = `SCREENING_RULE_${rule.id}`;
+      foodGuidance.limit.push({ name: `${rule.condition.replace(/_/g, ' ')} ${rule.nutrient.replace(/_/g, ' ').toLowerCase()} rule`,
+        reason: `${rule.operator.replace(/_/g, ' ').toLowerCase()} ${rule.threshold} ${rule.unit} (${rule.basis.replace(/_/g, ' ').toLowerCase()}). ${rule.rationale ?? ''}`,
+        tip: `Reviewed policy ${rule.policyVersion}. This screens documented conflicts; it does not approve a meal.`, sourceCode });
+      foodGuidance.sources.push({ code: sourceCode, title: rule.sourceTitle, url: rule.sourceCitation });
+    }
+    for (const rule of screening.ingredientRules) {
+      const sourceCode = `SCREENING_RULE_${rule.id}`;
+      foodGuidance[rule.severity === 'HARD_BLOCK' ? 'avoid' : 'limit'].push({ name: rule.ingredientCategory,
+        reason: rule.rationale ?? 'A reviewed ingredient rule applies to this condition.',
+        tip: `Reviewed policy ${rule.policyVersion}. Uncertain matches require individual review.`, sourceCode });
+      foodGuidance.sources.push({ code: sourceCode, title: rule.sourceTitle, url: rule.sourceCitation });
+    }
+    const latestLimits = new Map<string, typeof recordedPatientLimits[number]>();
+    for (const limit of recordedPatientLimits) {
+      const key = limit.scopeKey;
+      if (!latestLimits.has(key)) latestLimits.set(key, limit);
+    }
+    for (const limit of latestLimits.values()) {
+      if (limit.revokedAt || limit.validUntil && limit.validUntil <= new Date()) continue;
+      const sourceCode = `PATIENT_LIMIT_${limit.id}`;
+      foodGuidance.limit.push({ name: `Patient-specific ${limit.nutrient.replace(/_/g, ' ').toLowerCase()} limit`,
+        reason: `${limit.condition}: ${limit.operator.replace(/_/g, ' ').toLowerCase()} ${limit.threshold} ${limit.unit} (${limit.basis.replace(/_/g, ' ').toLowerCase()}). ${limit.rationale}`,
+        tip: `Effective ${limit.validFrom.toISOString()}${limit.validUntil ? ` until ${limit.validUntil.toISOString()}` : ''}. This recorded constraint does not approve individual meals.`, sourceCode });
+      foodGuidance.sources.push({ code: sourceCode, title: limit.sourceTitle, url: limit.sourceCitation });
+    }
     const foodText = (section: 'avoid' | 'limit' | 'choose') =>
       foodGuidance[section].map((item) => `${item.name}: ${item.reason} ${item.tip}`);
     const savedReport = {
@@ -335,6 +374,10 @@ export class NutritionReportService {
     const generatedAt = new Date();
     const profileSnapshot = JSON.parse(
       JSON.stringify({
+        name: user.name,
+        patientLimits: [...latestLimits.values()],
+        screeningPolicyVersions: screening.policies,
+        mealTimes: await tx.mealReminderSettings.findUnique({ where: { userId }, select: { breakfastTime: true, lunchTime: true, dinnerTime: true, timeZone: true } }),
         profile,
         conditions: declaredSafetyRestrictions.conditions,
         allergens,

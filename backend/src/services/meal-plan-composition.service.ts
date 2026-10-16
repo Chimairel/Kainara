@@ -58,6 +58,8 @@ import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { GroceryService } from './grocery.service';
+import { screenCycleForPlanning, planningCandidateFilter, loadPlanningRules, planningPlateNutrients } from './planning-rule-screening.service';
+import { screenPlanningRules } from '@/domain/planning-rule-screening.policy';
 import {
   buildReviewWorkKey,
   getPreparationLeadDays,
@@ -185,7 +187,13 @@ export async function generate7DayPlan(
     : null;
   const retainedSlots = retainedSlotKeys(repairHistory?.meals ?? []);
 
+  const screeningRules = await loadPlanningRules(userId, userConditions);
   const { matchedSlots, unmatchedSlots, selectedNutrition } = selectLibraryMealSlots({
+    acceptPlate: (meal, plate, scheduledDate) => !screenPlanningRules({ ...screeningRules, conditions: userConditions,
+      userId, now: new Date(Math.max(Date.now(), scheduledDate.getTime())),
+      nutrients: planningPlateNutrients({ ...plate, libraryMeal: meal }),
+      ingredientNames: meal.ingredients.map(row => row.ingredientName), bodyWeightKg: profile.weightKg }).blocked,
+    conditions: userConditions,
     libraryMeals,
     caseReviewCandidateIds,
     recentlyUsedLibraryIds,
@@ -207,6 +215,8 @@ export async function generate7DayPlan(
     'Ranking existing recipes for the remaining meal slots.'
   );
   const rawCorpusResult = await sourceRawRecipeCandidates({
+    acceptCandidate: await planningCandidateFilter({ userId, conditions: userConditions, dailyCalorieTarget,
+      weightKg: profile.weightKg, ricePreference: profile.ricePreference, riceFood: cookedRiceFood }),
     slots: unmatchedSlots,
     planningTargets,
     existingNutrition: selectedNutrition,
@@ -754,6 +764,7 @@ export async function generate7DayPlan(
           }))
         ))
       );
+      await screenCycleForPlanning(tx, userId, newPlanGroupId);
       for (const id of membershipReservationIds) await MembershipService.complete(id, tx, newPlanGroupId);
     },
     { timeout: 30000 }

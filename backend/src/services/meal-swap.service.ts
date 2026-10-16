@@ -1,3 +1,5 @@
+import { screenCycleForPlanning } from './planning-rule-screening.service';
+import { AppError } from '@/errors/AppError';
 import { swapMacroContext } from './meal-macro-context.service';
 import { loadActionableUnloggedMealPlan } from './meal-swap-read.service';
 import {
@@ -748,6 +750,9 @@ export class MealSwapService {
           },
         });
 
+        const screening = await screenCycleForPlanning(tx, userId, mealPlan.planGroupId);
+        if (screening.blockedIds.includes(mealPlanId))
+          throw new AppError('This replacement conflicts with a recorded hard limit. Choose another meal.', 409, 'MEAL_PLANNING_CONFLICT');
         await GroceryService.generateGroceryList(userId, tx, mealPlan.planGroupId, 'EXPLICIT');
         await MealSwapService.recalculateDailyNutritionLog(userId, updatedPlan.scheduledDate, tx);
         const swapsRemaining = await recordMealSwapNotification(tx, userId, allowance);

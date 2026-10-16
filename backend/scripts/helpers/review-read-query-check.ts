@@ -22,7 +22,7 @@ export async function checkReviewContextQueries(mealId: string) {
     queries = 0;
     const joined = await loadMealReviewContext(mealId, base);
     assert.deepEqual(joined, previous, 'Joined reads preserve every snapshot field and its version key');
-    assert.equal(queries, 2, 'Case context and selected report each require one SQL query');
+    assert.ok(queries <= 4, 'Case/report, clarification forms and current policy versions stay within four SQL queries; patient limits join the case read');
     assert.ok(legacyQueries >= 12, 'Exercise a real nested profile/evidence context');
     const original = { where: { id: mealId }, include: { ingredients: true } };
     const preserved = preserveRelationQueryStrategy('findUnique', original);

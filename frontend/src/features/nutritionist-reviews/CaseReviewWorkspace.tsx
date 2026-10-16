@@ -1,5 +1,6 @@
 'use client';
 import { formatMealTitle } from '@/lib/meal-title';
+import Link from 'next/link';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useEffect, useState } from 'react';
@@ -46,6 +47,7 @@ export default function CaseReviewWorkspace({
           description="Audit AI-generated meal plans, approve health profiles, and verify base recipes."
         />
         {navigation}
+        <Link href="/nutritionist/rules" className="w-fit text-sm font-semibold text-brand-green underline underline-offset-4">Nutrition screening policies</Link>
         {caseFilters}
         {review.reviewNotice && (
           <div

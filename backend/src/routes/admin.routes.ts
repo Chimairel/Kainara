@@ -27,12 +27,14 @@ import adminMealLogRouter from './admin-meal-log.routes';
 import adminTestAccountsRouter from './admin-test-accounts.routes';
 
 import adminSupportRouter from './admin-support.routes';
+import { nutritionRuleManagementRouter } from './nutrition-rule-management.routes';
 
 const router = Router();
 
 // Apply auth + ADMIN role restriction
 router.use(authenticate);
 router.use(requireRole('ADMIN'));
+router.use('/nutrition-rules', nutritionRuleManagementRouter('ADMIN'));
 router.use('/flag-drafts', flagDraftRouter(true));
 router.use('/support', adminSupportRouter);
 router.use('/license-updates', nutritionistLicenseRouter('ADMIN'));

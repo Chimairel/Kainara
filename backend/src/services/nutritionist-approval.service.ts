@@ -2,6 +2,8 @@ import { assertPlanFlagConcernsResolved } from './meal-plan-flag-context.service
 import { ReviewRoutingService } from './review-routing.service';
 import { assertMealSlotCalories } from '@/domain/generated-plan-calories.policy';
 import prisma from '@/lib/prisma';
+import { evaluateCycleForPlanning } from './planning-rule-screening.service';
+import { clinicalRuleKey } from '@/domain/clinical-rule-stamp.policy';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { MealIngredientDataSource, MealPlanStatus, NotificationType, Prisma } from '@prisma/client';
 import { lockUserProfile } from './profile-revision.service';
@@ -169,6 +171,12 @@ export async function approveMealPlan(
         nutritionistProfileId
       );
       assertMealQuestionsResolved(reviewedContext);
+  // Clinical hard blocks cannot be overridden by the case approval button.
+  // Unevaluable/soft rules remain visible for the RND's individual review.
+  const screening = await evaluateCycleForPlanning(tx, plan.userId, plan.planGroupId);
+  if (screening.some(row => row.meal.id === plan.id && (row.categoryConflict || row.screening.blocked)))
+    throw new AppError('This meal conflicts with main-meal eligibility or a recorded hard limit. Choose another meal or review the applicable limit.', 409, 'MEAL_PLANNING_CONFLICT');
+
       if (savedCanvas && reviewedContext) {
         const detail = savedCanvas.detail as { reviewContext?: { contextKey?: string } };
         if (detail.reviewContext?.contextKey !== reviewedContext.contextKey)
@@ -241,6 +249,7 @@ export async function approveMealPlan(
         },
         data: {
           status: MealPlanStatus.APPROVED,
+          clinicalRuleKey: reviewedContext ? clinicalRuleKey((reviewedContext.snapshot as Record<string, unknown>).foodRules) : null,
           mealName,
           description,
           calories,

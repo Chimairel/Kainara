@@ -7,6 +7,7 @@ import type { AssistantReply } from './member-assistant.service';
 // Reuse reviewed answers as evidence, not as the final AI reply. No account data,
 // runtime web search, embeddings or provider-generated routes enter this guide.
 const questions = [
+  'how does meal screening work?', 'why is taho not a main meal?',
   'can I eat every meal in the library?', 'why do I need to log my weight every week?',
   'what is a starter plan?', 'why do I need to acknowledge my report?',
   'I answered the RND meal question, why is it still pending?', 'why is my profile awaiting review again?',

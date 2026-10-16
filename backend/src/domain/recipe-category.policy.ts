@@ -3,7 +3,7 @@ export function isSnackOnlyRecipe(name: string, category?: string | null): boole
   const text = `${name} ${category ?? ''}`.normalize('NFKC').toLowerCase();
   const savoryCake = /\b(?:fish|crab|salmon|tuna|potato) cakes?\b/u.test(text);
   return (
-    /\b(?:desserts?|brownies?|blondies?|cupcakes?|cheesecakes?|cookies?|muffins?|doughnuts?|donuts?|macaroons?|mousse|cand(?:y|ies)|puddings?|puto|kutsinta|palitaw|suman|biko|bibingka|binignit|turon|maruya|bananaque|banana cue|kamote cue|espasol|maja blanca|ube halaya|pichi[ -]pichi|polvoron|pastillas|yema|ensaymada|hopia|bilo[ -]bilo|sapin[ -]sapin|leche flan|ice cream|halo[ -]halo|beverages?|drinks?|smoothies?|milkshakes?|carioca|karioka|binatog|ginataang mais|roasted pumpkin seeds)\b/u.test(
+    /\b(?:desserts?|taho|brownies?|blondies?|cupcakes?|cheesecakes?|cookies?|muffins?|doughnuts?|donuts?|macaroons?|mousse|cand(?:y|ies)|puddings?|puto|kutsinta|palitaw|suman|biko|bibingka|binignit|turon|maruya|bananaque|banana cue|kamote cue|espasol|maja blanca|ube halaya|pichi[ -]pichi|polvoron|pastillas|yema|ensaymada|hopia|bilo[ -]bilo|sapin[ -]sapin|leche flan|ice cream|halo[ -]halo|beverages?|drinks?|smoothies?|milkshakes?|carioca|karioka|binatog|ginataang mais|roasted pumpkin seeds)\b/u.test(
       text
     ) ||
     (!savoryCake && /\bcakes?\b/u.test(text))
@@ -20,10 +20,20 @@ export function isComponentOnlyRecipe(name: string, category?: string | null): b
     ) ||
     /^how to (?:make (?:toasted garlic|mayonnaise)|caramelize onions)$/u.test(title) ||
     /^home fries(?: recipe)?$/u.test(title) ||
+    // Match plain baked components, not a pandesal sandwich, breaded chicken,
+    // bread omelet or another prepared composite meal.
+    /^(?:(?:homemade|soft|easy|classic|filipino|whole wheat|wholemeal|white|plain|basic|traditional)\s+)*(?:pan[ -]?de[ -]?sal|pandesal|bread rolls?|dinner rolls?|sandwich bread|white bread|wheat bread|garlic bread|burger buns?)(?:\s+recipe)?$/u.test(title) ||
     /^steamed broccoli with toasted garlic and lemon$/u.test(title) ||
     /^boiled okra and eggplant with bagoong dipping sauce$/u.test(title) ||
     /^(?:condiment|garnish|marinade|dipping sauce)$/u.test(label)
   );
+}
+
+/** This narrows meal-slot eligibility; it never certifies clinical suitability. */
+export function primaryMealExclusion(name: string, category?: string | null): string | null {
+  if (isComponentOnlyRecipe(name, category)) return 'COMPONENT_REQUIRES_COMPLETE_MEAL';
+  if (isSnackOnlyRecipe(name, category)) return 'SNACK_DESSERT_OR_DRINK';
+  return null;
 }
 
 export function isStandaloneRecipe(name: string, category?: string | null): boolean {

@@ -11,12 +11,16 @@ import { lockUserProfile } from './profile-revision.service';
 
 export class UpcomingPlanPreparationService {
   private static readonly inFlight = new Map<string, Promise<unknown>>();
+  private static readonly pending = new Map<string, Date>();
 
   static triggerNonBlocking(userId: string, now: Date = new Date()): void {
+    // A profile acknowledgment can arrive while an older revision is still
+    // preparing. Coalesce it into a fresh pass rather than losing that wakeup.
+    this.pending.set(userId, now);
     if (this.inFlight.has(userId)) return;
     const task = new Promise<void>((resolve) => {
       setImmediate(() => {
-        void this.ensureForUser(userId, now)
+        void this.drain(userId)
           .catch((error) => console.error('[UpcomingPreparation] Recovery trigger failed:', error))
           .finally(() => {
             this.inFlight.delete(userId);
@@ -25,6 +29,20 @@ export class UpcomingPlanPreparationService {
       });
     });
     this.inFlight.set(userId, task);
+  }
+
+  private static async drain(userId: string): Promise<void> {
+    while (this.pending.has(userId)) {
+      const now = this.pending.get(userId)!;
+      this.pending.delete(userId);
+      try {
+        await this.ensureForUser(userId, now);
+      } catch (error) {
+        // An obsolete revision may fail while a newer acknowledgment waits.
+        // That failure must not discard the pending revision's wakeup.
+        console.error('[UpcomingPreparation] Recovery pass failed:', error);
+      }
+    }
   }
 
   static async ensureForUser(userId: string, now: Date = new Date()) {

@@ -1,4 +1,7 @@
 import prisma from '@/lib/prisma';
+import { primaryMealExclusion } from '@/domain/recipe-category.policy';
+import { env } from '@/config/env';
+import { clinicalRuleKey, clinicalRuleSnapshot } from '@/domain/clinical-rule-stamp.policy';
 import { reconcileExactMealApprovals } from './exact-meal-approval-reuse.service';
 import { screenFoodExclusions } from '@/domain/food-exclusion.policy';
 import { hasCurrentRiceEvidence } from '@/domain/serving-evidence.policy';
@@ -92,6 +95,7 @@ export class MealPlanCycleService {
         user: {
           select: {
             healthConditions: { select: { condition: true } },
+            patientNutritionLimits: { include: { nutritionistProfile: { select: { isVerified: true, prcLicenseExpiry: true, user: { select: { role: true, isSuspended: true } } } } } },
             allergies: { select: { allergen: true } },
             userProfile: { select: { otherConditions: true, otherAllergies: true } },
             safetyProfileEntries: {
@@ -113,6 +117,10 @@ export class MealPlanCycleService {
           select: {
             id: true,
             status: true,
+            mealName: true,
+            mealType: true,
+            clinicalRuleKey: true,
+            scheduledDate: true,
             requiresSafetyRevalidation: true,
             libraryMealId: true,
             baseRecipeSignature: true,
@@ -190,6 +198,31 @@ export class MealPlanCycleService {
     const requiredConditions = new Set(
       cycle.user.healthConditions.map((item) => item.condition).filter((condition) => condition !== 'NONE')
     );
+    const currentRuleKeys = new Map<string, string>();
+    if (env.CLINICAL_CLARIFICATIONS_ENABLED && requiredConditions.size) {
+      const policyClient = 'conditionRulePolicyVersion' in client ? client as Prisma.TransactionClient : prisma;
+      const policies = await policyClient.conditionRulePolicyVersion.findMany({
+        where: { condition: { in: [...requiredConditions] }, OR: [{ state: 'ACTIVE' }, { state: 'SUSPENDED', activatedAt: { not: null } }] },
+        select: { id: true, condition: true, policyVersion: true, updatedAt: true, state: true }, orderBy: { id: 'asc' },
+      });
+      const limits = cycle.user.patientNutritionLimits.map(row => ({ ...row,
+        active: isNutritionistEligibleForReview(row.nutritionistProfile, now), reviewStatus: 'APPROVED',
+        approvedByNutritionistId: row.nutritionistProfileId }));
+      for (const meal of cycle.mealPlans) {
+        const facts = clinicalRuleSnapshot(userId, limits, policies, new Date(Math.max(now.getTime(), meal.scheduledDate.getTime())));
+        if (facts.patient.length || facts.policies.length || meal.clinicalRuleKey) currentRuleKeys.set(meal.id, clinicalRuleKey(facts));
+      }
+      const outdated = cycle.mealPlans.filter(meal => meal.status === 'APPROVED' && currentRuleKeys.has(meal.id) && meal.clinicalRuleKey !== currentRuleKeys.get(meal.id));
+      if (outdated.length) {
+        const mutationClient = 'mealPlan' in client && client.mealPlan ? client as Prisma.TransactionClient : prisma;
+        const changed = await mutationClient.mealPlan.updateMany({ where: { userId, status: 'APPROVED', id: { in: outdated.map(meal => meal.id) },
+          mealLogs: { none: { status: { in: ['DONE', 'SKIPPED'] } } } },
+          data: { status: 'PENDING_REVIEW', requiresSafetyRevalidation: true, reviewApprovalCount: 0,
+            claimedAt: null, claimedByNutritionistId: null } });
+        if (changed.count) await mutationClient.auditEvent.create({ data: { action: 'MEAL_RULE_CONTEXT_INVALIDATED',
+          entityType: 'MealPlanCycle', entityId: cycleId, metadata: { count: changed.count, reason: 'APPLICABLE_RULE_VERSION_CHANGED' } } });
+      }
+    }
     const safetyRestrictions = adaptUserSafetyRestrictions({
       healthConditions: cycle.user.healthConditions.map((item) => item.condition),
       allergies: cycle.user.allergies.map((item) => item.allergen),
@@ -224,6 +257,8 @@ export class MealPlanCycleService {
     );
     return cycle.mealPlans
       .filter((meal) => {
+        if (currentRuleKeys.has(meal.id) && meal.clinicalRuleKey !== currentRuleKeys.get(meal.id)) return false;
+        if (meal.mealType !== 'SNACK' && meal.mealName && primaryMealExclusion(meal.mealName)) return false;
         if (
           meal.status !== MealPlanStatus.APPROVED ||
           meal.requiresSafetyRevalidation ||

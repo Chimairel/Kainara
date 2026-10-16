@@ -8,6 +8,7 @@ import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { scorePreparationCandidate } from '@/domain/upcoming-preparation.policy';
 import { resolveReplacementServing, type SwapRiceFood } from './meal-swap-serving.service';
 import type { CertifiedLibraryMeal } from './meal-library-candidate-query.service';
+import { foodChoicePreference } from '@/domain/food-choice-rules.policy';
 
 /** Candidates have already passed the caller's admission/eligibility query. */
 export function selectLibraryMealSlots({
@@ -22,6 +23,8 @@ export function selectLibraryMealSlots({
   profile,
   startDate,
   numDays,
+  conditions = [],
+  acceptPlate,
 }: {
   libraryMeals: CertifiedLibraryMeal[];
   caseReviewCandidateIds: ReadonlySet<string>;
@@ -34,6 +37,8 @@ export function selectLibraryMealSlots({
   profile: Pick<UserProfile, 'dietaryPreference' | 'ricePreference'>;
   startDate: Date;
   numDays: number;
+  conditions?: readonly string[];
+  acceptPlate?: (meal: CertifiedLibraryMeal, plate: NonNullable<ReturnType<typeof resolveReplacementServing>>, scheduledDate: Date) => boolean;
 }) {
   const eligibleLibraryMeals = libraryMeals;
   const matchedSlots: {
@@ -110,7 +115,10 @@ export function selectLibraryMealSlots({
           }),
         ])
       );
-      const calorieEligibleMatches = matches.filter((meal) => plateById.get(meal.id));
+      const calorieEligibleMatches = matches.filter((meal) => {
+        const plate = plateById.get(meal.id);
+        return plate && (!acceptPlate || acceptPlate(meal, plate, scheduledDate));
+      });
       const range = getMealSlotCalorieRange(dailyCalorieTarget, slotType);
       const ranked = calorieEligibleMatches
         .map((meal) => ({
@@ -134,9 +142,10 @@ export function selectLibraryMealSlots({
         .sort(
           (left, right) =>
             Number(caseReviewCandidateIds.has(left.meal.id)) - Number(caseReviewCandidateIds.has(right.meal.id)) ||
-            (scoreNutrition
+            (foodChoicePreference(conditions, left.meal.ingredients.map(row => row.ingredientName)).penalty -
+              foodChoicePreference(conditions, right.meal.ingredients.map(row => row.ingredientName)).penalty + (scoreNutrition
               ? scoreNutrition(plateById.get(left.meal.id)!) - scoreNutrition(plateById.get(right.meal.id)!)
-              : 0) ||
+              : 0)) ||
             right.ranking.score - left.ranking.score ||
             left.meal.usageCount - right.meal.usageCount ||
             left.meal.id.localeCompare(right.meal.id)

@@ -90,6 +90,7 @@ export default function NutritionGuidanceDocument({
       generalSummary: content.generalSummary || 'No summary recorded for this version.',
       reportPolicyVersion: selectedVersion.policyVersion || content.reportPolicyVersion || content.policyVersion,
       planningTargets: content.planningTargets ?? null,
+      profileSummary: content.profileSummary,
       planningContext: report.planningContext,
     } as NutritionReport;
   }, [selectedVersion, report]);

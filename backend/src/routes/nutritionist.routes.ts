@@ -61,6 +61,8 @@ import { mealFlagSubmissionSchema } from '@/validation/meal-review.schemas';
 import libraryRouter from './nutritionist-library.routes';
 import reviewSwapRouter from './nutritionist-review-swap.routes';
 import recipeBatchReviewRouter from './recipe-batch-review.routes';
+import patientNutritionLimitRouter from './patient-nutrition-limit.routes';
+import { nutritionRuleManagementRouter } from './nutrition-rule-management.routes';
 
 const router = Router();
 
@@ -77,6 +79,8 @@ router.get(
 router.use('/profile', nutritionistProfileRouter);
 router.use('/license-updates', nutritionistLicenseRouter('NUTRITIONIST'));
 router.use(requireEligibleNutritionist);
+router.use('/nutrition-rules', nutritionRuleManagementRouter('NUTRITIONIST'));
+router.use('/patient-nutrition', patientNutritionLimitRouter);
 router.use('/recipe-batch-review', recipeBatchReviewRouter);
 router.use('/flag-drafts', flagDraftRouter());
 router.use(clinicalClarificationRouter('rnd'));

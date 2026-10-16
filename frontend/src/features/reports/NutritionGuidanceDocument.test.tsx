@@ -78,7 +78,8 @@ it('preserves archived snapshots and selected-version downloads without changing
   expect(screen.getByRole('region', { name: 'Daily planning estimates' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('combobox', { name: 'Report version' }));
   fireEvent.click(screen.getByRole('option', { name: /^Version 1/ }));
-  expect(screen.queryByRole('region', { name: 'Daily planning estimates' })).not.toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Daily planning estimates' })).toHaveTextContent('1,800 kcal/day');
+  expect(screen.queryByText('120 g')).not.toBeInTheDocument();
   expect(screen.getByText('1,800 kcal/day')).toBeInTheDocument();
   expect(screen.queryByText('2,000 kcal/day')).not.toBeInTheDocument();
   expect(screen.getByText('HYPERTENSION')).toBeInTheDocument();

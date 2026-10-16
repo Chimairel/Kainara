@@ -127,6 +127,7 @@ export interface Allergy {
 }
 
 export interface NutritionReport {
+  profileSummary?: Array<{ label: string; value: string }>;
   calorieCalculation?: {
     rawBmr: number;
     rawTdee: number;

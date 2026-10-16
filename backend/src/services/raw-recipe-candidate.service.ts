@@ -14,6 +14,7 @@ import type { SwapRiceFood } from './meal-swap-serving.service';
 import { mealMacroBudget, type PlanningMacroTargets, type NutritionVector } from '@/domain/meal-macro-target.policy';
 import { planningSlotNutritionScore } from '@/domain/swap-nutrition-fit.policy';
 import { composedNutritionTotal, scaleFnriFoodToGrams } from '@/domain/composed-serving.policy';
+import { foodChoicePreference } from '@/domain/food-choice-rules.policy';
 
 export interface RawCandidateSlot {
   dayNumber: number;
@@ -47,6 +48,7 @@ type RankedCandidate = RecipeCandidateProjection & {
 };
 
 type MacroSelectionInput = {
+  conditions?: readonly string[];
   planningTargets?: PlanningMacroTargets | null;
   existingNutrition?: readonly (NutritionVector & { dayNumber: number; mealType: string })[];
   dailyCalorieTarget?: number;
@@ -80,7 +82,8 @@ function macroPool(
   if (!budget) return [...pool];
   const scoreNutrition = planningSlotNutritionScore(input.planningTargets, slot.mealType, other)!;
   const score = (candidate: RankedCandidate) =>
-    scoreNutrition(wholeNutrition({ ...candidate.nutrition!, pairedRiceG: candidate.pairedRiceG }, input.riceFood));
+    scoreNutrition(wholeNutrition({ ...candidate.nutrition!, pairedRiceG: candidate.pairedRiceG }, input.riceFood)) +
+      foodChoicePreference(input.conditions ?? [], candidate.ingredients.map(row => row.name)).penalty;
   return pool
     .flatMap((candidate) => {
       if (!candidate._original) return [candidate];
@@ -371,7 +374,7 @@ export async function sourceRawRecipeCandidates(
     reviewFreeBaseOnly?: boolean;
     excludeCandidateIds?: readonly string[];
     /** Internal RND search predicate; never grants clinical clearance. */
-    acceptCandidate?: (candidate: RecipeCandidateProjection) => boolean;
+    acceptCandidate?: (candidate: RecipeCandidateProjection, mealType: MealType) => boolean;
     ricePreference?: RicePreference;
     riceFood?: SwapRiceFood | null;
     recentCandidateIds?: readonly string[];
@@ -409,6 +412,7 @@ export async function sourceRawRecipeCandidates(
       riceRoleBasis: scaled.riceRole ? 'SAVED_CLASSIFICATION' : undefined,
       usedInRecentCycle: false,
     });
+    ranking.score -= foodChoicePreference(input.conditions, candidate.ingredients.map(row => row.name)).penalty * 100;
     return { ...scaled, _original: candidate, _ranking: ranking };
   };
   const sortPool = (mealType: MealType) =>
@@ -442,7 +446,7 @@ export async function sourceRawRecipeCandidates(
       ...page.items
         .filter(
           (candidate) =>
-            (!input.acceptCandidate || input.acceptCandidate(candidate)) &&
+            (!input.acceptCandidate || input.acceptCandidate(candidate, mealType)) &&
             candidate.dietaryTags.includes(input.dietaryPreference) &&
             rawRecipeServing({
               candidate,

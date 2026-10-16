@@ -11,6 +11,7 @@ import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import DataForms from '@/features/admin-data/DataForms';
+import NutritionRuleWorkspace from '@/features/admin-data/NutritionRuleWorkspace';
 import DataWorkspaceOverview from '@/features/admin-data/DataWorkspaceOverview';
 import FoodCatalogue from '@/features/admin-data/FoodCatalogue';
 import type { AdminDataSection, ApiEnvelope, DataWorkspace } from '@/features/admin-data/types';
@@ -103,7 +104,9 @@ export default function AdminDataPage() {
           <TabsTrigger value="usda-catalogue" className="min-w-fit flex-1 gap-2">
             <BookOpen className="h-4 w-4" /> USDA catalogue
           </TabsTrigger>
+          <TabsTrigger value="rules" className="min-w-fit flex-1">Screening rules</TabsTrigger>
         </TabsList>
+        <TabsContent value="rules"><NutritionRuleWorkspace role="admin" /></TabsContent>
 
         <TabsContent value="overview">
           <DataWorkspaceOverview

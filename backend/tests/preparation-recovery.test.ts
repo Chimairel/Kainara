@@ -4,6 +4,31 @@ import { CurrentPlanPreparationService } from '../src/services/current-plan-prep
 import { UpcomingPlanPreparationService } from '../src/services/upcoming-plan-preparation.service';
 import { MealGenerationService } from '../src/services/meal-generation.service';
 
+test('a fresh profile wakeup is replayed after the older preparation fails; duplicate wakeups coalesce', async () => {
+  const original = UpcomingPlanPreparationService.ensureForUser;
+  const originalError = console.error;
+  let release!: () => void;
+  let started!: () => void;
+  const opened = new Promise<void>(resolve => { started = resolve; });
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const dates: number[] = [];
+  UpcomingPlanPreparationService.ensureForUser = async (_user, date) => {
+    dates.push(date!.getTime());
+    if (dates.length === 1) { started(); await gate; throw new Error('PROFILE_CHANGED'); }
+    return { state: 'NOT_OPEN', planGroupId: null };
+  };
+  console.error = () => undefined;
+  try {
+    UpcomingPlanPreparationService.triggerNonBlocking('revision-race', new Date(1));
+    await opened;
+    UpcomingPlanPreparationService.triggerNonBlocking('revision-race', new Date(2));
+    UpcomingPlanPreparationService.triggerNonBlocking('revision-race', new Date(3));
+    release();
+    for (let index = 0; index < 10 && dates.length < 2; index++) await new Promise<void>(resolve => setImmediate(resolve));
+    assert.deepEqual(dates, [1, 3]);
+  } finally { release(); UpcomingPlanPreparationService.ensureForUser = original; console.error = originalError; }
+});
+
 test('background page recovery does not retry future jobs while the first plan failed or is running', async () => {
   const originalCurrent = CurrentPlanPreparationService.ensureForUser;
   const originalUpcoming = MealGenerationService.ensureUpcomingPlanForUser;

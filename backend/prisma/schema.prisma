@@ -937,6 +937,7 @@ model User {
   mealPlanRepairs                  MealPlanRepairReceipt[]
   healthProfileRevisions           HealthProfileRevision[]
   safetyProfileEntries             SafetyProfileEntry[]
+  patientNutritionLimits           PatientNutritionLimit[]
   auditEvents                      AuditEvent[]
   submittedAdminMealFlags          MealLibraryFlag[]                @relation("AdminMealFlags")
   outsideMealPreviews              OutsideMealPreview[]
@@ -1294,6 +1295,7 @@ model NutritionistProfile {
   outsideMealReviews       OutsideMealReview[]              @relation("OutsideMealReviewAssignee")
   outsideMealRevisions     OutsideMealItemRevision[]        @relation("OutsideMealRevisionReviewer")
   approvedNutrientRules    ConditionNutrientRule[]          @relation("ConditionNutrientRuleApprover")
+  patientNutritionLimits  PatientNutritionLimit[]
   approvedIngredientRules  ConditionIngredientRule[]        @relation("ConditionIngredientRuleApprover")
   clearanceDecisions       MealConditionClearanceDecision[]
   mealPlanReviewDecisions  MealPlanReviewDecision[]
@@ -1534,6 +1536,7 @@ model FoodConsumptionStat {
 }
 
 model MealPlan {
+  clinicalRuleKey              String? @db.VarChar(64)
   clarificationForms            ClinicalClarificationForm[]
   id                            String                      @id @default(cuid())
   planGroupId                   String
@@ -2156,10 +2159,41 @@ model ConditionNutrientRule {
   active                   Boolean                       @default(false)
   createdAt                DateTime                      @default(now())
   updatedAt                DateTime                      @updatedAt
+  patientOverrides         PatientNutritionLimit[]
 
   @@unique([condition, nutrient, operator, threshold, basis, policyVersion], map: "ConditionNutrientRule_unique_policy_rule")
   @@index([condition, reviewStatus, active])
   @@index([evidenceSourceId])
+}
+
+/// Immutable versions; revocation is retained. These constraints never grant meal clearance.
+model PatientNutritionLimit {
+  id                       String                @id @default(cuid())
+  userId                   String
+  user                     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nutritionistProfileId    String
+  nutritionistProfile      NutritionistProfile   @relation(fields: [nutritionistProfileId], references: [id], onDelete: Restrict)
+  replacesRuleId           String?
+  replacesRule             ConditionNutrientRule? @relation(fields: [replacesRuleId], references: [id], onDelete: Restrict)
+  condition                HealthConditionType
+  nutrient                 ConditionRuleNutrient
+  operator                 ConditionRuleOperator
+  threshold                Float
+  unit                     String                @db.VarChar(32)
+  basis                    ConditionRuleBasis
+  severity                 ConditionRuleSeverity
+  rationale                String                @db.Text
+  sourceTitle              String                @db.VarChar(240)
+  sourceCitation           String                @db.VarChar(1000)
+  version                  Int
+  scopeKey                 String                @db.VarChar(240)
+  validFrom                DateTime
+  validUntil               DateTime?
+  revokedAt                DateTime?
+  createdAt                DateTime              @default(now())
+
+  @@unique([userId, scopeKey, version], map: "PatientNutritionLimit_scope_version")
+  @@index([userId, validFrom, validUntil])
 }
 
 model ConditionIngredientRule {

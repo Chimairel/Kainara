@@ -79,17 +79,17 @@ export const NutritionReportPDF = ({
             </Text>
           )}
           <View style={styles.divider} />
-          <Text style={styles.text}>Name: {user.name}</Text>
-          <Text style={styles.text}>Estimated energy target: {calorieTarget} kcal/day</Text>
-          <Text style={styles.text}>
-            Reported conditions: {conditions.length ? conditions.join(', ') : 'None reported'}
-          </Text>
-          <Text style={styles.text}>
-            Reported food restrictions: {allergies.length ? allergies.join(', ') : 'None reported'}
-          </Text>
+          <Text style={styles.title}>Your recorded profile</Text>
+          {(report.profileSummary ?? [{ label: 'Name', value: user.name }]).map((row: {label: string; value: string}) => (
+            <Text key={row.label} style={styles.text}>{row.label}: {row.value}</Text>
+          ))}
           <View style={styles.divider} />
           <Text style={styles.title}>What these numbers mean</Text>
           <Text style={styles.text}>{report.generalSummary}</Text>
+          {report.planningTargets && <View style={styles.section}>
+            <Text style={styles.title}>Daily planning estimate</Text>
+            <Text style={styles.text}>{`${report.planningTargets.calories} kcal/day | Protein ${Math.round(report.planningTargets.proteinG)} g | Fat ${Math.round(report.planningTargets.fatG)} g | Carbohydrate ${Math.round(report.planningTargets.carbsG)} g`}</Text>
+          </View>}
           {report.calorieCalculation &&
             (() => {
               const c = report.calorieCalculation;
@@ -109,7 +109,7 @@ export const NutritionReportPDF = ({
                     kcal. Saved target: {c.recordedTarget ?? 'Not recorded'} kcal/day.
                   </Text>
                   <Text style={styles.text}>
-                    Fixed system calculation, not AI or measured metabolism. The lower bound is an implementation rule,
+                    These are estimates, not measured metabolism. The lower bound is an implementation rule,
                     not a recommended intake. Medical and pregnancy needs require individual assessment.
                   </Text>
                   <Text style={styles.text}>
@@ -118,6 +118,13 @@ export const NutritionReportPDF = ({
                 </View>
               );
             })()}
+          {report.planningTargets && <View style={styles.section}>
+            <Text style={styles.title}>How the macro estimates are calculated</Text>
+            {([['Protein', report.planningTargets.proteinG, 4], ['Fat', report.planningTargets.fatG, 9], ['Carbohydrate', report.planningTargets.carbsG, 4]] as const).map(([label, grams, factor]) => (
+              <Text key={label} style={styles.text}>{label}: {report.planningTargets.calories} kcal x {(grams * factor / report.planningTargets.calories * 100).toFixed(1)}% / {factor} kcal/g = {grams.toFixed(1)} g/day.</Text>
+            ))}
+            <Text style={styles.text}>Percentages are rounded from saved estimates. {report.planningTargets.explanation}</Text>
+          </View>}
           {report.foodGuidance?.formatVersion === 1 && (
             <View style={styles.section}>
               <Text style={styles.title}>Food choices for your profile</Text>

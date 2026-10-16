@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { clinicalRuleKey } from '@/domain/clinical-rule-stamp.policy';
 import { env } from '@/config/env';
 import { object, reusableClinicalContextKey, REVIEW_REFERENCE_POLICY } from '@/domain/reusable-review-reference.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
@@ -206,6 +207,7 @@ export async function reconcileExactMealApprovals(
         },
         data: {
           status: 'APPROVED',
+          clinicalRuleKey: clinicalRuleKey(object(contexts.get(plan.id)?.snapshot).foodRules),
           requiresSafetyRevalidation: false,
           safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
           selectionEvidence: {

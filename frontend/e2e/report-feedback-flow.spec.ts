@@ -42,6 +42,12 @@ for (const width of [390, 1440])
         isStale: false,
         generatedAt: now,
         acknowledgedAt: now,
+        profileSummary: [
+          { label: 'Name', value: 'Synthetic Member' }, { label: 'Age', value: '30 years' },
+          { label: 'Biological sex', value: 'Male' }, { label: 'Height', value: '170 cm' },
+          { label: 'Current weight', value: '65 kg' }, { label: 'Goal', value: 'Maintain' },
+          { label: 'Activity level', value: 'Lightly active' }, { label: 'Meal times', value: 'Not recorded' },
+        ],
         generalSummary:
           'The saved meal-planning energy estimate is 2,155 kcal/day. Population references and individual meal review are separate.',
         reportPolicyVersion: 'NUTRITION_GUIDANCE_DETERMINISTIC_V1',
@@ -193,6 +199,9 @@ for (const width of [390, 1440])
       });
       await page.goto('/profile/nutrition-report');
       await expect(page.getByText('How the daily kcal target is calculated')).toBeVisible();
+      await expect(page.getByText('30 years', { exact: true })).toBeVisible();
+      await expect(page.getByText('Lightly active', { exact: true })).toBeVisible();
+      await expect(page.locator('.outline-brand-accent')).toHaveCount(0);
       if (width > 639) {
         const box = await page.getByRole('region', { name: 'Nutrition report canvas' }).boundingBox();
         await page.getByRole('button', { name: 'Zoom in', exact: true }).click();

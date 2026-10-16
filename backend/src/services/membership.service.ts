@@ -19,6 +19,7 @@ import {
 } from '@/domain/membership.policy';
 import { getManilaDateKey, getManilaMidnight } from '@/domain/meal-plan-cycle.policy';
 import { lockUserProfile } from './profile-revision.service';
+import { repairBillingStart } from './acknowledged-cycle-rebuild.service';
 import { testCheckoutConfig } from '@/domain/membership-checkout.policy';
 import { membershipTransitionView } from './membership-transition.service';
 import { assistantMembershipBenefits } from '@/domain/member-assistant.policy';
@@ -323,13 +324,15 @@ export class MembershipService {
     if (id) await prisma.membershipUsage.deleteMany({ where: { id, completedAt: null } });
   }
 
-  static async admitPlan(userId: string, startsAt: Date, replaceExisting: boolean, jobId: string, requestKey?: string) {
+  static async admitPlan(userId: string, startsAt: Date, replaceExisting: boolean, jobId: string, requestKey?: string,
+    repair?: { cycleId: string; profileRevision: number }) {
     if (!membershipEnabled()) return [];
     // Remote database round trips can exceed Prisma's five-second default.
     // This bounded allowance is specific to admission; recipe/AI work stays outside.
     return prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, userId);
+        if (repair) await repairBillingStart(userId, repair, tx as Prisma.TransactionClient);
         const at = new Date();
         const state = await this.state(userId, at, tx);
         const reservations: Array<{ id: string; replayed: boolean }> = [];
@@ -339,7 +342,7 @@ export class MembershipService {
           const week = membershipWeek(startsAt);
           // Internal rebuilds keep case-review admission; admitted safety repair remains free.
           // Members change individual meals through swaps, without replan credits.
-          const key = `plan:${week.start.toISOString()}${replaceExisting ? `:replacement:${requestKey ?? jobId}` : ''}`;
+          const key = `plan:${week.start.toISOString()}${replaceExisting && !repair ? `:replacement:${requestKey ?? jobId}` : ''}`;
           const row = await this.reserveWithLockedState(userId, 'PLAN_REVIEW', key, key, tx, state, at, startsAt);
           if (row && !row.replayed) reservations.push(row);
         }

@@ -6,8 +6,11 @@ import {
 } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { evaluateConditionNutrientRule, type RuleNutrientEvidence } from '@/domain/condition-rule-evaluation.policy';
+import { loadPlanningRules } from './planning-rule-screening.service';
+import { screenPlanningRules } from '@/domain/planning-rule-screening.policy';
 
 export async function evaluateApprovedConditionRules(input: {
+  userId?: string;
   conditions: readonly string[];
   ingredientNames: readonly string[];
   nutrients: RuleNutrientEvidence;
@@ -18,6 +21,17 @@ export async function evaluateApprovedConditionRules(input: {
     Object.values(HealthConditionType).includes(condition as HealthConditionType)
   ) as HealthConditionType[];
   if (conditions.length === 0) return { nutrientEvaluations: [], ingredientMatches: [], uncoveredConditions: [] };
+  if (input.userId) {
+    const rules = await loadPlanningRules(input.userId, conditions);
+    const result = screenPlanningRules({ ...rules, ...input, userId: input.userId, now: new Date() });
+    return { nutrientEvaluations: result.evaluations.map(({rule,evaluation}) => ({ condition: rule.condition, evaluation,
+      rule: { ...rule, sourceTitle: rule.sourceTitle ?? 'Recorded patient limit', sourceCitation: rule.sourceCitation ?? '',
+        evidenceSource: rules.rules.find(item => item.id === rule.id)?.evidenceSource ?? null,
+        patientSpecific: rules.overrides.some(item => item.id === rule.id) } })),
+      ingredientMatches: result.ingredientMatches.map(rule => ({ condition: rule.condition, rule: { ...rule,
+        ingredientCategory: rules.ingredientRules.find(item => item.id === rule.id)?.ingredientCategory ?? 'Recorded ingredients' }, matches: input.ingredientNames })),
+      uncoveredConditions: result.uncoveredConditions };
+  }
 
   const activePolicies = await prisma.conditionRulePolicyVersion.findMany({
     where: { condition: { in: conditions }, state: ConditionRulePolicyState.ACTIVE },

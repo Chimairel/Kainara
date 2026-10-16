@@ -1,4 +1,5 @@
 import type { DietaryPreference } from '@prisma/client';
+import { conditionFoodChoices, preferredFoodChoices } from './food-choice-rules.policy';
 import { clinicalEvidenceSourceByCode } from './clinical-evidence-source.catalog';
 import { validateGeneratedMealCandidate } from './generated-meal-validation.policy';
 import { foodExclusionKey } from './food-exclusion.policy';
@@ -96,22 +97,11 @@ export function buildFoodGuidance(input: {
       );
   }
   const has = (code: string) => r.conditions.includes(code);
-  if (has('HYPERTENSION'))
-    add(
-      'limit',
-      'Salty condiments and processed foods',
-      'Soy sauce, patis, salty instant noodles and processed meats can contribute substantial sodium.',
-      'Compare sodium per serving on labels; use less salty sauce and season with calamansi, herbs or spices instead.',
-      DASH
-    );
+  for (const rule of conditionFoodChoices)
+    if (rule.conditions.some(has))
+      add('limit', rule.name, rule.reason, rule.tip,
+        has('KIDNEY_DISEASE') && rule.conditions.some(condition => condition === 'KIDNEY_DISEASE') ? KIDNEY : rule.sourceCode);
   if (has('DIABETES')) {
-    add(
-      'limit',
-      'Sweetened drinks and frequent large portions of sweets',
-      'Added sugar contributes carbohydrates and may make glucose management harder.',
-      'Choose unsweetened drinks; discuss portions and meal timing rather than removing all rice or carbohydrates.',
-      DIABETES
-    );
     add(
       'discuss',
       'Rice portions, carbohydrate amounts and meal timing',
@@ -122,13 +112,6 @@ export function buildFoodGuidance(input: {
   }
   if (has('HEART_CONDITION')) {
     add(
-      'limit',
-      'Frequent fatty meats, butter and deep-fried foods',
-      'These may contribute saturated fat.',
-      'Compare cooking methods and fat sources; a personal saturated-fat target depends on your condition.',
-      HEART
-    );
-    add(
       'discuss',
       'Your heart condition and personal nutrient limits',
       'A broad heart-condition label does not establish a personal diet prescription.',
@@ -137,13 +120,6 @@ export function buildFoodGuidance(input: {
     );
   }
   if (has('KIDNEY_DISEASE')) {
-    add(
-      'limit',
-      'Salty processed foods and condiments',
-      'Reducing excess sodium is part of kidney-diet education.',
-      'Check sodium labels; confirm your personal target with your RND.',
-      KIDNEY
-    );
     add(
       'discuss',
       'Protein, potassium, phosphorus and fluids',
@@ -177,28 +153,7 @@ export function buildFoodGuidance(input: {
       'DOST_FNRI_PDRI_2015_REV_2018'
     );
 
-  const choices = [
-    {
-      name: 'Cooked vegetables such as carrots or cabbage',
-      ingredients: ['carrots', 'cabbage'],
-      tip: 'Use a variety of vegetables; check sauces and added ingredients.',
-    },
-    {
-      name: 'Whole grains such as brown rice',
-      ingredients: ['brown rice'],
-      tip: 'Use the portion shown in your meal plan; grains still contribute carbohydrates.',
-    },
-    {
-      name: 'Beans such as munggo',
-      ingredients: ['mung beans'],
-      tip: 'Check the whole recipe: munggo dishes may contain shrimp paste or meat.',
-    },
-    {
-      name: 'Lean chicken or fish',
-      ingredients: ['chicken', 'fish'],
-      tip: 'Choose grilled, steamed or well-cooked preparations and check added sauces.',
-    },
-  ];
+  const choices = preferredFoodChoices;
   // Kidney advice needs more clinical context. Unclassified custom restrictions must not be treated as an exhaustive exclusion check.
   if (!has('KIDNEY_DISEASE') && !r.customConditions.length && !r.customFoodRestrictions.length)
     for (const choice of choices) {

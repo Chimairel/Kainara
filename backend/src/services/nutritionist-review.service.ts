@@ -27,6 +27,7 @@ import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.ada
 import { compareDeadlineReviewPriority } from '@/domain/upcoming-preparation.policy';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import { evaluateApprovedConditionRules } from './condition-rule.service';
+import { reportProfileSummary } from '@/domain/report-profile-summary.policy';
 import { isGeneratedBaseVerified } from './meal-base-verification.service';
 import { getNutritionistApprovedMeals } from './nutritionist-approved-meals.service';
 import { NutritionistReplacementService } from './nutritionist-replacement.service';
@@ -563,6 +564,7 @@ export class NutritionistReviewService {
     }
 
     const conditionRuleResults = await evaluateApprovedConditionRules({
+      userId: updatedMealPlan.userId,
       conditions,
       ingredientNames: updatedMealPlan.ingredients.map((ingredient) => ingredient.ingredientName),
       nutrients: {
@@ -722,6 +724,7 @@ export class NutritionistReviewService {
       user: {
         name: user.name,
         nutritionGuidance: planningReport ? {
+          profileSummary: reportProfileSummary(planningReport.profileSnapshot),
           ...(planningReport.content as Record<string, unknown>),
           id: planningReport.id, userId: user.id, version: planningReport.version,
           profileRevision: planningReport.profileRevision, generatedAt: planningReport.generatedAt,

@@ -1,6 +1,7 @@
 'use client';
 
 import NutritionGuidancePaper from '@/features/reports/NutritionGuidancePaper';
+import PatientNutritionLimits from '../PatientNutritionLimits';
 import type { useCaseReviewWorkspaceModel } from './useCaseReviewWorkspaceModel';
 
 type Model = Extract<ReturnType<typeof useCaseReviewWorkspaceModel>, { kind: 'ready' }>;
@@ -17,5 +18,6 @@ export default function CaseProfileSection({ model, paper = false }: SectionProp
         dailyCalorieTarget: detail.user.dailyCalorieTarget,
         conditions: detail.user.conditions, foodRestrictions: detail.user.allergies }} />
       : <p className="text-sm text-brand-muted">No saved nutrition guidance is recorded for this review.</p>}
+    {detail.claimStatus?.claimedByMe && <PatientNutritionLimits key={detail.mealPlan.id} mealId={detail.mealPlan.id} conditions={detail.user.conditions} />}
   </section>;
 }

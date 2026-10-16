@@ -1,5 +1,6 @@
 'use client';
 
+import MacroCalculation from './MacroCalculation';
 import React from 'react';
 import type { NutritionReport } from '@/types';
 import { formatManilaDate } from '@/lib/manila-date';
@@ -141,36 +142,19 @@ export default function NutritionGuidancePaper({
 
           <hr className="border-t border-[#D8F3DC] my-3 sm:my-4" />
 
-          {/* Profile Details */}
-          <section className="space-y-1.5 text-xs sm:text-[13px] text-slate-700">
-            <p>
-              <strong className="text-slate-900 font-semibold">Name:</strong> {profile.name}
-            </p>
-            <p>
-              <strong className="text-slate-900 font-semibold">Estimated energy target:</strong>{' '}
-              <span className="font-semibold text-slate-900">
-                {profile.dailyCalorieTarget === null
-                  ? 'Not recorded'
-                  : `${Number(profile.dailyCalorieTarget).toLocaleString('en-US')} kcal/day`}
-              </span>
-            </p>
-            <p>
-              <strong className="text-slate-900 font-semibold">Reported conditions:</strong>{' '}
-              <span>
-                {profile.conditions.length ? profile.conditions.join(', ').replace(/_/g, ' ') : 'None reported'}
-              </span>
-            </p>
-            <p>
-              <strong className="text-slate-900 font-semibold">Reported food restrictions:</strong>{' '}
-              <span>
-                {profile.foodRestrictions.length
-                  ? profile.foodRestrictions.join(', ').replace(/_/g, ' ')
-                  : 'None reported'}
-              </span>
-            </p>
-            <p>
-              <strong className="text-slate-900 font-semibold">Goal:</strong> {profile.goal.replace(/_/g, ' ')}
-            </p>
+          <section aria-label="Recorded onboarding profile" className="space-y-3 text-[13px] text-slate-700">
+            <h2 className="text-base font-bold text-[#1B4332]">Your recorded profile</h2>
+            <dl className="grid grid-cols-1 gap-x-8 gap-y-2.5 sm:grid-cols-2">
+              {(report.profileSummary ?? [
+                { label: 'Name', value: profile.name },
+                { label: 'Goal', value: profile.goal.replace(/_/g, ' ') },
+                { label: 'Conditions', value: profile.conditions.join(', ').replace(/_/g, ' ') || 'None reported' },
+                { label: 'Food restrictions', value: profile.foodRestrictions.join(', ').replace(/_/g, ' ') || 'None reported' },
+              ]).map(({ label, value }) => <div key={label} className="min-w-0">
+                <dt className="text-xs text-slate-600">{label}</dt>
+                <dd className="mt-0.5 break-words font-medium text-slate-900">{value}</dd>
+              </div>)}
+            </dl>
           </section>
 
           <hr className="border-t border-[#D8F3DC] my-3 sm:my-4" />
@@ -180,19 +164,16 @@ export default function NutritionGuidancePaper({
             <SummaryHeading className="text-sm sm:text-base font-bold text-[#2D6A4F]">
               What these numbers mean
             </SummaryHeading>
-            {report.reportPolicyVersion && (
-              <p className="text-xs text-slate-600">
-                Prepared from saved profile data, fixed calculations and referenced guidance rules. No AI response is
-                used to write this report.
-              </p>
-            )}
             <p className="text-xs sm:text-[13px] text-slate-700 leading-relaxed">
               {report.generalSummary || 'No summary recorded for this version.'}
             </p>
           </section>
 
           {/* Daily planning estimates (macro cards) */}
-          <CalorieCalculation calculation={report.calorieCalculation} />
+          {!report.planningTargets && <section aria-label="Daily planning estimates" className="space-y-2 py-3 text-[13px] text-slate-700">
+            <h2 className="text-base font-bold text-[#1B4332]">Daily planning estimate</h2>
+            <p>{profile.dailyCalorieTarget === null ? 'Not recorded' : `${Number(profile.dailyCalorieTarget).toLocaleString('en-US')} kcal/day`}</p>
+          </section>}
           {report.planningTargets && (
             <section
               role="region"
@@ -202,7 +183,7 @@ export default function NutritionGuidancePaper({
               <div className="flex items-center justify-between pb-2 border-b border-[#D8F3DC]">
                 <span className="font-bold text-xs sm:text-sm text-[#1B4332]">Daily planning estimates</span>
                 <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#1B4332] bg-[#D8F3DC] px-2 py-0.5 rounded">
-                  PDRI Aligned
+                  Planning reference
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
@@ -231,11 +212,11 @@ export default function NutritionGuidancePaper({
                   </div>
                 </div>
               </div>
-              {report.planningTargets.explanation && (
-                <p className="text-xs text-slate-600 leading-normal">{report.planningTargets.explanation}</p>
-              )}
             </section>
           )}
+
+          <CalorieCalculation calculation={report.calorieCalculation} />
+          <MacroCalculation targets={report.planningTargets} />
 
           {report.foodGuidance?.formatVersion === 1 && <FoodGuidanceSections guidance={report.foodGuidance} />}
           {/* Page 1 Reference Items */}

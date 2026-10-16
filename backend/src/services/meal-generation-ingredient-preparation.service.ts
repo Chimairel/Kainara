@@ -2,6 +2,7 @@ import { AIConfidenceFlag, MealCandidateProvenance, MealIngredientDataSource, Me
 import { reconcileFnriMealTotals } from '@/domain/fnri-meal-totals.policy';
 import { lookupIngredientCompositions } from '@/lib/ingredient-composition';
 import prisma from '@/lib/prisma';
+import { primaryMealExclusion } from '@/domain/recipe-category.policy';
 import type { PreparationRankingReasonCode } from '@/domain/upcoming-preparation.policy';
 import {
   validateGeneratedMealCandidate,
@@ -99,6 +100,9 @@ export async function prepareGeneratedMealIngredients(input: {
   composition.forEach((food) => compositionRevisions.set(food.id, food.compositionRevision));
 
   for (const rawMeal of input.meals) {
+    if (rawMeal.mealType !== MealType.SNACK && primaryMealExclusion(rawMeal.mealName)) {
+      throw new Error(`PRIMARY_MEAL_INELIGIBLE: ${rawMeal.mealName}`);
+    }
     const slot = input.unmatchedSlots.find(
       (candidate) => candidate.dayNumber === rawMeal.dayNumber && candidate.mealType === rawMeal.mealType
     );

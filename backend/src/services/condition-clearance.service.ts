@@ -489,28 +489,31 @@ export class ConditionClearanceService {
     rationale?: string;
   }) {
     await requireEligibleReviewer(input.nutritionistProfileId);
-    const policy = await prisma.conditionRulePolicyVersion.findUnique({
-      where: { id: input.policyVersionId },
-      include: { approvals: true },
-    });
-    if (!policy || policy.state !== 'DRAFT') throw new Error('Draft ruleset version not found.');
-    if (!policy.impactReport) throw new Error('A dry-run impact report is required before ruleset approval.');
-    if (policy.approvals.some((approval) => approval.nutritionistProfileId === input.nutritionistProfileId)) {
-      throw new Error('The same nutritionist cannot approve a ruleset version twice.');
-    }
-    const governedRules = await Promise.all([
-      prisma.conditionNutrientRule.findMany({
-        where: { condition: policy.condition, policyVersion: policy.policyVersion },
-        include: { evidenceSource: true },
-      }),
-      prisma.conditionIngredientRule.findMany({
-        where: { condition: policy.condition, policyVersion: policy.policyVersion },
-        include: { evidenceSource: true },
-      }),
-    ]);
-    assertConditionPolicyEvidenceComplete([...governedRules[0], ...governedRules[1]]);
-
     return prisma.$transaction(async (tx) => {
+      // Serialize clinical-policy decisions against other policy changes and
+      // member-profile transactions; approvals must count the committed votes.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(741010)`;
+      const policy = await tx.conditionRulePolicyVersion.findUnique({
+        where: { id: input.policyVersionId },
+        include: { approvals: true },
+      });
+      if (!policy || policy.state !== 'DRAFT') throw new Error('Draft ruleset version not found.');
+      if (!policy.impactReport) throw new Error('A dry-run impact report is required before ruleset approval.');
+      if (policy.approvals.some((approval) => approval.nutritionistProfileId === input.nutritionistProfileId)) {
+        throw new Error('The same nutritionist cannot approve a ruleset version twice.');
+      }
+      const governedRules = await Promise.all([
+        tx.conditionNutrientRule.findMany({
+          where: { condition: policy.condition, policyVersion: policy.policyVersion },
+          include: { evidenceSource: true },
+        }),
+        tx.conditionIngredientRule.findMany({
+          where: { condition: policy.condition, policyVersion: policy.policyVersion },
+          include: { evidenceSource: true },
+        }),
+      ]);
+      assertConditionPolicyEvidenceComplete([...governedRules[0], ...governedRules[1]]);
+
       await tx.conditionRulePolicyApproval.create({
         data: {
           policyVersionId: policy.id,
@@ -530,7 +533,12 @@ export class ConditionClearanceService {
         },
       ];
       const rejected = approvals.some((approval) => approval.decision === 'REJECT');
-      const mayActivate = approvals.filter((approval) => approval.decision === 'APPROVE').length >= 2;
+      const approvalIds = approvals.filter(approval => approval.decision === 'APPROVE').map(approval => approval.nutritionistProfileId);
+      const currentReviewers = await tx.nutritionistProfile.findMany({ where: { id: { in: approvalIds } },
+        include: { user: { select: { role: true, isSuspended: true } } } });
+      const mayActivate = new Set(currentReviewers.filter(row => isNutritionistEligibleForReview(row)).map(row => row.id)).size >= 2;
+      await tx.auditEvent.create({ data: { action: 'CONDITION_RULESET_DECISION', entityType: 'ConditionRulePolicyVersion',
+        entityId: policy.id, metadata: { nutritionistProfileId: input.nutritionistProfileId, decision: input.decision, mayActivate, rationale: input.rationale } } });
       if (rejected) {
         return tx.conditionRulePolicyVersion.update({
           where: { id: policy.id },
@@ -631,12 +639,13 @@ export class ConditionClearanceService {
         }
       }
       return activatedPolicy;
-    });
+    }, { timeout: 30_000 });
   }
 
   static async suspendRuleset(nutritionistProfileId: string, policyVersionId: string, reason: string) {
     const reviewer = await requireEligibleReviewer(nutritionistProfileId);
     return prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(741010)`;
       const policy = await tx.conditionRulePolicyVersion.update({
         where: { id: policyVersionId },
         data: { state: 'SUSPENDED', suspendedAt: new Date(), suspensionReason: reason.trim().slice(0, 240) },

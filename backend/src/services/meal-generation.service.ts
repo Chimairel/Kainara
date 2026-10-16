@@ -166,10 +166,14 @@ export class MealGenerationService {
         (existingCycle.profileAdaptationState === 'REBUILD_REQUIRED' ||
           existingCycle.profileAdaptationState === 'SAFETY_REVALIDATION_REQUIRED');
       if (!rebuildable) return { state: 'EXISTING', planGroupId: existingCycle.id };
+      const repair = await acknowledgedRebuild(userId, existingCycle.id, now);
       const planGroupId = await MealGenerationService.generateWindowOnce(
         userId,
         { planType: PlanType.WEEKLY, numDays: 7, startDate: window.startDate },
-        true
+        true,
+        undefined,
+        undefined,
+        repair ?? undefined
       );
       return { state: 'PREPARED', planGroupId };
     }
@@ -294,7 +298,8 @@ export class MealGenerationService {
         billingStart,
         replaceExisting,
         job.id,
-        requestKey
+        requestKey,
+        repair
       );
       const planGroupId = await MealGenerationService.generate7DayPlan(
         userId,
