@@ -15,8 +15,8 @@ async function main() {
   assert(local || args.includes('--staging') && target.hostname === 'ep-delicate-salad-azlnzuyu.c-3.ap-southeast-1.aws.neon.tech' &&
     target.pathname === '/neondb', 'Only loopback or the confirmed isolated staging database is supported.');
   const [library, raw] = await Promise.all([
-    prisma.mealLibrary.findMany({ select: { id: true, mealName: true, applicableMealTypes: { select: { mealType: true } } } }),
-    prisma.rawRecipeCandidate.findMany({ select: { id: true, recipeName: true, category: true, applicableMealTypes: { select: { mealType: true } } } }),
+    prisma.mealLibrary.findMany({ select: { id: true, mealName: true, applicableMealTypes: true } }),
+    prisma.rawRecipeCandidate.findMany({ select: { id: true, recipeName: true, category: true, applicableMealTypes: true } }),
   ]);
   const changes = [
     ...library.filter(row => primaryMealExclusion(row.mealName) && row.applicableMealTypes.some(t => t.mealType !== 'SNACK'))

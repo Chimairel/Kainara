@@ -2,11 +2,14 @@
 export function isSnackOnlyRecipe(name: string, category?: string | null): boolean {
   const text = `${name} ${category ?? ''}`.normalize('NFKC').toLowerCase();
   const savoryCake = /\b(?:fish|crab|salmon|tuna|potato) cakes?\b/u.test(text);
+  const savoryMuffinSandwich = /\benglish muffin\b/u.test(text) && /\bsandwich\b/u.test(text) &&
+    /\b(?:egg|cheese|chicken|tuna|ham|turkey|vegetable)\b/u.test(text);
   return (
-    /\b(?:desserts?|taho|brownies?|blondies?|cupcakes?|cheesecakes?|cookies?|muffins?|doughnuts?|donuts?|macaroons?|mousse|cand(?:y|ies)|puddings?|puto|kutsinta|palitaw|suman|biko|bibingka|binignit|turon|maruya|bananaque|banana cue|kamote cue|espasol|maja blanca|ube halaya|pichi[ -]pichi|polvoron|pastillas|yema|ensaymada|hopia|bilo[ -]bilo|sapin[ -]sapin|leche flan|ice cream|halo[ -]halo|beverages?|drinks?|smoothies?|milkshakes?|carioca|karioka|binatog|ginataang mais|roasted pumpkin seeds)\b/u.test(
+    /\b(?:desserts?|taho|brownies?|blondies?|cupcakes?|cheesecakes?|cookies?|doughnuts?|donuts?|macaroons?|mousse|cand(?:y|ies)|puddings?|puto|kutsinta|palitaw|suman|biko|bibingka|binignit|turon|maruya|bananaque|banana cue|kamote cue|espasol|maja blanca|ube halaya|pichi[ -]pichi|polvoron|pastillas|yema|ensaymada|hopia|bilo[ -]bilo|sapin[ -]sapin|leche flan|ice cream|halo[ -]halo|beverages?|drinks?|smoothies?|milkshakes?|carioca|karioka|binatog|ginataang mais|roasted pumpkin seeds)\b/u.test(
       text
     ) ||
-    (!savoryCake && /\bcakes?\b/u.test(text))
+    (!savoryCake && /\bcakes?\b/u.test(text)) ||
+    (!savoryMuffinSandwich && /\bmuffins?\b/u.test(text))
   );
 }
 

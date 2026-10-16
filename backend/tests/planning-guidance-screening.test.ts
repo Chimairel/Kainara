@@ -12,7 +12,7 @@ import { clinicalRuleKey, clinicalRuleSnapshot } from '../src/domain/clinical-ru
 test('plain components, taho, desserts and drinks cannot occupy primary slots; composite dishes remain distinct', () => {
   for (const name of ['Homemade Taho', 'Pandesal', 'Traditional Filipino Pandesal', 'Pan de sal recipe', 'Garlic Bread', 'Banana Smoothie', 'Leche Flan', 'Filipino vinegar dipping sauce'])
     assert(!effectiveRecipeMealTypes(name, null, [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER]).some(type => type !== MealType.SNACK), name);
-  for (const name of ['Pandesal egg sandwich', 'Vegetable Omelet', 'Breaded Chicken', 'Fish Cakes', 'Chicken Adobo'])
+  for (const name of ['Pandesal egg sandwich', 'Egg and Cheese English Muffin Sandwich', 'Vegetable Omelet', 'Breaded Chicken', 'Fish Cakes', 'Chicken Adobo'])
     assert(effectiveRecipeMealTypes(name, null, [MealType.BREAKFAST]).includes(MealType.BREAKFAST), name);
 });
 
