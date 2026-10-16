@@ -1,6 +1,6 @@
 import type { DietaryPreference } from '@prisma/client';
 
-export const MEAL_INGREDIENT_CLASSIFICATION_VERSION = 'INGREDIENT_CLASSIFIER_V4';
+export const MEAL_INGREDIENT_CLASSIFICATION_VERSION = 'INGREDIENT_CLASSIFIER_V5';
 
 export type CanonicalAllergen = 'SHELLFISH' | 'NUTS' | 'DAIRY' | 'GLUTEN' | 'EGGS';
 export type IngredientClassificationStatus = 'COMPLETE' | 'NEEDS_REVIEW';
@@ -174,8 +174,14 @@ export function classifyMealIngredients(
 
   for (const ingredient of ingredients) {
     const normalized = normalize(ingredient.name ?? '');
+    const identityText =
+      `${FNRI_SOYBEAN_CURD_NAMES.has(normalized) ? 'tofu' : normalized} ${normalize(ingredient.compositionFoodName ?? '')}`.trim();
+    // FNRI groups finfish and shellfish together. The group establishes seafood,
+    // not the presence of a shellfish ingredient. Explicit source/composition
+    // identities still participate in every allergen check below.
+    const broadSeafoodCategory = normalize(ingredient.category ?? '') === 'fish shellfish';
     const classificationText =
-      `${FNRI_SOYBEAN_CURD_NAMES.has(normalized) ? 'tofu' : normalized} ${normalize(ingredient.compositionFoodName ?? '')} ${normalize(ingredient.category ?? '')}`.trim();
+      `${identityText} ${broadSeafoodCategory ? 'fish' : normalize(ingredient.category ?? '')}`.trim();
     const facts: string[] = [];
     if (!normalized) {
       unknownIngredients.push(String(ingredient.name ?? ''));
@@ -208,7 +214,8 @@ export function classifyMealIngredients(
       animalDerived ||
       matchesAny(classificationText, RECOGNIZED_NON_ANIMAL_PATTERNS) ||
       Boolean(ingredient.category?.trim());
-    if (!recognized) unknownIngredients.push(ingredient.name);
+    if (!recognized || (broadSeafoodCategory && !matchesAny(identityText, SEAFOOD_PATTERNS)))
+      unknownIngredients.push(ingredient.name);
     findings.push({ ingredient: ingredient.name, facts });
   }
 
