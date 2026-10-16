@@ -101,10 +101,14 @@ async function main() {
     const item = preview.data.items.find((row: any) => row.id === source.id);
     assert.equal(item.reviewed, false);
     assert.ok(preview.data.items.find((row: any) => row.id === incomplete.id).issues.length);
-    assert.equal(await prisma.mealBaseVerification.count(), 0);
+    assert.equal(
+      await prisma.mealBaseVerification.count({ where: { targetId: { in: [source.id, incomplete.id] } } }),
+      0
+    );
     checks.push('Export is read-only, has evidence issues and creates no approval');
     const payload = {
       confirmedReview: true,
+      environmentKey: preview.data.environmentKey,
       items: [
         {
           id: item.id,
@@ -123,10 +127,14 @@ async function main() {
       return { status: response.status, body: (await response.json()) as any };
     };
     assert.equal((await submit({ ...payload, confirmedReview: false })).status, 400);
+    assert.equal((await submit({ ...payload, environmentKey: '0'.repeat(64) })).status, 409);
     const stale = await submit({ ...payload, items: [{ ...payload.items[0], evidenceHash: '0'.repeat(64) }] });
     assert.equal(stale.body.data.results[0].status, 'FAILED');
-    assert.equal(await prisma.mealBaseVerification.count(), 0);
-    checks.push('Explicit confirmation and stale-evidence guard enforced');
+    assert.equal(
+      await prisma.mealBaseVerification.count({ where: { targetId: { in: [source.id, incomplete.id] } } }),
+      0
+    );
+    checks.push('Explicit confirmation, database-target binding and stale-evidence guard enforced');
     const { MealBaseVerificationService } = await import('../src/services/meal-base-verification.service');
     await MealBaseVerificationService.claim(other.nutritionistProfile!.id, 'RAW_RECIPE', source.id);
     assert.equal((await submit(payload)).body.data.results[0].status, 'FAILED');
@@ -148,6 +156,7 @@ async function main() {
       (
         await submit({
           confirmedReview: true,
+          environmentKey: preview.data.environmentKey,
           items: [
             {
               id: incomplete.id,

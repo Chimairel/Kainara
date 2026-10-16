@@ -48,8 +48,12 @@ if (mode === 'export') {
   const items = [],
     cursors = new Set();
   let cursor;
+  let environmentKey;
   do {
     const page = await request(`preview${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`);
+    if (!/^[a-f0-9]{64}$/.test(page.environmentKey) || (environmentKey && environmentKey !== page.environmentKey))
+      throw new Error('The API database target changed during export. Start a new export.');
+    environmentKey = page.environmentKey;
     items.push(...page.items);
     cursor = page.nextCursor;
     if (cursor && cursors.has(cursor)) throw new Error('Repeated export cursor; stopped.');
@@ -59,7 +63,14 @@ if (mode === 'export') {
   writeFileSync(
     resolve(file),
     JSON.stringify(
-      { format: 'KAINARA_RECIPE_REVIEW_V1', api, exportedAt: new Date().toISOString(), confirmedReview: false, items },
+      {
+        format: 'KAINARA_RECIPE_REVIEW_V1',
+        api,
+        environmentKey,
+        exportedAt: new Date().toISOString(),
+        confirmedReview: false,
+        items,
+      },
       null,
       2
     ),
@@ -76,6 +87,7 @@ if (mode === 'export') {
     report.format !== 'KAINARA_RECIPE_REVIEW_V1' ||
     report.api !== api ||
     report.confirmedReview !== true ||
+    !/^[a-f0-9]{64}$/.test(report.environmentKey || '') ||
     !Array.isArray(report.items)
   ) {
     throw new Error('Review file must match this API and explicitly confirm the review.');
@@ -95,7 +107,7 @@ if (mode === 'export') {
     const items = selected
       .slice(start, start + 5)
       .map(({ id, revisionKey, evidenceHash, rationale }) => ({ id, revisionKey, evidenceHash, rationale }));
-    const response = await request('confirm', { confirmedReview: true, items });
+    const response = await request('confirm', { confirmedReview: true, environmentKey: report.environmentKey, items });
     results.push(...response.results);
     // Preserve partial receipts after every response; retries retain existing reviewer attribution.
     writeFileSync(`${resolve(file)}.receipts.json`, JSON.stringify({ api, results }, null, 2), { mode: 0o600 });

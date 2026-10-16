@@ -6,6 +6,7 @@ import {
   recipeBatchReviewIssues,
   recipeBatchReviewSchema,
   recipeReviewEvidenceHash,
+  recipeBatchEnvironmentKey,
 } from '@/domain/recipe-batch-review.policy';
 import {
   MealBaseVerificationService,
@@ -27,6 +28,7 @@ export async function recipeBatchReviewPreview(cursor?: string) {
     select: { targetId: true, revisionKey: true, status: true, reviewedByNutritionistId: true, reviewedAt: true },
   });
   return {
+    environmentKey: recipeBatchEnvironmentKey(),
     nextCursor: rows.length > 50 ? page[page.length - 1].id : null,
     items: page.map((row) => {
       const evidence = rawBaseVerificationEvidence(row);
@@ -46,6 +48,12 @@ export async function recipeBatchReviewPreview(cursor?: string) {
 /** Each item uses the ordinary claim/serializable decision path, with explicit partial results. */
 export async function confirmRecipeBatchReview(profileId: string, input: z.infer<typeof recipeBatchReviewSchema>) {
   const batch = recipeBatchReviewSchema.parse(input);
+  if (batch.environmentKey !== recipeBatchEnvironmentKey())
+    throw new AppError(
+      'The API database target changed. Export and confirm a review for this environment.',
+      409,
+      'RECIPE_REVIEW_TARGET_CHANGED'
+    );
   const results: Array<{ id: string; status: 'VERIFIED' | 'ALREADY_VERIFIED' | 'FAILED'; message?: string }> = [];
   for (const item of batch.items) {
     let claimed = false;

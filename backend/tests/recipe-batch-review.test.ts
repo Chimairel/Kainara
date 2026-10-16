@@ -4,6 +4,7 @@ import {
   recipeBatchReviewIssues,
   recipeBatchReviewSchema,
   recipeReviewEvidenceHash,
+  recipeBatchEnvironmentKey,
 } from '../src/domain/recipe-batch-review.policy';
 import { recordedRawRecipeReviewWhere } from '../src/services/recorded-recipe-review.service';
 import { baseMealAdmissionMatches } from '../src/services/meal-base-admission.service';
@@ -22,23 +23,40 @@ const item = {
   evidenceHash: recipeReviewEvidenceHash(evidence),
   rationale: 'Reviewed ingredients and published serving.',
 };
+const parseBatch = (data: Record<string, unknown>) =>
+  recipeBatchReviewSchema.safeParse({ environmentKey: 'a'.repeat(64), ...data });
 
 test('batch approval requires explicit review, bounded items and unique identities', () => {
-  assert.equal(recipeBatchReviewSchema.safeParse({ confirmedReview: false, items: [item] }).success, false);
-  assert.equal(recipeBatchReviewSchema.safeParse({ confirmedReview: true, items: [item, item] }).success, false);
+  assert.equal(parseBatch({ confirmedReview: false, items: [item] }).success, false);
+  assert.equal(parseBatch({ confirmedReview: true, items: [item, item] }).success, false);
   assert.equal(
-    recipeBatchReviewSchema.safeParse({
+    parseBatch({
       confirmedReview: true,
       items: Array.from({ length: 26 }, (_, i) => ({ ...item, id: String(i) })),
     }).success,
     false
   );
   assert.equal(
-    recipeBatchReviewSchema.safeParse({ confirmedReview: true, items: [item], reviewedByNutritionistId: 'spoofed' })
-      .success,
+    parseBatch({ confirmedReview: true, items: [item], reviewedByNutritionistId: 'spoofed' }).success,
     false
   );
-  assert.equal(recipeBatchReviewSchema.safeParse({ confirmedReview: true, items: [item] }).success, true);
+  assert.equal(parseBatch({ confirmedReview: true, items: [item] }).success, true);
+  assert.equal(recipeBatchReviewSchema.safeParse({ confirmedReview: true, items: [item] }).success, false);
+});
+test('review exports bind to the database behind localhost, while pooled/direct hosts identify the same target', () => {
+  const key = (url: string) => recipeBatchEnvironmentKey(url, 'synthetic-test-key');
+  assert.notEqual(
+    key('postgresql://user:example@stage.example/neondb'),
+    key('postgresql://user:example@demo.example/neondb')
+  );
+  assert.notEqual(
+    key('postgresql://user:example@localhost:55432/local'),
+    key('postgresql://user:example@localhost:55432/demo')
+  );
+  assert.equal(
+    key('postgresql://user:example@ep-test-pooler.example/demo'),
+    key('postgresql://user:example@ep-test.example/demo')
+  );
 });
 test('automated completeness checks retain valid zero macros but reject missing amounts, negative nutrients and missing preparation', () => {
   assert.deepEqual(recipeBatchReviewIssues(evidence), []);
