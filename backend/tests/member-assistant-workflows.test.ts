@@ -37,7 +37,7 @@ test('starter, acknowledgment, question and hold explanations preserve separate 
     ['why do I need to acknowledge my report?', 'different steps'], ['I already read my nutrition guidance but am blocked', 'correct version'],
     ['I answered the RND meal question, why is it still pending?', 'still needs to review'],
     ['where do I answer a profile clarification?', 'Health details'],
-    ['why are meals pending?', 'separate checks'], ['why is my profile awaiting review again?', 'another check'],
+    ['why are meals pending?', 'separate checks'], ['why is my profile awaiting review again?', 'Unrecognized or vague declarations'],
     ['why is next week still preparing?', 'separate dates'], ['why can I not swap meals?', 'remaining cycle allowance'],
     ['does a checked grocery mean I ate it?', 'not food eaten'], ['can I log a future meal as eaten?', 'future meal'],
   ];
@@ -78,7 +78,11 @@ test('planning availability variations use owned status while RND and setup expl
     assert.ok(answer.links.some(link => link.href === '/help'), question);
   }
   assert.match(assistantStaticReply('what are the meal planning requirements?')!.text, /correct Nutrition guidance/);
-  assert.match(assistantStaticReply('why do I need an RND?')!.text, /cannot skip/);
+  const reviewHelp = assistantStaticReply('why do I need an RND?')!.text;
+  assert.match(reviewHelp, /without routine RND profile verification/);
+  assert.match(reviewHelp, /Unrecognized or vague declarations/);
+  assert.match(reviewHelp, /individual meal review remain in place/);
+  assert.match(reviewHelp, /cannot clear a hold/);
   assert.match(assistantStaticReply('how long does RND review take?')!.text, /promise a completion time/);
   assert.equal(assistantStaticReply('/ai what is RND?'), null);
   assert.equal(assistantStaticReply('what does an RND recommend I eat for kidney disease?'), null);

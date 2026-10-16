@@ -153,6 +153,10 @@ Question purpose takes precedence over broad navigation matching. In particular,
 
 STATUS-02 supports explicit `YYYY-MM-DD` and today/tomorrow/yesterday (also ngayon/bukas/kahapon), interpreted in Manila time. Results are limited to six candidate rows, at most five displayed choices, in the authenticated owner's current noncancelled, nonsuperseded cycle. It does not search another member or silently substitute a Library recipe. Other cycles and ambiguous entries direct members to Meals. Named-meal status replies currently use English; prepared workflow help has reviewed English/Tagalog variants. Both status paths remain free at zero credits/during AI cooldown, with ordinary authenticated transport limits still applying. They reuse existing lifecycle/clearance reconciliation; they add no new review or logging command.
 
+## Profile preparation gate — October 17, 2026
+
+Recognized condition and allergy catalogue choices (including recognized typed aliases) can proceed to meal preparation without routine profile verification. Unrecognized or vague declarations still require clarification. Existing current RND questions, correction proposals, declines and reopened review episodes remain holds. This does not classify a condition as unrestricted, create an RND approval, waive required Health access, acknowledge a report, or approve an individual meal. Required meal-specific review and allergy/condition checks remain enforced. Prepared English/Tagalog review explanations and the generated browser guide describe this distinction.
+
 ## Explicit AI command — October 16, 2026
 
 `/ai your question` bypasses prepared matching and direct shortcuts for that message only. It is not consent: show the existing one-credit confirmation before any provider call. Bare `/ai` explains the syntax for free. Prefix recognition is case insensitive and requires whitespace/end after `/ai`; `/air` and a command embedded later in prose do not select this route. Keep the original command in confirmation, receipt identity and restored session state; remove the prefix only from the question sent to the provider.

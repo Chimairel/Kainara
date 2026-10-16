@@ -193,7 +193,7 @@ test('Lifestyle quote and checkout recheck health needs before storing a quote o
   );
 });
 
-test('supported allergy-only intake skips clinical forms and profile confirmation; medical intake still needs approval', async (t) => {
+test('recognized allergy and medical intake skip routine profile confirmation while meal restrictions remain', async (t) => {
   let medical = false;
   const user = () => ({
     userProfile: { safetyRevision: 1, otherConditions: null, otherAllergies: null },
@@ -215,6 +215,6 @@ test('supported allergy-only intake skips clinical forms and profile confirmatio
   assert.equal(await ClinicalProfileReviewService.hasCurrentApproval('fixture', client), true);
   assert.deepEqual(await ClinicalEvidenceService.requirementsForUser('fixture'), []);
   medical = true;
-  assert.equal(await ClinicalProfileReviewService.hasCurrentApproval('fixture', client), false);
+  assert.equal(await ClinicalProfileReviewService.hasCurrentApproval('fixture', client), true);
   assert.deepEqual(await ClinicalEvidenceService.requirementsForUser('fixture'), []);
 });

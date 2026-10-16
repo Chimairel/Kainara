@@ -5,7 +5,7 @@ import { env } from '@/config/env';
 import { reviewContextKey } from '@/domain/meal-review-context.policy';
 import { requiresIndividualPlanningReview } from '@/domain/planning-membership.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
-import { activeConditionPlanningAssessment } from '@/domain/condition-planning-assessment.policy';
+import { needsProfileDeclarationReview } from '@/domain/profile-declaration-review.policy';
 
 export const POLICY_VERSION = 'PROFILE_DETAILS_V1';
 export const CLAIM_TTL_MS = 30 * 60_000;
@@ -77,14 +77,16 @@ export function snapshotKey(value: Prisma.JsonValue): string | null {
 export function context(user: ProfileUser | QueueUser) {
   const profile = user.userProfile;
   if (!profile) throw new AppError('Complete your health profile before meal planning.', 422, 'PROFILE_INCOMPLETE');
-  const restrictions = adaptUserSafetyRestrictions({
+  const declarationSource = {
     healthConditions: user.healthConditions.map((item) => item.condition),
     allergies: user.allergies.map((item) => item.allergen),
     otherConditions: profile.otherConditions,
     otherAllergies: profile.otherAllergies,
     safetyEntries: user.safetyProfileEntries,
     useConditionAssessments: false,
-  });
+  };
+  const restrictions = adaptUserSafetyRestrictions(declarationSource);
+  const needsClarification = needsProfileDeclarationReview(declarationSource);
   const snapshot = {
     ...(env.CLINICAL_CLARIFICATIONS_ENABLED
       ? {
@@ -128,16 +130,10 @@ export function context(user: ProfileUser | QueueUser) {
       !user.safetyProfileEntries.some((item) => item.domain === 'CONDITION') ||
       !user.safetyProfileEntries.some((item) => item.domain === 'ALLERGY'),
     restricted: requiresIndividualPlanningReview(restrictions) || !!user.clinicalReviewEpoch,
+    // An identified condition can prepare candidates while its meal checks remain restricted.
+    profileReviewRequired: needsClarification || !!user.clinicalReviewEpoch,
     // A named restriction requiring manual meal review can still receive profile
     // confirmation. Unmapped/vague declarations must first be clarified.
-    needsClarification: restrictions.displayEntries.some(
-      (entry) =>
-        entry.supportState !== 'SUPPORTED' &&
-        entry.supportState !== 'RECOGNIZED_UNSUPPORTED' &&
-        !user.safetyProfileEntries.some(
-          (item) =>
-            item.domain === entry.domain && item.displayName === entry.label && activeConditionPlanningAssessment(item)
-        )
-    ),
+    needsClarification,
   };
 }

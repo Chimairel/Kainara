@@ -49,6 +49,22 @@ function isCurrentApproval(
   );
 }
 
+type ReviewGateRecord = { status: ClinicalProfileReviewStatus; profileSnapshot: Prisma.JsonValue };
+
+function hasCurrentProfileHold(current: ReturnType<typeof context>, reviews: readonly ReviewGateRecord[]) {
+  return reviews.some((review) => {
+    const snapshot = review.profileSnapshot as Record<string, Prisma.JsonValue> | null;
+    return review.status === 'DECLINED' && snapshotKey(review.profileSnapshot) === current.scopeKey &&
+      (!env.CLINICAL_CLARIFICATIONS_ENABLED || snapshot?.profileRevision === current.profile.revision);
+  });
+}
+
+function profilePlanningReady(current: ReturnType<typeof context>, reviews: readonly ReviewGateRecord[]) {
+  if (current.declarationRequired) return false;
+  if (reviews.some((review) => isCurrentApproval(review, current.scopeKey, current.profile.revision))) return true;
+  return !current.profileReviewRequired && !hasCurrentProfileHold(current, reviews);
+}
+
 export class ClinicalProfileReviewService {
   /** Queue checks use bounded batches, rather than several database reads for each member. */
   static async currentApprovalsByUser(userIds: string[]) {
@@ -56,7 +72,7 @@ export class ClinicalProfileReviewService {
     const [users, reviews, forms, proposals] = await Promise.all([
       prisma.user.findMany({ where: { id: { in: userIds } }, select: profileQueueSelect }),
       prisma.clinicalProfileReview.findMany({
-        where: { userId: { in: userIds }, policyVersion: { startsWith: POLICY_VERSION + ':' }, status: 'APPROVED' },
+        where: { userId: { in: userIds }, policyVersion: { startsWith: POLICY_VERSION + ':' }, status: { in: ['APPROVED', 'DECLINED'] } },
         select: { userId: true, status: true, profileSnapshot: true },
       }),
       env.CLINICAL_CLARIFICATIONS_ENABLED
@@ -82,14 +98,7 @@ export class ClinicalProfileReviewService {
             row.profileRevision === current.profile.revision &&
             row.scopeKey === current.scopeKey
         );
-        const approved =
-          !waiting &&
-          !current.declarationRequired &&
-          (!current.restricted ||
-            reviews.some(
-              (review) =>
-                review.userId === user.id && isCurrentApproval(review, current.scopeKey, current.profile.revision)
-            ));
+        const approved = !waiting && profilePlanningReady(current, reviews.filter((review) => review.userId === user.id));
         return [user.id, approved] as const;
       })
     );
@@ -107,7 +116,7 @@ export class ClinicalProfileReviewService {
             select: { status: true, profileSnapshot: true, reasonCodes: true, reviewNotes: true },
           }),
           prisma.clinicalProfileReview.findMany({
-            where: { userId, policyVersion: { startsWith: POLICY_VERSION + ':' }, status: 'APPROVED' },
+            where: { userId, policyVersion: { startsWith: POLICY_VERSION + ':' }, status: { in: ['APPROVED', 'DECLINED'] } },
             select: { status: true, profileSnapshot: true },
           }),
         ])
@@ -135,13 +144,11 @@ export class ClinicalProfileReviewService {
     return {
       proposalPending,
       clarificationPending,
-      required: current.restricted,
+      required: current.profileReviewRequired || hasCurrentProfileHold(current, approvals) || clarificationPending || proposalPending,
       approved:
         !clarificationPending &&
         !proposalPending &&
-        !current.declarationRequired &&
-        (!current.restricted ||
-          approvals.some((review) => isCurrentApproval(review, current.scopeKey, current.profile.revision))),
+        profilePlanningReady(current, approvals),
       declarationRequired: current.declarationRequired,
       detailsRequest: request
         ? {
@@ -179,13 +186,13 @@ export class ClinicalProfileReviewService {
     )
       return false;
     if (current.declarationRequired) return false;
-    if (!current.restricted) return true;
+    if (!current.restricted && !current.profileReviewRequired) return true;
     const approvals = await client.clinicalProfileReview.findMany({
-      where: { userId, policyVersion: { startsWith: POLICY_VERSION + ':' }, status: 'APPROVED' },
+      where: { userId, policyVersion: { startsWith: POLICY_VERSION + ':' }, status: { in: ['APPROVED', 'DECLINED'] } },
       orderBy: { reviewedAt: 'desc' },
       select: { status: true, profileSnapshot: true },
     });
-    return approvals.some((review) => isCurrentApproval(review, current.scopeKey, current.profile.revision));
+    return profilePlanningReady(current, approvals);
   }
 
   static async assertReadyForMealPlanning(userId: string) {
@@ -265,6 +272,12 @@ export class ClinicalProfileReviewService {
         : [],
     ]);
     const people = eligible
+      .filter(({ user, current }) =>
+        current.profileReviewRequired ||
+        hasCurrentProfileHold(current, reviews.filter((review) => review.userId === user.id)) ||
+        [...formStates, ...proposals].some((row) => row.userId === user.id &&
+          row.profileRevision === current.profile.revision && row.scopeKey === current.scopeKey)
+      )
       .filter(
         ({ user, current }) =>
           !reviews.some(
