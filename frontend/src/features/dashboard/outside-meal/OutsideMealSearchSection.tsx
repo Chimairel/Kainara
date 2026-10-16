@@ -117,14 +117,21 @@ export default function OutsideMealSearchSection({ model }: SectionProps) {
             <strong className="text-brand-text font-semibold">rice (150g)</strong> for FNRI matching.
           </p>
           <p id="outside-food-search-status" role="status" className="text-xs leading-relaxed text-brand-muted">
-            {isSearching ? 'Searching saved foods…' : searchFeedback === 'empty'
-              ? 'No saved match found. You can enter label values or request an AI estimate.'
-              : searchFeedback === 'unavailable' ? 'Saved suggestions could not load. Try typing again, or enter label values.' : ''}
+            {isSearching
+              ? 'Searching saved foods…'
+              : searchFeedback === 'empty'
+                ? 'No saved match found. You can enter label values or request an AI estimate.'
+                : searchFeedback === 'unavailable'
+                  ? 'Saved suggestions could not load. Try typing again, or enter label values.'
+                  : ''}
           </p>
 
           {/* Autocomplete Dropdown List */}
           {showDropdown && suggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-brand-border bg-brand-surface shadow-card-lg" aria-label="Matching recipes and foods">
+            <div
+              className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-brand-border bg-brand-surface shadow-card-lg"
+              aria-label="Matching recipes and foods"
+            >
               <div className="border-b border-brand-border px-3 py-2 text-xs font-semibold text-brand-muted">
                 Matching Recipes & Foods ({suggestions.length})
               </div>

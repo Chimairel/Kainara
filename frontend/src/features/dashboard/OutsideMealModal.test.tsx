@@ -65,11 +65,16 @@ describe('OutsideMealModal', () => {
   });
 
   it.each(['empty', 'unavailable'])('distinguishes %s suggestions without invoking AI', async (state) => {
-    if (state === 'empty') vi.mocked(api.get).mockResolvedValueOnce({ data: { success: true, data: { eligible: [], otherKnown: [] } } } as never);
+    if (state === 'empty')
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: { success: true, data: { eligible: [], otherKnown: [] } },
+      } as never);
     else vi.mocked(api.get).mockRejectedValueOnce(new Error('Offline'));
     render(<OutsideMealModal {...defaultProps} />);
     fireEvent.change(screen.getByLabelText('Food or Meal Eaten (required)'), { target: { value: 'Tempura' } });
-    expect(await screen.findByText(state === 'empty' ? /No saved match found/ : /suggestions could not load/)).toBeVisible();
+    expect(
+      await screen.findByText(state === 'empty' ? /No saved match found/ : /suggestions could not load/)
+    ).toBeVisible();
     expect(defaultProps.onSubmit).not.toHaveBeenCalled();
   });
 

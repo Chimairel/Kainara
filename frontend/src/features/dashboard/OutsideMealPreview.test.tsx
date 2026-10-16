@@ -101,10 +101,26 @@ it('shows Gemini values as an uncited estimate with its range and assumed portio
 
 it('distinguishes source records, user edits and excluded unknowns in a mixed preview', () => {
   const sources = ['FNRI', 'VERIFIED_LIBRARY', 'USER_REPORTED', 'USER_ADJUSTED_LIBRARY', 'UNRESOLVED'] as const;
-  const items = sources.map((source) => ({ ...props.warning.items[0], source, name: source,
-    portionGrams: 150, calorieLow: null, calorieHigh: null, includedInTotals: source !== 'UNRESOLVED' }));
-  render(<PreviewConfirmation {...props} warning={{ ...props.warning, usedAi: false, items,
-    summary: { ...props.warning.summary, unresolvedItemCount: 1, completeness: 'PARTIAL' } }} />);
+  const items = sources.map((source) => ({
+    ...props.warning.items[0],
+    source,
+    name: source,
+    portionGrams: 150,
+    calorieLow: null,
+    calorieHigh: null,
+    includedInTotals: source !== 'UNRESOLVED',
+  }));
+  render(
+    <PreviewConfirmation
+      {...props}
+      warning={{
+        ...props.warning,
+        usedAi: false,
+        items,
+        summary: { ...props.warning.summary, unresolvedItemCount: 1, completeness: 'PARTIAL' },
+      }}
+    />
+  );
   expect(screen.getByText('Partial nutrition total')).toBeVisible();
   expect(screen.getByText(/scaled from per-100 g values/)).toBeVisible();
   expect(screen.getByText(/saved library nutrition/)).toBeVisible();

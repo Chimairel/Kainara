@@ -40,10 +40,10 @@ test('[TEST-179] nutritionist outside-meal decisions remain authenticated, role-
 });
 
 test('[TEST-181] user UI explains comma input, sources, provisional totals, and unresolved exclusions', () => {
-  assert.match(outsideMealModal, /separate each one with a comma/);
-  assert.match(outsideMealModal, /Grams and notes are optional/);
-  assert.match(outsideMealModal, /nutrition-label or menu values/);
-  assert.match(outsideMealPreview, /AI estimate/);
+  assert.match(outsideMealModal, /For multiple foods, use commas/);
+  assert.match(outsideMealModal.replace(/\s+/g, ' '), /does not search the web or provide cited sources/);
+  assert.match(outsideMealModal, /enter all four values for the portion you ate/);
+  assert.match(outsideMealPreview, /Gemini estimate/);
   assert.match(outsideMealPreview, /Not counted/);
   assert.doesNotMatch(outsideMealModal, /split\(['"]and['"]\)/);
   assert.match(dashboardSummary, /provisional kcal/);

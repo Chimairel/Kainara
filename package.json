@@ -9,6 +9,7 @@
     "build:backend": "npm --prefix backend run build",
     "build:frontend": "npm --prefix frontend run build",
     "architecture:check": "node scripts/check-source-architecture.mjs",
+    "release:parity": "node scripts/check-release-parity.mjs",
     "check": "npm run architecture:check && npm run format:check && npm run lint && npm run test && npm run build",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",

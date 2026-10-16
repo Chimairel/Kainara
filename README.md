@@ -31,6 +31,12 @@ Profile clarification has been implemented and tested in five reviewed batches. 
 
 ## Current verification status
 
+### Local → online staging → demo
+
+Start changes in `C:\Users\chima\Desktop\Nutrimind` and keep completed work integrated into `origin/development`. Verify locally against loopback PostgreSQL, then test a clean pinned candidate on the `codex/staging` online preview. Promote the same tested application tree to the `demo` presentation branch only within the approved release scope.
+
+The owner requires hosted functional tests to run **only on staging**, conserving demo Neon transfer. After a demo promotion, verify hosting SHA/state and configuration metadata; do not send demo test logins, API tests, member mutations or test SQL queries. Preserve separate environment records and secrets. Run `npm run release:parity -- --source HEAD --target origin/demo` after fetching refs to expose committed application differences and unfinished local application files. See [release policy](docs/DEMO_RELEASE_PARITY.md) for its limits and promotion evidence.
+
 Registered RND license renewals and recorded-detail corrections use [RND license updates](docs/RND_LICENSE_UPDATES.md). Expired RNDs retain own-profile maintenance while clinical review stays blocked. Apply the additive license-update migration to a confirmed database target before activating the new screens.
 
 The application has substantial frontend and backend implementation. Verification results change as work continues; use the latest dated entry in the [engineering record](docs/NUTRIMIND_ENGINEERING_RECORD.md) and rerun the relevant checks for the code you are studying. Automated, browser, and disposable-database tests do not establish clinical approval. The [clinical policy approval record](docs/CLINICAL_POLICY_APPROVAL.md) is the separate release gate.
