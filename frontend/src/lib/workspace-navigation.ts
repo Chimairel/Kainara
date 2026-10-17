@@ -150,6 +150,13 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: ImageIcon,
     },
     {
+      label: 'Nara answers',
+      href: '/admin/nara',
+      description: 'Write and publish free instant answers for Nara.',
+      group: 'Content & evidence',
+      icon: Sparkles,
+    },
+    {
       label: 'Admin profile',
       href: '/admin/profile',
       description: 'Account security, appearance, and administrative session controls.',
@@ -164,7 +171,7 @@ export const primaryWorkspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
     ['/dashboard', '/meals', '/grocery', '/progress', '/profile'].includes(tool.href)
   ),
   NUTRITIONIST: workspaceTools.NUTRITIONIST,
-  ADMIN: ['/admin/overview', '/admin/users', '/admin/data', '/admin/meals', '/admin/website', '/admin/audit', '/admin/support'].map(
+  ADMIN: ['/admin/overview', '/admin/users', '/admin/data', '/admin/meals', '/admin/website', '/admin/nara', '/admin/audit', '/admin/support'].map(
     (href) => {
       const tool = workspaceTools.ADMIN.find((entry) => entry.href === href)!;
       return {
@@ -174,7 +181,7 @@ export const primaryWorkspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
             ? 'Overview'
             : ['/admin/users', '/admin/nutritionists'].includes(href)
               ? 'People'
-              : ['/admin/data', '/admin/meals', '/admin/library', '/admin/website'].includes(href)
+              : ['/admin/data', '/admin/meals', '/admin/library', '/admin/website', '/admin/nara'].includes(href)
                 ? 'Content & data'
                 : 'Operations',
       };

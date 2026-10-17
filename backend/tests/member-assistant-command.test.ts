@@ -1,5 +1,8 @@
 import './helpers/gemini-unit-key';
 import assert from 'node:assert/strict';
+import { beforeEach } from 'node:test';
+import { NaraAnswerService } from '../src/services/nara-answer.service';
+beforeEach(t => { if ('mock' in t) { t.mock.method(NaraAnswerService, 'reply', async () => null); t.mock.method(NaraAnswerService, 'questions', async () => []); } });
 import test, { before, type TestContext } from 'node:test';
 import { randomUUID } from 'node:crypto';
 import { GoogleGenerativeAI } from '@google/generative-ai';

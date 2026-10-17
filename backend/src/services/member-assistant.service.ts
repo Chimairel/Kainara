@@ -18,6 +18,7 @@ import { assistantAiQuestion, assistantStaticReply } from '@/domain/member-assis
 import { MemberAssistantSystemService } from './member-assistant-system.service';
 import { MemberAssistantNutritionService } from './member-assistant-nutrition.service';
 import { MemberAssistantPlanService } from './member-assistant-plan.service';
+import { NaraAnswerService } from './nara-answer.service';
 
 export type AssistantReply = {
   text: string;
@@ -56,7 +57,7 @@ export class MemberAssistantService {
 
   static async status(userId: string) {
     if (!assistantEnabled()) return { enabled: false as const };
-    return { enabled: true as const, allowance: await Usage.allowance(userId) };
+    return { enabled: true as const, allowance: await Usage.allowance(userId), instantQuestions: await NaraAnswerService.questions() };
   }
 
   static async message(userId: string, input: AssistantInput) {
@@ -67,6 +68,8 @@ export class MemberAssistantService {
       const reply = await this.direct(userId, direct, input.message);
       return { confirmationRequired: false as const, reply, allowance: await Usage.allowance(userId) };
     }
+    const instant = !input.allowAi && aiQuestion === null && !direct ? await NaraAnswerService.reply(input.message) : null;
+    if (instant) return { confirmationRequired: false as const, reply: instant, allowance: await Usage.allowance(userId) };
     const information = assistantStaticReply(input.message, input.action);
     if (information) return {
       confirmationRequired: false as const,

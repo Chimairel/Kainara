@@ -237,6 +237,8 @@ Verification: 87 member-assistant UI tests pass, including first-line inset/scro
 
 ## Planning availability, RND explanations and water history — October 16, 2026
 
+Administrator-authored instant answers are available through the [Nara answers workspace](NARA_ADMIN_ANSWERS_2026-10-17.md). They use exact normalized questions/alternatives, separate drafts/publication and zero-credit SYSTEM replies. Existing personal-status and AI/medical boundaries take precedence; see the feature record for release status.
+
 Free English/Tagalog help now defines Registered Nutritionist-Dietitian, distinguishes Nara from an RND, explains separate profile and meal reviews, and directs questions/support to existing pages. Related questions include who reviews a profile, who approves meals, why an RND may be required, review timing without a promised completion time, and general planning prerequisites.
 
 “Why is my meal planning not available yet?”, its grammatical/Taglish variants, and equivalent availability questions route to the existing owner-scoped PLAN_STATUS read. They do not request AI consent or spend a credit. The response reuses public planning notices and dated guidance metadata and includes Help. It does not infer meal approval, apply a report, unlock a profile or change membership. More specific clarification questions retain their existing prepared explanation rather than being swallowed by a broad pending-meal matcher. Explicit `/ai` still opts into the guarded AI path, with consent and unchanged topic/medical/quota boundaries.

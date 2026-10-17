@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import api, { type ApiRequestConfig } from '@/lib/axios';
 import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error';
 import type { AssistantAction, AssistantAllowance, AssistantInput, AssistantResult, AssistantReply, ChatEntry } from './types';
-import { assistantAiQuestion, assistantDirectAction, assistantStaticReply } from './assistant-information.generated';
+import { assistantAiQuestion, assistantDirectAction, assistantStaticReply, normalizeAssistantQuestion } from './assistant-information.generated';
 import { readAssistantSession, saveAssistantSession, type AssistantSession } from '@/lib/assistant-session';
 import { useAssistantTyping } from './useAssistantTyping';
 import { assistantQuestionText, formatAiDraft } from './assistant-composer.policy';
@@ -14,6 +14,7 @@ export const ASSISTANT_BALANCE_MAX_AGE_MS = 60_000;
 /** Account-keyed memory plus a bounded, expiring copy in this tab's sessionStorage. */
 export function useMemberAssistant(ready: boolean, ownerId?: string) {
   const [enabled, setEnabled] = useState(false);
+  const [instantQuestions, setInstantQuestions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const typing = useAssistantTyping(open);
   const finishTyping = typing.finish;
@@ -57,8 +58,11 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     }, 1000);
     return () => window.clearInterval(timer);
   }, [open, cooldownUntil]);
+  const instantQuestion = (text: string, action?: AssistantAction) => !action && assistantAiQuestion(text) === null
+    && !assistantDirectAction(text) && instantQuestions.includes(normalizeAssistantQuestion(text));
   const freeRequest = (text: string, action?: AssistantAction) => {
-    if (assistantAiQuestion(text)) return false;
+    if (assistantAiQuestion(text) !== null) return false;
+    if (instantQuestion(text, action)) return true;
     const direct = action ?? assistantDirectAction(text);
     return Boolean(assistantStaticReply(text, action)) || ['TODAY', 'GUIDANCE', 'CURRENT_MEALS', 'GROCERIES', 'PLAN_STATUS', 'MEAL_STATUS'].includes(direct ?? '');
   };
@@ -109,6 +113,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     const promise = api.get('/user/assistant', { signal: abort.signal }).then(response => {
       if (!alive.current || abort.signal.aborted || revision !== balanceRevision.current) return;
       setEnabled(Boolean(response.data.data?.enabled));
+      setInstantQuestions(Array.isArray(response.data.data?.instantQuestions) ? response.data.data.instantQuestions : []);
       const value = response.data.data?.allowance ?? null;
       balance.current = { value, checkedAt: Date.now() };
       setAllowance(value);
@@ -138,6 +143,10 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     window.addEventListener('kainara:membership-updated', membershipChanged);
     return () => { window.removeEventListener('kainara:membership-updated', membershipChanged); };
   }, [ready, refreshAllowance]);
+
+  useEffect(() => {
+    if (open) void refreshAllowance();
+  }, [open, refreshAllowance]);
 
   useEffect(() => {
     if (!open || !allowance) return;
@@ -275,7 +284,8 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
       ? current.map(item => item.id === entryId ? { ...item, text: assistantQuestionText(text) } : item)
       : [...current.slice(-39), { id: entryId, role: 'user', text: assistantQuestionText(text), createdAt: Date.now() }]);
     setDraft('');
-    const information = assistantStaticReply(text, action);
+    // The server rechecks publication on every custom reply; never cache answer text.
+    const information = instantQuestion(text, action) ? null : assistantStaticReply(text, action);
     if (information) {
       setError(null); setFailed(null);
       setDraftEntryId(null);

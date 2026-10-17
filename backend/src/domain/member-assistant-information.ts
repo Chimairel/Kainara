@@ -280,6 +280,9 @@ export function assistantInformationReply(message: string): AssistantInformation
 function workflowInformation(text: string): AssistantInformation | null {
   const tl = usesTagalog(text);
   const result = (en: string, tagalog: string, links: AssistantInformation['links']) => ({ text: tl ? tagalog : en, links });
+  if (/\b(instant answers?|prepared answers?|custom answers?|predefined answers?)\b/.test(text)) return result(
+    'Published Nara answers are written by KAINARA administrators and match a saved question or alternative phrasing. They are free system replies, not live AI responses. Capitalization and punctuation do not affect matching. Use /ai before a supported question to request AI instead; confirmation and credit limits still apply. Personal status and medical-clearance checks keep their existing rules.',
+    'Ang published instant answers ni Nara ay isinulat ng KAINARA administrators at tumutugma sa saved question o alternative wording. Libre ang system replies na ito. Gamitin ang /ai para humiling ng AI reply; kailangan pa rin ng confirmation at credit. Hiwalay pa rin ang personal status at medical-clearance checks.', [{ label: 'Docs & Help', href: '/docs' }]);
   const progress = [{ label: 'Progress', href: '/progress' }, { label: 'Dashboard', href: '/dashboard' }];
   const report = [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }];
   if (/\b(food rules?|meal screening|patient limits?|why.*(?:taho|pandesal)|how.*(?:avoid|limit|choose more often))\b/.test(text))
