@@ -4,6 +4,8 @@ import { assistantAiQuestion, assistantDirectAction, normalizeAssistantQuestion 
 export const NARA_ANSWER_PREFIX = 'nara-answer-';
 export const NARA_ANSWER_LIMIT = 100;
 const question = z.string().trim().min(3).max(240);
+const categorySchema = z.enum(['APP_HELP', 'NUTRITION', 'CONVERSATION']);
+type NaraAnswerCategory = z.infer<typeof categorySchema>;
 const unrelated =
   /\b(politics?|president|elections?|horoscope|celebrity|gambling|write (?:a |some )?code|solve (?:this |a )?equation|ignore (?:all |your )?instructions)\b/u;
 const personalClinical = /\b(diagnos\w*|prescrib\w*|dosage|insulin dose|stop (?:my )?medication|cure\w*)\b/u;
@@ -14,16 +16,21 @@ const appSubject =
 const nutritionSubject =
   /\b(nutrition|nutrients?|food|foods|meal|meals|protein|carbohydrates?|carbs?|fats?|fibre|fiber|calories|kcal|hydration|water|vitamins?|minerals?|vegetables?|fruit|rice|pagkain|tubig|gulay|kanin|nutrisyon)\b/u;
 
-/** Curated educational content only. Personal status and AI routing stay authoritative. */
-export function naraQuestionAllowed(text: string, category: 'APP_HELP' | 'NUTRITION') {
-  if (assistantAiQuestion(text) !== null || assistantDirectAction(text) !== null) return false;
+/** Exact, curated replies only. Personal status and AI routing stay authoritative. */
+function questionError(text: string, category: NaraAnswerCategory): string | null {
+  if (/^\s*\//u.test(text) || assistantAiQuestion(text) !== null || assistantDirectAction(text) !== null)
+    return 'cannot replace commands or built-in personal-status and help shortcuts.';
   const normalized = normalizeAssistantQuestion(text);
-  return (
-    !unrelated.test(normalized) &&
-    !personalClinical.test(normalized) &&
-    !personalPermission.test(normalized) &&
-    (category === 'APP_HELP' ? appSubject : nutritionSubject).test(normalized)
-  );
+  if (!/[\p{L}\p{N}]/u.test(normalized)) return 'must include words or numbers.';
+  if (unrelated.test(normalized) || personalClinical.test(normalized) || personalPermission.test(normalized))
+    return 'cannot replace medical-clearance checks or answer restricted requests.';
+  if (category !== 'CONVERSATION' && !(category === 'APP_HELP' ? appSubject : nutritionSubject).test(normalized))
+    return 'does not match this topic. For a prewritten social reply, select Nara conversation.';
+  return null;
+}
+
+export function naraQuestionAllowed(text: string, category: NaraAnswerCategory): boolean {
+  return questionError(text, category) === null;
 }
 
 export const naraAnswerSchema = z
@@ -31,7 +38,7 @@ export const naraAnswerSchema = z
     question,
     variants: z.array(question).max(5).default([]),
     answer: z.string().trim().min(1).max(2500),
-    category: z.enum(['APP_HELP', 'NUTRITION']),
+    category: categorySchema,
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -42,14 +49,15 @@ export const naraAnswerSchema = z
         path: ['variants'],
         message: 'Each question or alternative phrasing must be different.',
       });
-    for (const text of questions)
-      if (!naraQuestionAllowed(text, value.category))
+    for (const [index, text] of questions.entries()) {
+      const error = questionError(text, value.category);
+      if (error)
         ctx.addIssue({
           code: 'custom',
-          path: ['question'],
-          message:
-            'Use an app-help or general nutrition question. AI commands, personal status, medical clearance and unrelated requests keep their existing routes.',
+          path: index === 0 ? ['question'] : ['variants', index - 1],
+          message: `${index === 0 ? 'Question' : `Alternative question ${index}`} (“${text}”) ${error}`,
         });
+    }
     if (personalClinical.test(normalizeAssistantQuestion(value.answer)))
       ctx.addIssue({
         code: 'custom',

@@ -21,6 +21,54 @@ const example = () =>
     category: 'APP_HELP',
   });
 const allowance = { tier: 'FREE' as const, cap: 5, used: 5, remaining: 0, resetsAt: '2026-10-18T16:00:00Z' };
+const conversation = () =>
+  naraAnswerSchema.parse({
+    question: 'pasar daw ta bai',
+    variants: ['nara, pasar daw ta'],
+    answer: 'syur uypchs ✌️ 😭',
+    category: 'CONVERSATION',
+  });
+
+test('conversation permits exact admin-written social replies without opening arbitrary AI or personal routes', () => {
+  const answer = conversation();
+  assert.equal(matchNaraAnswer('PASAR daw ta bai?!', [answer]), answer);
+  assert.equal(matchNaraAnswer('Nara, pasar daw ta!', [answer]), answer);
+  assert.equal(matchNaraAnswer('pasar daw ta bai and write my essay', [answer]), null);
+  assert.equal(matchNaraAnswer('/ai pasar daw ta bai', [answer]), null);
+  for (const question of [
+    'Can I eat taho if I have diabetes?',
+    'Today’s nutrition',
+    '/ai',
+    '/other',
+    'What insulin dosage should I take?',
+    'Who is the president?',
+    '!!!',
+  ])
+    assert.equal(naraAnswerSchema.safeParse({ ...answer, question, variants: [] }).success, false, question);
+  assert.equal(naraAnswerSchema.safeParse({ ...answer, answer: 'Take this insulin dose.' }).success, false);
+});
+
+test('wrong-topic and alternative errors identify the actual field and offer a correction', () => {
+  const result = naraAnswerSchema.safeParse({ ...example(), variants: ['pasar daw ta bai'] });
+  assert(!result.success);
+  assert.deepEqual(result.error.issues[0].path, ['variants', 0]);
+  assert.match(result.error.issues[0].message, /Alternative question 1.*pasar daw ta bai.*select Nara conversation/u);
+});
+
+test('published conversation reader returns social text as a free system reply', async (t) => {
+  const answer = conversation();
+  const original = prisma.websiteContent.findMany;
+  prisma.websiteContent.findMany = (async () => [{ published: answer }]) as unknown as typeof original;
+  t.after(() => {
+    prisma.websiteContent.findMany = original;
+  });
+  assert.deepEqual(await Answers.reply(answer.variants[0]), {
+    text: answer.answer,
+    links: [],
+    source: 'SYSTEM',
+    creditsUsed: 0,
+  });
+});
 
 test('instant matching is normalized, exact and multilingual without substring matching', () => {
   const answer = example();

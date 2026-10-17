@@ -151,6 +151,44 @@ async function main() {
       [200, 409],
       'Concurrent duplicate questions cannot both publish'
     );
+    const conversation = {
+      question: 'pasar daw ta bai',
+      variants: ['nara, pasar daw ta'],
+      answer: 'syur uypchs ✌️ 😭',
+      category: 'CONVERSATION',
+    };
+    const social = await call(admin, route, conversation);
+    assert.equal(social.status, 201);
+    const socialPublished = await call(admin, `${route}/${social.body.data.id}/publish`, {
+      revision: social.body.data.revision,
+    });
+    assert.equal(socialPublished.status, 200);
+    const socialReply = await call(member, '/user/assistant/messages', {
+      requestKey: randomUUID(),
+      message: 'NARA, pasar daw ta!',
+      allowAi: false,
+    });
+    assert.equal(socialReply.status, 200);
+    assert.equal(socialReply.body.data.reply.text, conversation.answer);
+    assert.equal(socialReply.body.data.reply.creditsUsed, 0);
+    assert.equal(socialReply.body.data.allowance.remaining, 0);
+    assert.equal(await NaraAnswerService.reply('pasar daw ta bai and write my essay'), null);
+    const socialAi = await call(member, '/user/assistant/messages', {
+      requestKey: randomUUID(),
+      message: '/ai ' + conversation.question,
+      allowAi: false,
+    });
+    assert.equal(socialAi.status, 200);
+    assert.equal(socialAi.body.data.confirmationRequired, true);
+    assert.equal(await db.assistantRequest.count(), beforeUsage);
+    assert.equal(
+      (await call(admin, route, { ...conversation, question: 'Can I eat taho if I have diabetes?', variants: [] }))
+        .status,
+      400
+    );
+    const badAlternative = await call(admin, route, { ...draft, variants: [conversation.question] });
+    assert.equal(badAlternative.status, 400);
+    assert.match(badAlternative.body.error, /Alternative question 1.*Nara conversation/u);
     const current = (await call(admin, route)).body.data as Array<{ id: string; revision: number }>;
     for (const row of current)
       assert.equal((await call(admin, `${route}/${row.id}/delete`, { revision: row.revision })).status, 200);
@@ -166,6 +204,9 @@ async function main() {
       staleRevisions: true,
       concurrentDuplicateBlocked: true,
       multilingualExactMatch: true,
+      exactConversationReply: true,
+      conversationProtectedRoutes: true,
+      alternativeErrorIdentified: true,
       aiBypassRetained: true,
       creditReservations: 0,
       providerCalls: 0,

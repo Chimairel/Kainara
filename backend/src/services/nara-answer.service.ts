@@ -60,7 +60,7 @@ export class NaraAnswerService {
   }
 
   static async reply(message: string): Promise<AssistantReply | null> {
-    if (!naraQuestionAllowed(message, 'APP_HELP') && !naraQuestionAllowed(message, 'NUTRITION')) return null;
+    if (!naraQuestionAllowed(message, 'CONVERSATION')) return null;
     const rows = await prisma.websiteContent.findMany({
       where: {
         id: { startsWith: NARA_ANSWER_PREFIX },

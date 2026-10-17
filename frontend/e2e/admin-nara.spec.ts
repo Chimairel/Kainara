@@ -19,15 +19,13 @@ for (const width of [390, 1440])
         claims = Buffer.from(
           JSON.stringify({ userId: user.id, email: user.email, role: user.role, iat: now, exp: now + 3600 })
         ).toString('base64url');
-      await page
-        .context()
-        .addCookies([
-          {
-            name: 'nutrimind_session',
-            value: `eyJhbGciOiJIUzI1NiJ9.${claims}.fixture`,
-            url: new URL(testInfo.project.use.baseURL ?? 'http://localhost:3000').origin,
-          },
-        ]);
+      await page.context().addCookies([
+        {
+          name: 'nutrimind_session',
+          value: `eyJhbGciOiJIUzI1NiJ9.${claims}.fixture`,
+          url: new URL(testInfo.project.use.baseURL ?? 'http://localhost:3000').origin,
+        },
+      ]);
       let entry: Record<string, unknown> | null = null;
       let writes = 0;
       await page.route('**/api/**', async (route) => {
@@ -57,14 +55,15 @@ for (const width of [390, 1440])
       });
       await page.goto('/admin/nara');
       await expect(page.getByRole('heading', { name: 'Nara answers', exact: true })).toBeVisible();
-      await page.getByLabel('Question', { exact: true }).fill('Why do I need to log my weight every week?');
-      await page.getByLabel(/Alternative questions/).fill('Bakit kailangan ng KAINARA ang timbang bawat linggo?');
-      const answer =
-        'Recording your current weight helps keep the information used for planning up to date. Review your saved guidance after a profile change.';
+      await page.getByLabel('Topic', { exact: true }).selectOption('CONVERSATION');
+      await expect(page.getByText(/This does not expand what \/ai can answer/)).toBeVisible();
+      await page.getByLabel('Question', { exact: true }).fill('pasar daw ta bai');
+      await page.getByLabel(/Alternative questions/).fill('nara, pasar daw ta');
+      const answer = 'syur uypchs ✌️ 😭';
       await page.getByLabel('Instant answer').fill(answer);
       await page.getByRole('button', { name: 'Save draft' }).click();
       await expect(page.getByText('Draft saved. Publish it when the answer is ready.')).toBeVisible();
-      await page.getByLabel('Test question').fill('WHY do I need to log my weight every week?!');
+      await page.getByLabel('Test question').fill('NARA, pasar daw ta!');
       await page.getByRole('button', { name: 'Preview answer' }).click();
       await expect(page.getByRole('status').filter({ hasText: answer })).toBeVisible();
       expect(writes).toBe(1);
@@ -72,6 +71,7 @@ for (const width of [390, 1440])
       await expect(page.getByText(/Published. Nara can now answer/)).toBeVisible();
       await expect(page.getByRole('button', { name: 'Unpublish', exact: true })).toBeVisible();
       expect(writes).toBe(2);
+      expect(entry).toMatchObject({ draft: { category: 'CONVERSATION' }, published: { category: 'CONVERSATION' } });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath('nara-answers.png'), fullPage: true });
     });

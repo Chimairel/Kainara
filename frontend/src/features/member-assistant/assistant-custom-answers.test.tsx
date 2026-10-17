@@ -53,3 +53,30 @@ it('keeps an /ai-prefixed custom question behind the AI cooldown', async () => {
   await act(async () => result.current.send());
   expect(api.post).not.toHaveBeenCalled();
 });
+
+it('delivers an indexed conversation reply at zero credits without widening AI scope', async () => {
+  vi.mocked(api.get).mockResolvedValue({
+    data: { data: { enabled: true, allowance, instantQuestions: ['pasar daw ta bai', 'nara pasar daw ta'] } },
+  });
+  vi.mocked(api.post).mockResolvedValue({
+    data: {
+      data: {
+        allowance,
+        confirmationRequired: false,
+        reply: { text: 'syur uypchs ✌️ 😭', source: 'SYSTEM', creditsUsed: 0 },
+      },
+    },
+  });
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await act(async () => {});
+  act(() => result.current.setDraft('Nara, pasar daw ta!'));
+  expect(result.current.cooldownBlocksDraft).toBe(false);
+  await act(async () => result.current.send());
+  expect(api.post).toHaveBeenCalledTimes(1);
+  expect(result.current.messages.at(-1)?.text).toBe('syur uypchs ✌️ 😭');
+  expect(result.current.allowance?.remaining).toBe(0);
+  act(() => result.current.setDraft('/ai pasar daw ta bai'));
+  expect(result.current.cooldownBlocksDraft).toBe(true);
+  await act(async () => result.current.send());
+  expect(api.post).toHaveBeenCalledTimes(1);
+});

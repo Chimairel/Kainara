@@ -10,7 +10,20 @@ import NativeSelect from '@/components/ui/NativeSelect';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 
-type Answer = { question: string; variants: string[]; answer: string; category: 'APP_HELP' | 'NUTRITION' };
+type Answer = {
+  question: string;
+  variants: string[];
+  answer: string;
+  category: 'APP_HELP' | 'NUTRITION' | 'CONVERSATION';
+};
+const topicHelp: Record<Answer['category'], string> = {
+  APP_HELP:
+    'Explain KAINARA features and workflows. Personal account and meal-status checks keep their existing replies.',
+  NUTRITION:
+    'Explain general food and nutrition concepts. Personal medical clearance and treatment advice are not supported.',
+  CONVERSATION:
+    'Write a social or celebration reply for these exact phrases. This does not expand what /ai can answer.',
+};
 type Entry = {
   id: string;
   revision: number;
@@ -133,7 +146,8 @@ export default function NaraAnswersWorkspace() {
         <div>
           <h1 className="font-display text-2xl font-bold text-brand-text">Nara answers</h1>
           <p className="mt-2 max-w-2xl text-sm text-brand-muted">
-            Give members instant answers to common KAINARA and nutrition questions. Published answers use no AI credits.
+            Write instant replies for KAINARA help, nutrition questions and Nara conversations. Published answers use no
+            AI credits.
           </p>
           <p className="mt-2 text-sm text-brand-muted">
             {publishedCount} published · {entries.length} of 100 answers
@@ -235,13 +249,18 @@ export default function NaraAnswersWorkspace() {
                 id="nara-answer-category"
                 value={draft.category}
                 disabled={busy}
+                aria-describedby="nara-topic-help"
                 onChange={(event) =>
                   setDraft((current) => ({ ...current, category: event.target.value as Answer['category'] }))
                 }
               >
                 <option value="APP_HELP">KAINARA app help</option>
                 <option value="NUTRITION">General nutrition education</option>
+                <option value="CONVERSATION">Nara conversation</option>
               </NativeSelect>
+              <p id="nara-topic-help" className="mt-2 text-sm text-brand-muted">
+                {topicHelp[draft.category]}
+              </p>
             </div>
             <Input
               ref={questionRef}

@@ -61,3 +61,29 @@ it('keeps published content active while editing and lets an admin unpublish it'
   await screen.findByText('Unpublished. The draft is kept for editing.');
   expect(api.post).toHaveBeenCalledWith('/admin/nara-answers/nara-answer-test/unpublish', { revision: 1 });
 });
+
+it('saves and publishes a conversation phrase with its exact emoji reply', async () => {
+  const conversation = {
+    question: 'pasar daw ta bai',
+    variants: ['nara, pasar daw ta'],
+    answer: 'syur uypchs ✌️ 😭',
+    category: 'CONVERSATION',
+  };
+  const saved = { ...entry, draft: conversation };
+  vi.mocked(api.post)
+    .mockResolvedValueOnce({ data: { data: saved } })
+    .mockResolvedValueOnce({ data: { data: { ...saved, revision: 2, published: conversation } } });
+  render(<NaraAnswersWorkspace />);
+  await waitFor(() => expect(screen.getByRole('button', { name: 'New answer' })).toBeEnabled());
+  fireEvent.change(screen.getByLabelText('Topic'), { target: { value: 'CONVERSATION' } });
+  expect(screen.getByText(/This does not expand what \/ai can answer/)).toBeVisible();
+  fireEvent.change(screen.getByLabelText('Question'), { target: { value: conversation.question } });
+  fireEvent.change(screen.getByLabelText(/Alternative questions/), { target: { value: conversation.variants[0] } });
+  fireEvent.change(screen.getByLabelText('Instant answer'), { target: { value: conversation.answer } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+  await screen.findByText('Draft saved. Publish it when the answer is ready.');
+  expect(api.post).toHaveBeenCalledWith('/admin/nara-answers', conversation);
+  fireEvent.click(screen.getByRole('button', { name: 'Publish answer' }));
+  await screen.findByText(/Published. Nara can now/);
+  expect(api.post).toHaveBeenLastCalledWith('/admin/nara-answers/nara-answer-test/publish', { revision: 1 });
+});
