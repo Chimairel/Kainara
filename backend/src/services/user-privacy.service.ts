@@ -37,6 +37,7 @@ export class UserPrivacyService {
         mealLogs: true,
         weightLogs: true,
         waterLogs: true,
+        assistantMessageLogs: { orderBy: { createdAt: 'asc' } },
         dailyNutritionLogs: true,
         groceryLists: { include: { groceryItems: true } },
         notifications: true,
@@ -98,7 +99,7 @@ export class UserPrivacyService {
     let reauthenticationMethod: 'PASSWORD' | 'GOOGLE' | 'AUTHENTICATED_SESSION';
     if (credential.googleIdToken) {
       const identity = await verifyGoogleIdentity(credential.googleIdToken);
-      if (!user.accounts.some(account => account.providerAccountId === identity.sub))
+      if (!user.accounts.some((account) => account.providerAccountId === identity.sub))
         throw new Error('Use the Google account linked to this KAINARA account.');
       reauthenticationMethod = 'GOOGLE';
     } else if (user.passwordLoginEnabled) {

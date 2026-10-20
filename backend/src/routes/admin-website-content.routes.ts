@@ -110,7 +110,7 @@ router.patch('/draft', async (req: AuthenticatedRequest, res) => {
     const parsed = landingTextSchema.parse(body(landingTextSchema, req));
     return res.json({
       success: true,
-      data: await WebsiteContentService.saveText(req.user!.userId, parsed.revision, parsed.altText),
+      data: await WebsiteContentService.saveText(req.user!.userId, parsed.revision, parsed.altText, parsed.framing),
     });
   } catch (error) {
     return fail(res, error);

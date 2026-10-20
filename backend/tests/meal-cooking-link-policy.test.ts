@@ -35,7 +35,13 @@ test('a Panlasang corpus meal opens its exact article even without a stored vide
   );
 });
 
-test('a linked video is used only when there is no Panlasang article, and spoofed hosts are rejected', () => {
+test('linked YouTube videos take priority over articles, and spoofed hosts are rejected', () => {
+  assert.equal(
+    cookingLinkForMeal({
+      libraryDescription: 'Source: https://panlasangpinoy.com/adobo/\nVideo: https://youtu.be/uXi6QDOdhGg',
+    })?.kind,
+    'SOURCE_VIDEO'
+  );
   assert.deepEqual(cookingLinkForMeal({ libraryDescription: 'Video: https://youtu.be/uXi6QDOdhGg' }), {
     url: 'https://www.youtube.com/watch?v=uXi6QDOdhGg',
     kind: 'SOURCE_VIDEO',

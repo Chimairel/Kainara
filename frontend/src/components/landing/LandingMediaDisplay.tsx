@@ -78,6 +78,10 @@ export default function LandingMediaDisplay({ media }: { media: LandingMedia | n
         src={url}
         alt={media?.altText || 'Example KAINARA nutrition dashboard'}
         className="h-full w-full object-cover object-top"
+        style={{
+          objectFit: media?.framing?.fit ?? 'cover',
+          objectPosition: `${media?.framing?.x ?? 50}% ${media?.framing?.y ?? 0}%`,
+        }}
         loading="eager"
         onError={(event) => {
           if (!event.currentTarget.src.endsWith('/dashboard-actual.png'))

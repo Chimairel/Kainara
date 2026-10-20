@@ -15,6 +15,7 @@
     "../src/validation/onboarding.schemas.ts",
     "./**/*.ts",
     "../scripts/nara-answers-local-acceptance.ts",
+    "../scripts/admin-member-updates-local-acceptance.ts",
     "../scripts/parallel-transaction-local-acceptance.ts",
     "../scripts/recognized-profile-local-acceptance.ts",
     "../scripts/report-feedback-local-acceptance.ts",

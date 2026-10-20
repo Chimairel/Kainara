@@ -39,7 +39,7 @@ vi.mock('@/lib/user-profile-resource', () => ({
 vi.mock('@/lib/session-resource-cache', () => ({ readSessionResource: () => null, writeSessionResource: vi.fn() }));
 
 describe('profile saves without hidden location changes', () => {
-  it('preserves the accepted planning report after a weight change creates a stale draft', async () => {
+  it('returns home with acknowledgment required after the server invalidates a weight-change report', async () => {
     state.updateUserSession.mockClear();
     state.post.mockResolvedValue({ data: { success: true, data: { weightKg: 66 } } });
     state.get.mockImplementation(async (path: string) => ({
@@ -47,7 +47,7 @@ describe('profile saves without hidden location changes', () => {
         success: true,
         data:
           path === '/user/profile'
-            ? { ...state.profile, reportAcknowledged: true, nutritionReport: { isStale: true } }
+            ? { ...state.profile, reportAcknowledged: false, nutritionReport: { isStale: true } }
             : { weightLogs: [], dailyNutritionLogs: [] },
       },
     }));
@@ -55,7 +55,7 @@ describe('profile saves without hidden location changes', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     await act(async () => result.current.setWeightInput('66'));
     await act(async () => result.current.handleLogWeightSubmit({ preventDefault: vi.fn() } as unknown as FormEvent));
-    expect(state.updateUserSession).toHaveBeenLastCalledWith({ reportAcknowledged: true });
+    expect(state.updateUserSession).toHaveBeenLastCalledWith({ reportAcknowledged: false });
   });
   it('logs weight with no note without sending a null value rejected by the API', async () => {
     state.post.mockResolvedValue({ data: { success: true, data: { weightKg: 66 } } });

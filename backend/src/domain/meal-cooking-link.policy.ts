@@ -51,9 +51,7 @@ export function cookingLinkForMeal(input: {
       ? panlasangRecipePage(raw.sourceUrl)
       : null;
   const page = article || panlasangPageFromDescription(input.libraryDescription);
-  if (page) return { url: page, kind: 'PANLASANG_RECIPE' };
-
   const libraryVideo = input.libraryDescription?.match(/(?:^|\n)\s*Video:\s*(https:\/\/[^\s<>"']+)/i)?.[1];
   const video = approvedYouTubeVideo(raw?.sourceVideoUrl) || approvedYouTubeVideo(libraryVideo);
-  return video ? { url: video, kind: 'SOURCE_VIDEO' } : null;
+  return video ? { url: video, kind: 'SOURCE_VIDEO' } : page ? { url: page, kind: 'PANLASANG_RECIPE' } : null;
 }

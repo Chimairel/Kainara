@@ -11,6 +11,8 @@ import Button from '@/components/ui/Button';
 import LandingUploadGallery from '@/components/landing/LandingUploadGallery';
 import LandingMediaDisplay from '@/components/landing/LandingMediaDisplay';
 import { toLandingMedia, type WebsiteContent, type LandingGalleryItem } from '@/features/website-content/types';
+import { DEFAULT_MEDIA_FRAMING, type MediaFraming } from '@/features/website-content/types';
+import MediaFramingEditor from '@/features/website-content/MediaFramingEditor';
 
 export default function WebsiteContentPage() {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -20,12 +22,14 @@ export default function WebsiteContentPage() {
   const [poster, setPoster] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [altText, setAltText] = useState('KAINARA platform preview');
+  const [framing, setFraming] = useState<MediaFraming>(DEFAULT_MEDIA_FRAMING);
   const [galleryVersion, setGalleryVersion] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const acceptContent = (next: WebsiteContent) => {
     setContent(next);
     setAltText(next.draft?.altText || next.published?.altText || 'KAINARA platform preview');
+    setFraming(next.draft?.framing ?? next.published?.framing ?? DEFAULT_MEDIA_FRAMING);
   };
   const load = useCallback(async () => {
     setBusy(true);
@@ -110,8 +114,9 @@ export default function WebsiteContentPage() {
           if (posterRef.current) posterRef.current.value = '';
         }
       }
-      next = (await api.patch('/admin/website-content/draft', { revision: next.revision, altText: altText.trim() }))
-        .data.data;
+      next = (
+        await api.patch('/admin/website-content/draft', { revision: next.revision, altText: altText.trim(), framing })
+      ).data.data;
       acceptContent(next);
     });
   }
@@ -162,9 +167,17 @@ export default function WebsiteContentPage() {
           url: previewUrl,
           posterUrl: savedPreview?.posterUrl ?? null,
           altText,
+          framing,
         }
-      : savedPreview;
-  const dirty = Boolean(file || poster || altText !== (draft?.altText || 'KAINARA platform preview'));
+      : savedPreview
+        ? { ...savedPreview, framing }
+        : null;
+  const dirty = Boolean(
+    file ||
+    poster ||
+    altText !== (draft?.altText || 'KAINARA platform preview') ||
+    JSON.stringify(framing) !== JSON.stringify(draft?.framing ?? DEFAULT_MEDIA_FRAMING)
+  );
   return (
     <div className="portal-page space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -241,6 +254,9 @@ export default function WebsiteContentPage() {
                 className="mt-2 w-full rounded-xl border border-brand-border bg-brand-bg p-3"
               />
             </label>
+            {(preview?.kind === 'image' || draft?.poster) && (
+              <MediaFramingEditor value={framing} onChange={setFraming} disabled={busy} />
+            )}
             <div className="flex flex-wrap gap-2">
               <Button disabled={busy || !dirty} onClick={() => void saveDraft()}>
                 Save draft

@@ -27,14 +27,17 @@ const version = {
   profileSnapshot: { profile, conditions: [], allergens: [], otherConditions: '', otherAllergies: '' },
 } as unknown as NutritionReportVersion;
 
-test('unapplied ordinary edits retain the actual accepted targets and shopping day', () => {
+test('unacknowledged body or shopping edits require a current report before planning', () => {
   const live = { ...profile, revision: 2, weightKg: 80, dailyCalorieTarget: 2400, shoppingDayOfWeek: 4 };
-  const planned = resolvePlanningProfile(live, version);
-  assert.equal(planned.weightKg, 65);
-  assert.equal(planned.dailyCalorieTarget, 2000);
-  assert.equal(planned.shoppingDayOfWeek, 0);
-  assert.equal(planned.revision, 1);
+  assert.throws(() => resolvePlanningProfile(live, version), { errorCode: 'REPORT_ACKNOWLEDGEMENT_REQUIRED' });
   assert.equal(planningInputsMatch(live, version), false);
+  const current = {
+    ...version,
+    profileRevision: 2,
+    profileSnapshot: { profile: live },
+  } as unknown as NutritionReportVersion;
+  assert.equal(resolvePlanningProfile(live, current).weightKg, 80);
+  assert.equal(resolvePlanningProfile(live, current).revision, 2);
 });
 test('an old report cannot hide a safety change or bypass its policy version', () => {
   assert.throws(() => resolvePlanningProfile({ ...profile, safetyRevision: 2 }, version), {

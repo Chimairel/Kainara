@@ -1,5 +1,5 @@
-import NaraAnswersWorkspace from '@/features/admin-nara/NaraAnswersWorkspace';
+import AdminNaraWorkspace from '@/features/admin-nara/AdminNaraWorkspace';
 
 export default function NaraAnswersPage() {
-  return <NaraAnswersWorkspace />;
+  return <AdminNaraWorkspace />;
 }

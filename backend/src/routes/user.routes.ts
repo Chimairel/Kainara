@@ -53,6 +53,12 @@ router.get('/profile', authenticateProfile, UserController.getProfile);
 // Apply auth on all remaining /api/user routes.
 router.use(authenticate);
 router.put('/profile/avatar', UserController.updateAvatar);
+// Staff can change their own credentials without member onboarding/report prerequisites.
+router.put('/profile/settings', (req, res, next) => {
+  const role = (req as AuthenticatedRequest).user?.role;
+  if (role === 'ADMIN' || role === 'NUTRITIONIST') return UserController.updateAccountSettings(req, res);
+  next();
+});
 
 // ──────────────────────────────────────────
 // Below routes are restricted to USER role

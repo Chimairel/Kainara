@@ -49,6 +49,7 @@ export function resolvePlanningProfile(
     !version?.acknowledgedAt ||
     version.policyVersion !== NUTRITION_GUIDANCE_POLICY_VERSION ||
     !saved ||
+    !planningInputsMatch(live, version) ||
     saved.safetyRevision !== live.safetyRevision ||
     !saved.dailyCalorieTarget ||
     !saved.age ||

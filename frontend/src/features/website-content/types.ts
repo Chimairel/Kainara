@@ -1,8 +1,11 @@
+export type MediaFraming = { fit: 'cover' | 'contain'; x: number; y: number };
+export const DEFAULT_MEDIA_FRAMING: MediaFraming = { fit: 'cover', x: 50, y: 0 };
 export interface LandingMedia {
   kind: 'image' | 'video';
   url: string;
   posterUrl: string | null;
   altText: string;
+  framing?: MediaFraming;
 }
 export interface LandingAsset {
   kind: 'image' | 'video';
@@ -16,6 +19,7 @@ export interface LandingConfig {
   poster: LandingAsset | null;
   posterUrl?: string | null;
   altText: string;
+  framing?: MediaFraming;
 }
 export interface WebsiteContent {
   revision: number;
@@ -30,6 +34,7 @@ export function toLandingMedia(config: LandingConfig | null): LandingMedia | nul
         url: config.asset.url,
         posterUrl: config.poster?.url ?? config.posterUrl ?? null,
         altText: config.altText,
+        framing: config.framing,
       }
     : null;
 }

@@ -183,6 +183,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
       <AssistantComposer id={titleId} draft={model.draft} onChange={model.setDraft} onSend={() => model.send()}
         disabled={composerDisabled} sendBlocked={sendBlocked} cooldownBlocked={model.cooldownBlocksDraft} />
       <p className="mt-2 text-[11px] leading-4 text-brand-muted">AI replies depend on shared availability and can misinterpret requests. Your saved guidance and RND decisions still apply.</p>
+      <p className="mt-2 text-[11px] leading-4 text-brand-muted">Submitted messages are available to administrators for 30 days to improve Nara. Unsent typing is not recorded. <Link href="/docs#privacy-policy-nara" className="text-brand-green underline underline-offset-4">Privacy details</Link></p>
     </footer>
   </div>;
 }

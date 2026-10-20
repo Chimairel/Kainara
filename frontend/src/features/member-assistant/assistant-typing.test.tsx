@@ -150,3 +150,5 @@ it('shows three staggered dots while waiting, pauses them in hidden tabs and rem
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
   expect(view.container.querySelector('[data-nara-typing-dot]')).toBeNull();
 });
+
+vi.mock('./assistant-activity', () => ({ recordLocalAssistantMessage: vi.fn() }));

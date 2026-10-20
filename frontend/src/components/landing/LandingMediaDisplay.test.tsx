@@ -30,6 +30,31 @@ it('keeps the original screenshot when no media is published', () => {
   render(<LandingMediaDisplay media={null} />);
   expect(screen.getByRole('img')).toHaveAttribute('src', '/dashboard-actual.png');
 });
+it('uses saved image fit and focal position while legacy images retain top framing', () => {
+  const view = render(
+    <LandingMediaDisplay
+      media={{
+        kind: 'image',
+        url: 'https://res.cloudinary.com/test/image/upload/p.jpg',
+        posterUrl: null,
+        altText: 'Preview',
+        framing: { fit: 'contain', x: 35, y: 75 },
+      }}
+    />
+  );
+  expect(screen.getByRole('img')).toHaveStyle({ objectFit: 'contain', objectPosition: '35% 75%' });
+  view.rerender(
+    <LandingMediaDisplay
+      media={{
+        kind: 'image',
+        url: 'https://res.cloudinary.com/test/image/upload/p.jpg',
+        posterUrl: null,
+        altText: 'Preview',
+      }}
+    />
+  );
+  expect(screen.getByRole('img')).toHaveStyle({ objectFit: 'cover', objectPosition: '50% 0%' });
+});
 it('shows muted inline video, provides playback/sound controls and falls back to its poster on error', async () => {
   const { container } = render(<LandingMediaDisplay media={video} />);
   const element = container.querySelector('video')!;

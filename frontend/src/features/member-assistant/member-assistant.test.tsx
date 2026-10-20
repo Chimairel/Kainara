@@ -286,3 +286,5 @@ it('renders help destinations as inline links without a duplicate navigation row
   fireEvent.click(links[0]);
   expect(model.setOpen).toHaveBeenCalledWith(false);
 });
+
+vi.mock('./assistant-activity', () => ({ recordLocalAssistantMessage: vi.fn() }));

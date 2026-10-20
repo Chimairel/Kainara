@@ -148,3 +148,5 @@ it('shows a timer, keeps typing available, and disables AI send and confirmation
   view.rerender(<AssistantConversation model={{ ...model, pending: { requestKey: 'key', allowAi: false, message: 'question', context: [] } }} titleId="cooldown" />);
   expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
 });
+
+vi.mock('./assistant-activity', () => ({ recordLocalAssistantMessage: vi.fn() }));

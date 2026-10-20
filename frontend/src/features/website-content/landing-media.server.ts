@@ -16,6 +16,9 @@ const responseSchema = z.object({
       url: deliveryUrl,
       posterUrl: deliveryUrl.nullable(),
       altText: z.string().max(240),
+      framing: z
+        .object({ fit: z.enum(['cover', 'contain']), x: z.number().min(0).max(100), y: z.number().min(0).max(100) })
+        .optional(),
     })
     .nullable(),
 });

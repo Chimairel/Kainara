@@ -8,6 +8,7 @@ import { assistantAiQuestion, assistantDirectAction, assistantStaticReply, norma
 import { readAssistantSession, saveAssistantSession, type AssistantSession } from '@/lib/assistant-session';
 import { useAssistantTyping } from './useAssistantTyping';
 import { assistantQuestionText, formatAiDraft } from './assistant-composer.policy';
+import { recordLocalAssistantMessage } from './assistant-activity';
 
 export const ASSISTANT_BALANCE_MAX_AGE_MS = 60_000;
 
@@ -287,6 +288,8 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     // The server rechecks publication on every custom reply; never cache answer text.
     const information = instantQuestion(text, action) ? null : assistantStaticReply(text, action);
     if (information) {
+      // Record submitted text without delaying the local, free answer.
+      void recordLocalAssistantMessage(input.requestKey, text);
       setError(null); setFailed(null);
       setDraftEntryId(null);
       typing.start(`${input.requestKey}:reply`, information.text);

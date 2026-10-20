@@ -166,6 +166,17 @@ describe('dashboard route after feature extraction', () => {
     view.rerender(<DashboardPage />);
     expect(await screen.findByRole('button', { name: /Log food or snack/i })).toBeInTheDocument();
   });
+  it('replaces an already visible meal dashboard with the report hold after a profile correction', async () => {
+    plan = { data: [meal], meta: { generationStatus: 'COMPLETED' } };
+    const view = render(<DashboardPage />);
+    await screen.findByRole('button', { name: 'Eat Fixture rice plate' });
+    fixture.user.reportAcknowledged = false;
+    view.rerender(<DashboardPage />);
+    await screen.findByText("Meal planning isn't available yet");
+    expect(screen.queryByRole('button', { name: 'Eat Fixture rice plate' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Weekly plan/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /View Nutrition Report/i })).toBeInTheDocument();
+  });
   it('refreshes a preparing page into its saved meals without remounting or manual reload', async () => {
     render(<DashboardPage />);
     await screen.findByText('Preparing your meal plan');

@@ -55,6 +55,7 @@ beforeEach(() => {
   mocks.patch.mockImplementation(async (_url, body) => {
     expect(body.revision).toBe(content.revision);
     content.draft!.altText = body.altText;
+    content.draft!.framing = body.framing;
     content.revision++;
     return { data: { data: structuredClone(content) } };
   });
@@ -97,6 +98,25 @@ beforeEach(() => {
   });
 });
 afterEach(() => vi.unstubAllGlobals());
+it('saves fit and focal coordinates in the draft and publishes only after saving', async () => {
+  content.draft = { asset: savedImage, poster: null, altText: 'KAINARA platform preview' };
+  render(<WebsiteContentPage />);
+  fireEvent.change(await screen.findByLabelText('Image fit'), { target: { value: 'contain' } });
+  fireEvent.change(screen.getByLabelText('Vertical position'), { target: { value: '75' } });
+  expect(screen.getByRole('button', { name: 'Publish', exact: true })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+  await waitFor(() =>
+    expect(mocks.patch).toHaveBeenCalledWith('/admin/website-content/draft', {
+      revision: 0,
+      altText: 'KAINARA platform preview',
+      framing: { fit: 'contain', x: 50, y: 75 },
+    })
+  );
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled());
+  expect(content.published).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Publish', exact: true }));
+  await waitFor(() => expect(content.published?.framing).toEqual({ fit: 'contain', x: 50, y: 75 }));
+});
 it('previews a selected file, saves a draft without publishing, and requires an explicit publish', async () => {
   render(<WebsiteContentPage />);
   await screen.findByRole('button', { name: 'Save draft' });

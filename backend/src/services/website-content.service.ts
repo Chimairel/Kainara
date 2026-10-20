@@ -47,6 +47,7 @@ export class WebsiteContentService {
       url: config.asset.url,
       posterUrl: landingPosterUrl(config),
       altText: config.altText,
+      framing: config.framing ?? { fit: 'cover', x: 50, y: 0 },
     };
   }
 
@@ -163,10 +164,10 @@ export class WebsiteContentService {
     });
   }
 
-  static async saveText(adminUserId: string, revision: number, altText: string) {
+  static async saveText(adminUserId: string, revision: number, altText: string, framing?: LandingConfig['framing']) {
     return this.mutate(adminUserId, revision, 'WEBSITE_MEDIA_DRAFT_UPDATED', (row) => {
       const draft = parse(row.draft) ?? parse(row.published) ?? defaultLandingDraft();
-      return { draft: json(landingConfigSchema.parse({ ...draft, altText })) };
+      return { draft: json(landingConfigSchema.parse({ ...draft, altText, ...(framing ? { framing } : {}) })) };
     });
   }
 

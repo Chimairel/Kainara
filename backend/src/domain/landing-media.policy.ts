@@ -16,7 +16,17 @@ export const landingSelectionSchema = landingUploadSchema.extend({
     .regex(/^nutrimind\/landing\/[A-Za-z0-9_-]+$/)
     .max(240),
 });
-export const landingTextSchema = landingRevisionSchema.extend({ altText: z.string().trim().min(1).max(240) });
+export const landingFramingSchema = z
+  .object({
+    fit: z.enum(['cover', 'contain']).default('cover'),
+    x: z.number().finite().min(0).max(100).default(50),
+    y: z.number().finite().min(0).max(100).default(0),
+  })
+  .strict();
+export const landingTextSchema = landingRevisionSchema.extend({
+  altText: z.string().trim().min(1).max(240),
+  framing: landingFramingSchema.optional(),
+});
 
 const assetSchema = z
   .object({
@@ -51,6 +61,7 @@ export const landingConfigSchema = z
     asset: assetSchema.nullable(),
     poster: assetSchema.nullable(),
     altText: z.string().trim().min(1).max(240),
+    framing: landingFramingSchema.optional(),
   })
   .strict()
   .refine((config) => !config.poster || config.poster.kind === 'image', 'Poster must be an image.');

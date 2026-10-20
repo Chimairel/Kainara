@@ -5,7 +5,7 @@ import { useMemberAssistant } from './useMemberAssistant';
 import { ASSISTANT_SESSION_PREFIX, ASSISTANT_SESSION_TTL, clearAssistantSessions, readAssistantSession, saveAssistantSession, type AssistantSession } from '@/lib/assistant-session';
 
 vi.mock('@/lib/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
-const allowance = { tier: 'FREE', cap: 5, remaining: 5, used: 0, resetsAt: '2026-10-18T16:00:00Z' };
+const allowance = { tier: 'FREE', cap: 5, remaining: 5, used: 0, resetsAt: '2099-10-18T16:00:00Z' };
 const requestKey = '0282d844-a172-4a04-a760-79cbf4285899';
 const session = (overrides: Partial<AssistantSession> = {}): AssistantSession => ({ version: 1, owner: 'owner', createdAt: Date.now(), open: true,
   draft: 'draft', recoveryKey: null, pending: null, messages: [{ id: 'message', role: 'user', text: 'hello', createdAt: Date.now() }], ...overrides });
@@ -170,3 +170,5 @@ it('uncertain delivery checks once but never replays or charges for a still-runn
   expect(api.post).toHaveBeenCalledTimes(2);
   expect(vi.mocked(api.get).mock.calls.filter(([path]) => String(path).includes('/requests/'))).toHaveLength(1);
 });
+
+vi.mock('./assistant-activity', () => ({ recordLocalAssistantMessage: vi.fn() }));

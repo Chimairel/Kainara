@@ -118,6 +118,7 @@ test('draft/upload/publish/reset are atomic, protect published media, and reject
     url: image.url,
     posterUrl: null,
     altText: 'New public preview',
+    framing: { fit: 'cover', x: 50, y: 0 },
   });
   providerResult = videoResult;
   const video = { ...file, mimetype: 'video/mp4' };

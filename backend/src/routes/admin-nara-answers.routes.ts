@@ -5,6 +5,8 @@ import { validateZodBody } from '@/middleware/validateZod';
 import type { AuthenticatedRequest } from '@/types';
 import { naraAnswerSchema } from '@/domain/nara-answer.policy';
 import { NaraAnswerService } from '@/services/nara-answer.service';
+import { NaraActivityService, naraActivityQuery } from '@/services/nara-activity.service';
+import { validateZodRequest } from '@/middleware/validateZod';
 
 const router = Router();
 router.use((_req, res, next) => {
@@ -12,6 +14,13 @@ router.use((_req, res, next) => {
   next();
 });
 const revision = z.object({ revision: z.number().int().min(0) }).strict();
+router.get(
+  '/activity',
+  validateZodRequest({ query: naraActivityQuery }),
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    res.json({ success: true, data: await NaraActivityService.list(req.user!.userId, req.query) });
+  })
+);
 router.get(
   '/',
   asyncHandler(async (_req, res) => {

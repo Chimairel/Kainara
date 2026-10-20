@@ -64,6 +64,13 @@ test('session profile reuses its fetched profile while enforcing accepted report
     );
     assert.equal(userReads, 1, 'No duplicate user/relations query during report validation.');
     assert.equal(reportReads, 1);
+    fixture.userProfile = { ...profile, weightKg: 66, revision: 2 };
+    assert.equal(
+      (await UserProfileService.getAuthenticatedProfileDetails(fixture.id))?.profile.reportAcknowledged,
+      false,
+      'A previously selected report cannot hide an unacknowledged weight correction.'
+    );
+    fixture.userProfile = profile;
     const connectionError = Object.assign(new Error('Connection closed'), { code: 'P1017' });
     const healthyReportRead = prisma.nutritionReportVersion.findFirst;
     prisma.nutritionReportVersion.findFirst = (async () => {

@@ -39,8 +39,10 @@ export default function DashboardWorkspace() {
           }
         />
 
-        {!isLoading && <UnavailableMealsNotice cycle={currentCycle} onRepair={() => router.push('/meals')} />}
-        <DashboardPlanNotices model={model} />
+        {!isLoading && !isReportPending && (
+          <UnavailableMealsNotice cycle={currentCycle} onRepair={() => router.push('/meals')} />
+        )}
+        {!isReportPending && <DashboardPlanNotices model={model} />}
         {!isLoading && !isReportPending && !clinicalEvidenceRequired && (
           <MealPlanAnnouncements
             pendingCount={model.pendingReview?.mealCount}

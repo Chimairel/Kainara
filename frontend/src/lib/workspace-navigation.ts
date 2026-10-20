@@ -106,7 +106,13 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
     },
   ],
   ADMIN: [
-    { label: 'Support', href: '/admin/support', description: 'Read member requests and email replies.', group: 'Operations', icon: Mail },
+    {
+      label: 'Support',
+      href: '/admin/support',
+      description: 'Read member requests and email replies.',
+      group: 'Operations',
+      icon: Mail,
+    },
     {
       label: 'Overview',
       href: '/admin/overview',
@@ -171,20 +177,28 @@ export const primaryWorkspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
     ['/dashboard', '/meals', '/grocery', '/progress', '/profile'].includes(tool.href)
   ),
   NUTRITIONIST: workspaceTools.NUTRITIONIST,
-  ADMIN: ['/admin/overview', '/admin/users', '/admin/data', '/admin/meals', '/admin/website', '/admin/nara', '/admin/audit', '/admin/support'].map(
-    (href) => {
-      const tool = workspaceTools.ADMIN.find((entry) => entry.href === href)!;
-      return {
-        ...tool,
-        group:
-          href === '/admin/overview'
-            ? 'Overview'
-            : ['/admin/users', '/admin/nutritionists'].includes(href)
-              ? 'People'
-              : ['/admin/data', '/admin/meals', '/admin/library', '/admin/website', '/admin/nara'].includes(href)
-                ? 'Content & data'
-                : 'Operations',
-      };
-    }
-  ),
+  ADMIN: [
+    '/admin/overview',
+    '/admin/users',
+    '/admin/data',
+    '/admin/meals',
+    '/admin/website',
+    '/admin/nara',
+    '/admin/audit',
+    '/admin/support',
+    '/admin/profile',
+  ].map((href) => {
+    const tool = workspaceTools.ADMIN.find((entry) => entry.href === href)!;
+    return {
+      ...tool,
+      group:
+        href === '/admin/overview'
+          ? 'Overview'
+          : ['/admin/users', '/admin/nutritionists'].includes(href)
+            ? 'People'
+            : ['/admin/data', '/admin/meals', '/admin/library', '/admin/website', '/admin/nara'].includes(href)
+              ? 'Content & data'
+              : 'Operations',
+    };
+  }),
 };

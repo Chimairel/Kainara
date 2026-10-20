@@ -970,6 +970,22 @@ model User {
   clinicalContextResponses         ClinicalContextResponse[]
   clinicalFacts                    ClinicalFact[]
   reviewRoutingEpisodes           ReviewRoutingEpisode[]
+  assistantMessageLogs           AssistantMessageLog[]
+}
+
+// Submitted messages only; no drafts, credentials, context arrays or model responses. 30-day retention.
+model AssistantMessageLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestKey String   @db.VarChar(36)
+  message    String   @db.VarChar(1000)
+  mode       String   @db.VarChar(16)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, requestKey])
+  @@index([createdAt, id])
+  @@index([userId, createdAt])
 }
 
 // Bounded idempotency/allowance receipts, not a transcript store. Purged after 8 days.

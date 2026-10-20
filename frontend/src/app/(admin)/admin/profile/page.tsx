@@ -12,6 +12,7 @@ import PasswordInput from '@/components/ui/PasswordInput';
 import AvatarSettings from '@/features/profile/AvatarSettings';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { passwordSchema } from '@/validation/auth.schemas';
 import {
   ShieldCheck,
   ShieldAlert,
@@ -67,8 +68,9 @@ export default function AdminProfilePage() {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 8) {
-      setPasswordError('New password must be at least 8 characters.');
+    const validated = passwordSchema.safeParse(newPassword);
+    if (!validated.success) {
+      setPasswordError(validated.error.issues[0].message);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -84,10 +86,11 @@ export default function AdminProfilePage() {
         newPassword,
       });
       if (res.data?.success) {
-        setPasswordSuccess('Password changed successfully.');
+        setPasswordSuccess('Password changed. Sign in again with your new password.');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
+        if (res.data.data?.requiresSignIn) await logout();
       }
     } catch (err: unknown) {
       setPasswordError(getApiErrorMessage(err, 'Failed to update password.'));
@@ -342,6 +345,9 @@ export default function AdminProfilePage() {
                   </label>
                   <PasswordInput
                     id="current-pw"
+                    required
+                    autoComplete="current-password"
+                    maxLength={128}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="Enter current password"
@@ -354,6 +360,10 @@ export default function AdminProfilePage() {
                   </label>
                   <PasswordInput
                     id="new-pw"
+                    required
+                    autoComplete="new-password"
+                    minLength={8}
+                    maxLength={128}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="At least 8 characters"
@@ -366,6 +376,9 @@ export default function AdminProfilePage() {
                   </label>
                   <PasswordInput
                     id="confirm-pw"
+                    required
+                    autoComplete="new-password"
+                    maxLength={128}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter new password"

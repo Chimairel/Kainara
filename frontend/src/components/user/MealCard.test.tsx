@@ -91,7 +91,7 @@ describe('MealCard', () => {
     expect(screen.getByRole('button', { name: /mark as eaten/i })).toBeInTheDocument();
   });
 
-  it('opens the original Panlasang article when the meal has a direct source', () => {
+  it('opens YouTube cooking help even when the meal has an article source', () => {
     render(
       <MealCard
         {...defaultProps}
@@ -102,9 +102,9 @@ describe('MealCard', () => {
       />
     );
     fireEvent.click(screen.getByRole('button', { name: /open Sinigang na Hipon details/i }));
-    expect(screen.getByRole('link', { name: 'View Recipe' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Find on YouTube' })).toHaveAttribute(
       'href',
-      'https://panlasangpinoy.com/sinigang-na-hipon/'
+      'https://www.youtube.com/results?search_query=how%20to%20cook%20Sinigang%20na%20Hipon'
     );
   });
 
