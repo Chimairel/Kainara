@@ -1,22 +1,28 @@
 'use client';
 
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import { useState } from 'react';
+import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import NaraAnswersWorkspace from './NaraAnswersWorkspace';
 import NaraActivityWorkspace from './NaraActivityWorkspace';
 
 export default function AdminNaraWorkspace() {
+  const [view, setView] = useState<'answers' | 'activity'>('answers');
   return (
-    <Tabs defaultValue="answers">
-      <TabsList aria-label="Nara management" className="mb-5">
-        <TabsTrigger value="answers">Instant answers</TabsTrigger>
-        <TabsTrigger value="activity">Submitted messages</TabsTrigger>
-      </TabsList>
-      <TabsContent value="answers" forceMount className="data-[state=inactive]:hidden">
+    <div>
+      <WorkspaceTabs
+        label="Nara management"
+        value={view}
+        onChange={setView}
+        className="mb-5"
+        items={[
+          { value: 'answers', label: 'Instant answers' },
+          { value: 'activity', label: 'Submitted messages' },
+        ]}
+      />
+      <div hidden={view !== 'answers'}>
         <NaraAnswersWorkspace />
-      </TabsContent>
-      <TabsContent value="activity">
-        <NaraActivityWorkspace />
-      </TabsContent>
-    </Tabs>
+      </div>
+      {view === 'activity' && <NaraActivityWorkspace />}
+    </div>
   );
 }

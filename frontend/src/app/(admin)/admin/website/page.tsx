@@ -254,7 +254,7 @@ export default function WebsiteContentPage() {
                 className="mt-2 w-full rounded-xl border border-brand-border bg-brand-bg p-3"
               />
             </label>
-            {(preview?.kind === 'image' || draft?.poster) && (
+            {preview?.kind === 'image' && (
               <MediaFramingEditor value={framing} onChange={setFraming} disabled={busy} />
             )}
             <div className="flex flex-wrap gap-2">

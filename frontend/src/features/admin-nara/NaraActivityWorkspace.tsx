@@ -68,7 +68,7 @@ export default function NaraActivityWorkspace() {
           void load(search.trim());
         }}
       >
-        <div className="min-w-0 flex-1">
+        <div className="w-full min-w-0 sm:w-auto sm:flex-1">
           <Input
             label="Search submitted messages"
             value={search}
@@ -104,6 +104,7 @@ export default function NaraActivityWorkspace() {
           {
             key: 'member',
             header: 'Member',
+            headerClassName: 'min-w-[180px]',
             cell: (item) => (
               <div>
                 <p className="font-semibold">{item.user.name}</p>
@@ -114,16 +115,19 @@ export default function NaraActivityWorkspace() {
           {
             key: 'message',
             header: 'Submitted message',
+            headerClassName: 'min-w-[280px]',
             cell: (item) => <p className="max-w-xl whitespace-pre-wrap break-words text-sm">{item.message}</p>,
           },
           {
             key: 'mode',
             header: 'Mode',
+            headerClassName: 'min-w-[140px]',
             cell: (item) => (item.mode === 'AI_REQUEST' ? '/ai request' : 'Standard message'),
           },
           {
             key: 'date',
             header: 'Submitted',
+            headerClassName: 'min-w-[170px]',
             cell: (item) => formatManilaDate(item.createdAt, { dateStyle: 'medium', timeStyle: 'short' }),
           },
         ]}
