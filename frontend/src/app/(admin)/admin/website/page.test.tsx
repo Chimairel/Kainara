@@ -103,7 +103,7 @@ it('saves fit and focal coordinates in the draft and publishes only after saving
   render(<WebsiteContentPage />);
   fireEvent.change(await screen.findByLabelText('Image fit'), { target: { value: 'contain' } });
   fireEvent.change(screen.getByLabelText('Vertical position'), { target: { value: '75' } });
-  expect(screen.getByRole('button', { name: 'Publish', exact: true })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled();
   fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
   await waitFor(() =>
     expect(mocks.patch).toHaveBeenCalledWith('/admin/website-content/draft', {
@@ -112,9 +112,9 @@ it('saves fit and focal coordinates in the draft and publishes only after saving
       framing: { fit: 'contain', x: 50, y: 75 },
     })
   );
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Publish' })).toBeEnabled());
   expect(content.published).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Publish', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
   await waitFor(() => expect(content.published?.framing).toEqual({ fit: 'contain', x: 50, y: 75 }));
 });
 it('previews a selected file, saves a draft without publishing, and requires an explicit publish', async () => {

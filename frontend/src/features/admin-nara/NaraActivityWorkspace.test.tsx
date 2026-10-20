@@ -18,7 +18,7 @@ it('shows submitted member text, filters explicitly, paginates and preserves row
   expect(screen.getByText(record.user.email)).toBeVisible();
   fireEvent.change(screen.getByLabelText('Search submitted messages'), { target: { value: 'protein' } });
   expect(api.get).toHaveBeenCalledTimes(1);
-  fireEvent.click(screen.getByRole('button', { name: 'Search', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Search' }));
   await waitFor(() =>
     expect(api.get).toHaveBeenLastCalledWith('/admin/nara-answers/activity', { params: { search: 'protein' } })
   );
