@@ -37,7 +37,10 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 ## Verification status
 
 Code-led source and component checks are recorded in docs/MOBILE_MEMBER_APP.md.
-Native screenshots, keyboard/Back/large-text/theme testing and an independent
-visual verdict remain open: no Android SDK/device or Apple simulator is available
-on this host. Bundling and mocked component tests are not native visual evidence.
-The incumbent root DESIGN.md remains unchanged. No visual ship verdict is claimed.
+An Android 16 emulator is now installed. Actual native sign-in captures cover
+light/dark appearance, 1.3 font scale, text entry and corrected keyboard scrolling;
+see docs/verification/mobile-android-20261023 and the engineering evidence record.
+Authenticated member screens, Nara input behavior, physical-phone/iOS checks and
+an independent visual verdict remain open. Bundling and mocked component tests
+are not native visual evidence. The incumbent root DESIGN.md remains unchanged.
+No full-app visual ship verdict is claimed.

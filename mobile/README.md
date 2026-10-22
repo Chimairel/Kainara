@@ -67,6 +67,32 @@ work and backend checks, but no local database was recreated. An isolated databa
 and matching API are still needed for an actual account/SQL integration run.
 Use a separately confirmed staging API for hosted functional tests, not demo live.
 
+## Run on a Windows Android emulator
+
+Install Android Studio, Android SDK Platform-Tools, Android Emulator and one
+x86_64 Android system image. Create a phone in Device Manager. The current host
+uses the `Kainara_Pixel_7` Android 16 device with 2 GB RAM and two virtual cores.
+Windows Hypervisor Platform acceleration is available; no additional driver is
+needed on this host.
+
+Open a fresh terminal so the user-level `ANDROID_HOME` setting is loaded:
+
+```powershell
+cd C:\Users\chima\Desktop\Nutrimind\mobile
+npm run android:local
+```
+
+`android:local` binds Metro to IPv4 loopback and uses Expo's Android opener. This
+avoids a verified Windows mismatch where `localhost` selected IPv6 but the ADB
+reverse connection used IPv4. The regular `android` script remains available for
+LAN development.
+
+The emulator can reach a running laptop API at `http://10.0.2.2:5000/api`.
+The emulator does not provide an API or database. Without mobile configuration,
+the native sign-in screen shows a setup notice and cannot submit credentials.
+Keep Metro running while using the development app; Expo Go is its test host,
+not a signed KAINARA APK.
+
 ## Checks and bundles
 
 ```powershell

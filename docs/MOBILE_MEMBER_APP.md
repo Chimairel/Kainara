@@ -64,11 +64,13 @@ submitted-message retention and never calls a provider in automated mobile tests
 
 ## Remaining release gates
 
-No Android SDK/emulator/connected device or Apple simulator is available on this
-host. Native screenshots, layout/keyboard/IME/held Backspace checks, screen-reader
-feedback, large text, appearance, native Back, sharing and performance remain
-unverified. A browser render is not substituted for native evidence. Impeccable's
-native visual finish verdict remains open; DESIGN.md is inherited unchanged.
+The initial source pass had no emulator. The Android follow-up below now provides
+native sign-in appearance, text scaling and keyboard evidence. Authenticated member
+journeys, Nara IME/held Backspace, screen-reader feedback, sharing and performance
+still need device verification against a functioning isolated API. Physical-phone
+and iOS checks remain open. A browser render is not substituted for native evidence.
+Impeccable's full native visual finish verdict remains open; DESIGN.md is inherited
+unchanged.
 
 The owner's disk cleanup removed local Docker/PostgreSQL. No replacement database
 was created or Neon data queried. Actual HTTP/SQL account lifecycles must be tested
@@ -96,3 +98,47 @@ for development; no demo fallback. Enable mobile auth only on the confirmed test
 API candidate. Keep the owner's local → staging → authorized demo release order.
 The website/API production remains separate from mobile distribution; a Git push
 does not activate the flag, apply a migration or publish the app.
+
+## Android emulator setup and native checks — October 23, 2026
+
+Owner authorizes installation on the Windows PC. Install the official signed
+Google Android Studio 2026.2.1.8 ZIP in the user profile, command tools 23.0,
+Platform-Tools 37.0.1, stable Emulator 37.2.12 and Android 16 Google APIs x86_64
+revision 7. Verify the command-tools archive against Google repository metadata
+and Expo Go 58.0.5 against its official SHA-256 release digest. Windows Hypervisor
+Platform 10.0.26300 reports installed and usable. No BIOS change, OS feature
+activation or restart is required. Create `Kainara_Pixel_7`, two cores/2 GB RAM,
+with snapshots disabled. Add Android Studio and the emulator to the Start menu.
+User `ANDROID_HOME` points to `%LOCALAPPDATA%\Android\Sdk`.
+
+Correct the new command tool's slash-separated SDK package syntax after the
+compatibility wrapper splits the old semicolon identifier. Verify the actual
+system image file rather than accepting the wrapper's zero exit code. The first
+cold boot shows a System UI wait dialog, which clears; sustained performance is
+not established. The first Expo load also exposes an IPv6-only localhost listener
+that cannot receive the IPv4 ADB reverse connection. Add and actually run
+`npm run android:local`, selecting IPv4 loopback and Expo's Android opener.
+
+Capture actual emulator pixels, not a browser mockup:
+
+- `verification/mobile-android-20261023/login-light.png`: native anonymous form.
+- `login-dark-large.png`: dark appearance with Android font scale 1.3.
+- `login-keyboard.png`: initial keyboard overlap reproduction, before the fix.
+- `login-keyboard-scroll.png`: corrected form scrolling with the sign-in action
+  above the keyboard. Set Android keyboard avoidance to `height`; preserve iOS
+  padding. Hierarchy bounds confirm the scroll viewport contracts when IME opens.
+
+These are Expo Go captures; its floating developer-tools button is not KAINARA
+production UI. Synthetic `.invalid` text is never submitted. Restore font scale
+1.0/light appearance afterward. Mobile TypeScript/lint, 15 pure tests and nine
+native component tests and Android production bundle export pass after the fix.
+Do not repeat unrelated backend tests
+or claim these captures cover the authenticated member app.
+
+The ignored public mobile environment targets `http://10.0.2.2:5000/api` and the
+existing staging website handoff. No API listens on port 5000 during this check;
+no sign-in, SQL, Gemini, demo functional request or deployment occurs. API/database
+integration remains pending. Automatic approval rejects installer-leftover
+cleanup, so compressed archives and the duplicate extraction remain in the local
+setup folder. Automatic approval also rejects a combined direct Android launch
+command; the documented Expo opener succeeds. Preserve both limitations.

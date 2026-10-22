@@ -187,8 +187,8 @@ export function Screen({
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: theme.background }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' && keyboard ? 'padding' : undefined}
-        keyboardVerticalOffset={100}
+        behavior={keyboard ? (Platform.OS === 'ios' ? 'padding' : 'height') : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
