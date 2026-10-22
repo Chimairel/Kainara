@@ -1,0 +1,14 @@
+{
+  "name": "@nutrimind/braces-depth-guard",
+  "version": "3.0.3-nutrimind.1",
+  "private": true,
+  "description": "Repository-maintained braces 3.0.3 fork with bounded parser and AST traversal depth",
+  "license": "MIT",
+  "main": "index.js",
+  "engines": {
+    "node": ">=8"
+  },
+  "dependencies": {
+    "fill-range": "^7.1.1"
+  }
+}

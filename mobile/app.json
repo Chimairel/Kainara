@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "KAINARA",
+    "slug": "kainara-member",
+    "version": "0.1.0",
+    "scheme": "kainara",
+    "orientation": "portrait",
+    "icon": "./assets/kainara-icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kainara.member"
+    },
+    "android": {
+      "package": "com.kainara.member",
+      "predictiveBackGestureEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/kainara-icon.png",
+        "backgroundColor": "#faf8f5"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      "expo-sharing",
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

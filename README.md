@@ -1,5 +1,10 @@
 # KAINARA
 
+Native member development is in [`mobile/README.md`](mobile/README.md), using React
+Native + Expo with the existing API. It is not yet a published app or a complete
+replacement for all web workflows. See [mobile migration evidence and remaining
+release gates](docs/MOBILE_MEMBER_APP.md).
+
 KAINARA is a Philippines-focused nutrition and meal-planning capstone application with separate user, internal nutritionist, and administrator experiences. Its plans mix accessible general meals, Filipino food, locally available international food, and appropriate convenience options instead of restricting users to Filipino dishes.
 
 > **Current evidence source:** [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md) records implemented behavior, verification levels, accepted decisions, known defects, and risks. Older prompts, addenda, and handoff notes are collected as [project history](docs/history/PROJECT_EVOLUTION.md). They are not current specifications.

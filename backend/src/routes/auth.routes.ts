@@ -5,6 +5,7 @@ import AuthController from '@/controllers/auth.controller';
 import validate from '@/middleware/validate';
 import authenticate from '@/middleware/auth';
 import { passwordFitsBcrypt } from '@/validation/password.schemas';
+import mobileAuthRouter from './mobile-auth.routes';
 import {
   accountCreationLimiter,
   loginLimiter,
@@ -15,6 +16,7 @@ import {
 } from '@/middleware/rateLimiter';
 
 const router = Router();
+router.use('/mobile', mobileAuthRouter);
 
 // Separate budgets keep onboarding and routine session traffic from exhausting sign-in attempts.
 
