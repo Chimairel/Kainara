@@ -48,7 +48,17 @@ const mealColors: Record<string, { light: [string, string]; dark: [string, strin
 };
 
 /** The web dashboard's colored meal surface and round plate, with native stack navigation. */
-export function MealRow({ meal, preview = false }: { meal: Meal; preview?: boolean }) {
+export function MealRow({
+  meal,
+  preview = false,
+  onLog,
+  busy = false,
+}: {
+  meal: Meal;
+  preview?: boolean;
+  onLog?: () => void;
+  busy?: boolean;
+}) {
   const theme = useTheme();
   const url = meal.image?.url ? safeExternalUrl(meal.image.url) : null;
   const colors = (mealColors[meal.mealType?.toUpperCase()] ?? mealColors.LUNCH)[theme.isDark ? 'dark' : 'light'];
@@ -57,8 +67,8 @@ export function MealRow({ meal, preview = false }: { meal: Meal; preview?: boole
       style={{
         borderRadius: 24,
         backgroundColor: colors[1],
-        padding: 18,
-        gap: 14,
+        padding: 16,
+        gap: 12,
         overflow: 'hidden',
         boxShadow: '0px 4px 12px rgba(5,18,14,0.1)',
       }}
@@ -144,8 +154,8 @@ export function MealRow({ meal, preview = false }: { meal: Meal; preview?: boole
             </View>
           )}
         </View>
-        <View style={{ flex: 1, minWidth: 145, gap: 5 }}>
-          <Copy style={{ color: '#fff', fontFamily: fonts.display, fontSize: 21, lineHeight: 27, fontWeight: '700' }}>
+        <View style={{ flex: 1, minWidth: 132, gap: 5 }}>
+          <Copy style={{ color: '#fff', fontFamily: fonts.display, fontSize: 17, lineHeight: 23, fontWeight: '700' }}>
             {meal.mealName}
           </Copy>
           {meal.ricePortion ? (
@@ -159,7 +169,32 @@ export function MealRow({ meal, preview = false }: { meal: Meal; preview?: boole
           </Copy>
         </View>
       </View>
-      {!preview ? (
+      {!preview && onLog ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Mark ${meal.mealName} as eaten`}
+          disabled={busy}
+          accessibilityState={{ disabled: busy }}
+          onPress={(event) => {
+            event.stopPropagation();
+            onLog();
+          }}
+          style={{
+            alignSelf: 'flex-end',
+            minHeight: 48,
+            paddingHorizontal: 16,
+            borderRadius: 24,
+            backgroundColor: '#fff',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: busy ? 0.5 : 1,
+          }}
+        >
+          <Copy small style={{ color: '#0d2820', fontFamily: fonts.display, fontWeight: '700' }}>
+            Mark as eaten
+          </Copy>
+        </Pressable>
+      ) : !preview ? (
         <View
           style={{
             alignSelf: 'flex-end',

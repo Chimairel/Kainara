@@ -5,9 +5,11 @@ Mode: Operate. Platform: adaptive. Code-first app screens.
 The owner approved retaining the existing visual identity and member-first
 scope. This is a native adaptation of the existing member workflows, not a new
 brand or alternative information architecture. Inherit DESIGN.md. Keep the
-dashboard order: greeting, intake, water and today's meals; use native tabs for
-Home, Meals, Groceries and Progress, with Profile in the header and Nara as a
-stack destination. Meal details use stack navigation; focused edits use sheets.
+dashboard order: greeting, date selector, intake with water, and today's meals.
+The actual mobile PWA is the composition reference: compact breadcrumb header,
+inset floating five-item bar (Home, Meals, Groceries, Progress, Profile menu), and
+floating Nara. Keep native routing and safe areas. Meal details and Nara use stack
+navigation; focused edits use sheets.
 
 Use semantic light/dark colors, native safe areas and scrolling. The owner rejects
 the simplified native visual language on October 24: reproduce the incumbent
@@ -31,7 +33,7 @@ plan and records intake. Server review holds remain explicit.
 FIRST VIEWPORT: Greeting and logging/weekly-plan actions precede the date selector
 and branded intake card. A
 report hold replaces this content with sleeping Nara and one report action.
-Native tabs own the main destinations; Profile is in the top bar.
+The inset bottom bar owns the main destinations; Profile opens its account menu.
 
 FORM: Native adaptation of the owner-approved existing member screen order;
 composition selection is settled by the request, not a replacement-world seed.
@@ -57,3 +59,12 @@ surfaces and buttons carry through the other screens. Actual Android light/dark
 and 1.3 font-scale captures are in docs/verification/mobile-design-20261024.
 Native tabs, stack navigation, safe areas and server-owned holds remain intact.
 Physical phone, tablet, landscape and iOS visual acceptance remain unverified.
+
+October 24 PWA composition correction: compare against actual local web screens
+at 390 × 844 using only the synthetic staging member. Preserve the PWA page
+headers, section order, meal tiles, grocery summary/filters, progress metric grid
+and charts, white report paper, profile menu, and fixed Nara composer. Reuse the
+existing Solar vectors with their MIT license. Evidence and limitations are in
+docs/verification/mobile-pwa-fidelity-20261024 and docs/MOBILE_MEMBER_APP.md.
+Full web/native feature or pixel parity is not claimed; membership/deep profile
+editing still use the web handoff, and the native report is not the web canvas.

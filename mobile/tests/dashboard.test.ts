@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { dailyIntake } from '../src/lib/dashboard.ts';
+import { dailyIntake, dashboardDates } from '../src/lib/dashboard.ts';
 import type { HistoryEntry } from '../src/lib/contracts.ts';
 
 const date = '2026-10-24';
@@ -41,4 +41,22 @@ test('saved targets remain independent of consumed meals; unavailable macro targ
   const noMacros = dailyIntake([meal], date, undefined, 1800);
   assert.equal(noMacros.targets.calories, 1800);
   assert.equal(noMacros.targets.proteinG, undefined);
+});
+test('the PWA date window honors the cycle end and retains meal dates outside it', () => {
+  assert.deepEqual(dashboardDates([], undefined, '2026-10-24'), []);
+  const dates = dashboardDates(
+    [{ scheduledDate: '2026-10-29T12:00:00+08:00' }],
+    '2026-10-24T12:00:00+08:00',
+    '2026-10-24'
+  );
+  assert.deepEqual(dates, [
+    '2026-10-18',
+    '2026-10-19',
+    '2026-10-20',
+    '2026-10-21',
+    '2026-10-22',
+    '2026-10-23',
+    '2026-10-24',
+    '2026-10-29',
+  ]);
 });

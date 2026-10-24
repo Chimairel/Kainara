@@ -63,13 +63,17 @@ export type Meal = {
   cookingLink?: { url: string } | null;
 };
 export type PlanMeta = {
+  cycles?: {
+    current?: { planType?: string; startDate: string; endDate: string } | null;
+    upcoming?: { startDate: string; endDate: string } | null;
+  };
   planSnapshot?: { dailyCalorieTarget?: number; dailyMacroTargets?: Record<string, NutritionTotals> } | null;
   total?: number;
   nextCursor?: string | null;
   cycle?: { startDate: string; endDate: string; id: string } | null;
   pendingReview?: { meals?: Meal[]; count?: number };
   awaitingGenerationCount?: number;
-  generationStatus?: string;
+  generationStatus?: string | { current?: string; upcoming?: string };
 };
 export type NutritionTotals = { calories: number; proteinG: number; carbsG: number; fatG: number };
 export type Report = {
@@ -113,7 +117,14 @@ export type GroceryList = { id: string; groceryItems: GroceryItem[] };
 export type Progress = {
   weightLogs: { id: string; weightKg: number; loggedAt: string }[];
   dailyNutritionLogs: { id: string; logDate: string; totalCalories?: number; consumedCalories?: number }[];
-  waterHistory?: { days: { date: string; totalMl: number }[] };
+  waterHistory?: {
+    days: {
+      date: string;
+      totalMl: number;
+      entryCount?: number;
+      entries?: { id: string; amountMl: number; loggedAt: string }[];
+    }[];
+  };
 };
 export type HistoryEntry = {
   id: string;

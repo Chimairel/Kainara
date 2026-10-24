@@ -5,8 +5,10 @@ import { useResource } from '../../../lib/use-resource';
 import type { Meal, HistoryEntry } from '../../../lib/contracts';
 import { dateLabel, manilaDate } from '../../../lib/policies';
 import { Button, Choice, Copy, Field, Notice, Panel, Screen } from '../../../ui/components';
-import { MealRow, Macros } from '../../../ui/meal-row';
+import { Macros } from '../../../ui/meal-row';
+import { MealTile } from '../../../ui/meal-tile';
 import { DateStrip } from '../../../ui/date-strip';
+import { PortalHeader } from '../../../ui/portal';
 
 export default function Meals() {
   const [tab, setTab] = useState('plan');
@@ -14,7 +16,7 @@ export default function Meals() {
   const [search, setSearch] = useState('');
   const [cursors, setCursors] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState(manilaDate());
-  const plan = useResource<Meal[]>(tab === 'plan' ? '/user/meals/current' : null);
+  const plan = useResource<Meal[]>(tab === 'plan' ? '/user/meals/workspace' : null);
   const history = useResource<HistoryEntry[]>(tab === 'history' ? '/user/meals/history' : null);
   const library = useResource<Meal[]>(
     tab === 'library'
@@ -28,9 +30,37 @@ export default function Meals() {
     )
   ).sort();
   const selected = dates.includes(selectedDate) ? selectedDate : dates[0];
+  const starter = plan.meta?.cycles?.current?.planType === 'STARTER';
+  const preparing =
+    typeof plan.meta?.generationStatus === 'string' ? plan.meta.generationStatus : plan.meta?.generationStatus?.current;
   return (
     <Screen refreshing={active.loading} onRefresh={() => void active.reload()}>
-      <Copy title>Your meals</Copy>
+      <PortalHeader
+        title={
+          tab === 'history'
+            ? 'Meal history'
+            : tab === 'library'
+              ? 'Meal library'
+              : starter
+                ? 'Starter meal plan'
+                : 'Weekly meal plan'
+        }
+        description={
+          tab === 'history'
+            ? 'Your logged meals and nutritionist feedback.'
+            : tab === 'library'
+              ? 'Browse compatible, RND-verified recipes for your profile.'
+              : starter && plan.meta?.cycles?.upcoming
+                ? `Starter kickoff plan. Your full weekly cycle starts ${dateLabel(plan.meta.cycles.upcoming.startDate)}.`
+                : 'Your meals, planned around your nutritional needs.'
+        }
+        actions={
+          <>
+            <Button label="Log food or snack" icon="plus-circle-outline" onPress={() => router.push('/log-food')} />
+            <Button label="Groceries" icon="basket-outline" secondary onPress={() => router.push('/groceries')} />
+          </>
+        }
+      />
       <Choice
         label="View"
         segmented
@@ -76,10 +106,12 @@ export default function Meals() {
         <Copy muted>Loading meals…</Copy>
       ) : tab === 'plan' ? (
         <>
-          {plan.meta?.generationStatus ? (
+          {preparing && preparing !== 'COMPLETED' ? (
             <Copy muted>
-              Preparation: {plan.meta.generationStatus.replaceAll('_', ' ').toLowerCase()}
-              {plan.meta.awaitingGenerationCount ? ` · ${plan.meta.awaitingGenerationCount} slots still preparing` : ''}
+              Preparation: {preparing.replaceAll('_', ' ').toLowerCase()}
+              {plan.meta?.awaitingGenerationCount
+                ? ` · ${plan.meta.awaitingGenerationCount} slots still preparing`
+                : ''}
             </Copy>
           ) : null}
           {dates.length ? <DateStrip dates={dates} selected={selected} onSelect={setSelectedDate} /> : null}
@@ -91,12 +123,12 @@ export default function Meals() {
                 {plan.data
                   ?.filter((meal) => manilaDate(meal.scheduledDate) === date)
                   .map((meal) => (
-                    <MealRow key={meal.id} meal={meal} />
+                    <MealTile key={meal.id} meal={meal} />
                   ))}
                 {plan.meta?.pendingReview?.meals
                   ?.filter((meal) => manilaDate(meal.scheduledDate) === date)
                   .map((meal, index) => (
-                    <MealRow key={`${date}-preview-${index}`} meal={meal} preview />
+                    <MealTile key={`${date}-preview-${index}`} meal={meal} preview />
                   ))}
               </View>
             ))}
@@ -111,16 +143,7 @@ export default function Meals() {
       ) : tab === 'library' ? (
         <>
           {library.data?.map((meal) => (
-            <Panel key={meal.id}>
-              <Copy style={{ fontSize: 20, fontWeight: '700' }}>{meal.mealName}</Copy>
-              <Copy muted>{meal.description}</Copy>
-              <Macros meal={meal} />
-              {meal.verifier ? (
-                <Copy small muted>
-                  Recorded recipe reviewer: {meal.verifier.name}
-                </Copy>
-              ) : null}
-            </Panel>
+            <MealTile key={meal.id} meal={meal} recipe />
           ))}
           {!library.data?.length && !library.error ? (
             <Notice
@@ -171,7 +194,6 @@ export default function Meals() {
           ) : null}
         </>
       )}
-      <Button label="Log food or snack" onPress={() => router.push('/log-food')} />
     </Screen>
   );
 }

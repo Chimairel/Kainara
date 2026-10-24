@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Keyboard, Text, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
@@ -9,8 +9,8 @@ import type { Allowance, ChatInput, ChatResult, Reply } from '../../lib/contract
 import { useChatState, emptyChat } from '../../lib/chat-state';
 import { useSession } from '../../lib/session';
 import { serializeQuestion, validateQuestion } from '../../lib/policies';
-import { Button, Copy, Notice, Panel, Screen, openExternal, useAction } from '../../ui/components';
-import { useTheme } from '../../ui/theme';
+import { Button, Copy, Icon, Notice, Panel, Screen, openExternal, useAction } from '../../ui/components';
+import { fonts, useTheme } from '../../ui/theme';
 import { webUrl } from '../../lib/web-links';
 
 async function followLink(href: string) {
@@ -112,21 +112,24 @@ export default function Nara() {
       recoveryKey: null,
     }));
   }
-  async function send(confirmation = false) {
-    if (!state.ai && /^\/(?:a|ai)?$/i.test(state.draft.trim()) && !confirmation) {
+  async function send(confirmation = false, quick?: { question: string; action?: ChatInput['action'] }) {
+    const draft = quick?.question ?? state.draft;
+    const ai = quick ? false : state.ai;
+    if (!quick && !state.ai && /^\/(?:a|ai)?$/i.test(state.draft.trim()) && !confirmation) {
       selectAi();
       return;
     }
     if (state.recoveryKey) throw new Error('Check the previous request before sending another.');
-    const validation = validateQuestion(state.draft, state.ai);
+    const validation = validateQuestion(draft, ai);
     if (validation) throw new Error(validation);
-    const entryId = state.draftEntryId ?? Crypto.randomUUID();
+    const entryId = quick ? Crypto.randomUUID() : (state.draftEntryId ?? Crypto.randomUUID());
     const input: ChatInput =
       confirmation && state.pending
         ? { ...state.pending, allowAi: true }
         : {
             requestKey: Crypto.randomUUID(),
-            message: serializeQuestion(state.draft, state.ai),
+            message: serializeQuestion(draft, ai),
+            ...(quick?.action ? { action: quick.action } : {}),
             allowAi: false,
             context: state.entries.slice(-6).map((entry) => ({ role: entry.role, content: entry.text.slice(0, 500) })),
           };
@@ -143,7 +146,7 @@ export default function Nara() {
       draftEntryId: entryId,
       entries: [
         ...current.entries.filter((entry) => entry.id !== entryId).slice(-39),
-        { id: entryId, role: 'user', text: state.draft.trim() },
+        { id: entryId, role: 'user', text: draft.trim() },
       ],
     }));
     const response = await api.request<ChatResult>('/user/assistant/messages', 'POST', input);
@@ -171,52 +174,8 @@ export default function Nara() {
       throw new Error('No completed reply is available. Review your question and submit again for fresh confirmation.');
     }
   }
-  return (
-    <Screen keyboard>
-      <Copy title>Your nutrition companion.</Copy>
-      <Copy muted>
-        App help and saved-information shortcuts are free. For an AI reply, type /ai, select Ask AI, then write your
-        question. I’ll ask before using 1 credit.
-      </Copy>
-      {status.error ? (
-        <Notice error title="Nara could not connect" body={status.error} onRetry={() => void status.reload()} />
-      ) : null}
-      {status.data && !status.data.enabled ? (
-        <Notice title="Nara is unavailable" body="The assistant is not enabled on this server." />
-      ) : null}
-      {state.entries.map((entry) => (
-        <Panel key={entry.id} style={{ backgroundColor: entry.role === 'user' ? theme.greenSoft : theme.surface }}>
-          <Copy small muted>
-            {entry.role === 'user' ? 'You' : 'Nara'}
-          </Copy>
-          <Copy selectable>{entry.text}</Copy>
-          {entry.reply?.facts?.map((fact, index) => (
-            <Copy key={index} small>
-              {fact.label}: {fact.value}
-            </Copy>
-          ))}
-          {entry.reply?.links?.map((link, index) => (
-            <Button key={index} label={link.label} secondary onPress={() => followLink(link.href)} />
-          ))}
-          {entry.reply?.references?.map((link, index) => (
-            <Button key={index} label={link.label} secondary onPress={() => followLink(link.href)} />
-          ))}
-          {entry.reply ? (
-            <Copy small muted>
-              {entry.reply.source === 'AI'
-                ? `${entry.reply.creditsUsed} AI credit used`
-                : 'System response · No credit used'}
-            </Copy>
-          ) : null}
-        </Panel>
-      ))}
-      {state.recoveryKey ? (
-        <Notice
-          title="Check your previous AI request"
-          body="Its delivery is uncertain. Check the saved request receipt before trying again."
-          onRetry={() => void action.run(recover)}
-        />
-      ) : null}
+  const composer = (
+    <>
       {allowance ? (
         <Copy small muted>
           {allowance.remaining} / {allowance.cap} AI credits · resets{' '}
@@ -246,8 +205,9 @@ export default function Nara() {
               color: theme.text,
               fontWeight: '700',
               backgroundColor: selectedPrefix ? theme.primary : theme.greenSoft,
-              fontSize: 16,
-              lineHeight: 24,
+              fontSize: 14,
+              lineHeight: 22,
+              fontFamily: fonts.body,
             }}
           >
             /ai
@@ -299,14 +259,34 @@ export default function Nara() {
           style={{
             flex: 1,
             color: theme.text,
-            fontSize: 16,
-            lineHeight: 24,
+            fontSize: 14,
+            lineHeight: 22,
+            fontFamily: fonts.body,
             minHeight: 72,
             maxHeight: 180,
             padding: 0,
             textAlignVertical: 'top',
+            paddingRight: 56,
           }}
         />
+        {!state.pending ? (
+          <View style={{ position: 'absolute', right: 8, bottom: 8 }}>
+            <Button
+              iconOnly
+              icon="arrow-up"
+              label={menu ? 'Select Ask AI' : 'Send question'}
+              disabled={
+                !state.draft.trim() ||
+                action.busy ||
+                !status.data?.enabled ||
+                Boolean(state.recoveryKey) ||
+                serializeQuestion(state.draft, state.ai).length > 1000
+              }
+              busy={action.busy}
+              onPress={() => action.run(() => send())}
+            />
+          </View>
+        ) : null}
       </View>
       <Copy small muted>
         {serializeQuestion(state.draft, state.ai).length} / 1,000 characters
@@ -336,30 +316,108 @@ export default function Nara() {
             }}
           />
         </Panel>
-      ) : (
-        <Button
-          label={menu ? 'Select Ask AI' : 'Send question'}
-          disabled={
-            !state.draft.trim() ||
-            action.busy ||
-            !status.data?.enabled ||
-            Boolean(state.recoveryKey) ||
-            serializeQuestion(state.draft, state.ai).length > 1000
-          }
-          busy={action.busy}
-          onPress={() => action.run(() => send())}
+      ) : null}
+    </>
+  );
+  return (
+    <Screen keyboard footer={composer}>
+      {!state.entries.length ? (
+        <>
+          <Copy title>What would help with your next meal?</Copy>
+          <Copy muted>
+            App help and saved-information shortcuts are free. For an AI reply, type /ai, select Ask AI, then write your
+            question. I’ll ask before using 1 credit.
+          </Copy>
+          {(
+            [
+              ['About KAINARA', undefined],
+              ['Find a meal', 'FIND_MEAL'],
+              ['Today’s nutrition', 'TODAY'],
+              ['My nutrition guidance', 'GUIDANCE'],
+            ] as const
+          ).map(([question, quickAction]) => (
+            <Pressable
+              key={question}
+              accessibilityRole="button"
+              accessibilityLabel={question}
+              style={({ pressed }) => ({
+                minHeight: 48,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: theme.border,
+                backgroundColor: theme.surface,
+                flexDirection: 'row',
+                gap: 12,
+                alignItems: 'center',
+                opacity: pressed ? 0.7 : 1,
+              })}
+              disabled={action.busy || Boolean(state.pending) || Boolean(state.recoveryKey) || !status.data?.enabled}
+              onPress={() => action.run(() => send(false, { question, action: quickAction }))}
+            >
+              <Icon name="chat-outline" size={18} />
+              <Copy style={{ flex: 1, fontWeight: '600' }}>{question}</Copy>
+              <Icon name="chevron-right" size={17} />
+            </Pressable>
+          ))}
+        </>
+      ) : null}
+      {status.error ? (
+        <Notice error title="Nara could not connect" body={status.error} onRetry={() => void status.reload()} />
+      ) : null}
+      {status.data && !status.data.enabled ? (
+        <Notice title="Nara is unavailable" body="The assistant is not enabled on this server." />
+      ) : null}
+      {state.entries.map((entry) => (
+        <Panel key={entry.id} style={{ backgroundColor: entry.role === 'user' ? theme.greenSoft : theme.surface }}>
+          <Copy small muted>
+            {entry.role === 'user' ? 'You' : 'Nara'}
+          </Copy>
+          <Copy selectable>{entry.text}</Copy>
+          {entry.reply?.facts?.map((fact, index) => (
+            <Copy key={index} small>
+              {fact.label}: {fact.value}
+            </Copy>
+          ))}
+          {entry.reply?.links?.map((link, index) => (
+            <Button key={index} label={link.label} secondary onPress={() => followLink(link.href)} />
+          ))}
+          {entry.reply?.references?.map((link, index) => (
+            <Button key={index} label={link.label} secondary onPress={() => followLink(link.href)} />
+          ))}
+          {entry.reply ? (
+            <Copy small muted>
+              {entry.reply.source === 'AI'
+                ? `${entry.reply.creditsUsed} AI credit used`
+                : 'System response · No credit used'}
+            </Copy>
+          ) : null}
+        </Panel>
+      ))}
+      {state.recoveryKey ? (
+        <Notice
+          title="Check your previous AI request"
+          body="Its delivery is uncertain. Check the saved request receipt before trying again."
+          onRetry={() => void action.run(recover)}
         />
-      )}
+      ) : null}
       {action.error ? <Notice error title="Nara needs your attention" body={action.error} /> : null}
-      <Button
-        label="Start a new chat"
-        secondary
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Start a new chat"
+        style={{ minHeight: 48, flexDirection: 'row', gap: 8, alignItems: 'center' }}
         disabled={action.busy || Boolean(state.recoveryKey)}
         onPress={() => {
           setState(emptyChat);
           action.setError(null);
         }}
-      />
+      >
+        <Icon name="plus-circle-outline" size={18} />
+        <Copy small style={{ fontWeight: '600' }}>
+          Start a new chat
+        </Copy>
+      </Pressable>
       <Copy small muted>
         Submitted messages may be available to administrators for 30 days. Unsent typing is not recorded. Do not share
         passwords or payment details. Clearing this chat does not delete server records.

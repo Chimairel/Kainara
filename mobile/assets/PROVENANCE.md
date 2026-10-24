@@ -15,3 +15,8 @@
 - `fonts/`: unchanged DM Sans, Outfit and JetBrains Mono variable TrueType files
   from `frontend/src/app/fonts/` at `7dfbbc7f`, with their adjacent SIL Open Font
   License files. The web font README records the official Google Fonts sources.
+- `solar-icons.ts`: 13 SVGs exported from the existing web dependency
+  `@solar-icons/react@2.3.2` using its server-rendered icon components. The native
+  renderer only replaces `currentColor` with the semantic theme color. The
+  upstream MIT license is preserved in `solar-LICENSE.txt`; no new artwork or
+  package dependency is introduced.

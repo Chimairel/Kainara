@@ -1,5 +1,6 @@
+import { render } from './render-native';
 import React from 'react';
-import { render, fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import Home from '../src/app/(member)/(tabs)/index';
 import { MealRow } from '../src/ui/meal-row';
@@ -74,7 +75,7 @@ test('the date selector changes only the selected day', async () => {
   expect(select).toHaveBeenCalledWith('2026-10-25');
   expect(api.request).not.toHaveBeenCalled();
 });
-test('the branded home keeps missing targets explicit and Nara opens the existing free-guide screen', async () => {
+test('the branded home keeps missing targets explicit and avoids provider requests', async () => {
   const today = manilaDate();
   jest.mocked(useResource).mockImplementation(
     (path) =>
@@ -90,7 +91,5 @@ test('the branded home keeps missing targets explicit and Nara opens the existin
   expect(screen.getByLabelText('Protein: 0 grams, target Not recorded')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Add 250 mL of water' })).toBeOnTheScreen();
   expect(jest.mocked(useResource).mock.calls.some(([path]) => path?.includes(today))).toBe(true);
-  await fireEvent.press(screen.getByRole('button', { name: 'Ask Nara' }));
-  expect(router.push).toHaveBeenCalledWith('/nara');
   expect(api.request).not.toHaveBeenCalled();
 });

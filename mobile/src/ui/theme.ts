@@ -35,6 +35,10 @@ const AppearanceContext = createContext<{ appearance: 'light' | 'dark' | null; t
   appearance: null,
   toggle() {},
 });
+/** The PWA document uses readable white paper in both surrounding themes. */
+export function PaperTheme({ children }: { children: React.ReactNode }) {
+  return React.createElement(AppearanceContext.Provider, { value: { appearance: 'light', toggle() {} } }, children);
+}
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
   const system = useColorScheme();
   const [appearance, setAppearance] = useState<'light' | 'dark' | null>(null);

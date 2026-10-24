@@ -1,0 +1,48 @@
+{
+  "recordedAt": "2026-10-24T04:06:24Z",
+  "baseline": "f48496d8",
+  "scope": "Native member composition aligned to the actual mobile PWA",
+  "reference": {
+    "webViewport": "390x844",
+    "webRuntime": "Local unchanged Next.js frontend with isolated loopback staging reference API",
+    "nativeRuntime": "Expo Go, Android 16 Pixel 7 emulator, local staging API on 5102",
+    "account": "Synthetic Android Test Member",
+    "databaseTarget": "Separate staging only"
+  },
+  "checks": {
+    "typescript": "passed",
+    "lint": "passed",
+    "pureTests": { "passed": 18, "failed": 0 },
+    "nativeComponentTests": { "passed": 18, "failed": 0 },
+    "androidProductionJsExport": "passed",
+    "iosProductionJsExport": "passed",
+    "actualPixelsInspected": [
+      "PWA Home, Meals, Groceries and Progress",
+      "Native Home, Meals, Groceries, Progress, Profile menu and report",
+      "Native Nara and full Android keyboard with visible input and send control",
+      "Native dark Home and Meals at 1.3 system font scale"
+    ],
+    "correctedDuringVerification": [
+      "Stray JSX space inside a native View",
+      "Keyboard offset must include the native screen origin",
+      "Capture expectation used weekly title for an actual starter plan"
+    ]
+  },
+  "boundaries": {
+    "demoAccessOrDeployment": false,
+    "newDependencies": false,
+    "backendOrSchemaChanges": false,
+    "clinicalApprovalChanges": false,
+    "foodWeightWaterOrReviewWritesDuringThisUiPass": false,
+    "paidProviderRequests": false
+  },
+  "limitations": [
+    "Overall composition fidelity; full pixel and feature parity is not claimed",
+    "Membership and detailed clinical/preference editing still use web handoffs",
+    "Native report does not implement the web zoom/pan canvas",
+    "Physical-device, iOS runtime, landscape, tablet and assistive-technology acceptance remain open",
+    "Native PDF sharing is exposed but not device-verified in this pass",
+    "Screenshots include the Expo Go development overlay",
+    "Production JS exports are not signed store binaries"
+  ]
+}

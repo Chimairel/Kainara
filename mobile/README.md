@@ -4,6 +4,12 @@ React Native + Expo SDK 58, using the existing Express API. This is a **developm
 client**, not a published store app or a complete replacement for every web workflow.
 Android is the first device-verification target; iOS bundles are also generated.
 
+The existing **mobile PWA is the visual reference**: retain its compact header,
+floating five-item navigation/profile menu, branded intake and meal cards,
+grocery/progress layouts, white report and Nara composer using native views.
+The implementation is not a browser wrapper. Full feature/pixel parity remains
+in progress; dated evidence and remaining gaps are in `docs/MOBILE_MEMBER_APP.md`.
+
 ## Included
 
 - Email/password sign-in and registration, OTP verification and reset-email request.

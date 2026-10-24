@@ -1,5 +1,6 @@
 import React from 'react';
-import { Alert, Image } from 'react-native';
+import { Alert, Image, View } from 'react-native';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useResource } from '../../../lib/use-resource';
 import { useSession } from '../../../lib/session';
@@ -37,23 +38,81 @@ export default function MealDetails() {
     });
   return (
     <Screen>
-      <Copy small muted>
-        {dateLabel(meal.scheduledDate)} · {meal.mealType.toLowerCase()}
-      </Copy>
-      <Copy title>{meal.mealName}</Copy>
-      {image ? (
-        <Image
-          source={{ uri: image }}
-          accessibilityLabel={meal.image?.altText ?? meal.mealName}
-          style={{ width: '100%', height: 240, borderRadius: 24 }}
+      <View
+        style={{
+          minHeight: 280,
+          borderRadius: 28,
+          overflow: 'hidden',
+          backgroundColor: '#0d2820',
+          justifyContent: 'flex-end',
+        }}
+      >
+        {image ? (
+          <Image
+            source={{ uri: image }}
+            accessibilityLabel={meal.image?.altText ?? meal.mealName}
+            style={{ position: 'absolute', width: '100%', height: '100%' }}
+          />
+        ) : null}
+        <View pointerEvents="none" style={{ position: 'absolute', inset: 0 }}>
+          <Svg width="100%" height="100%" accessible={false}>
+            <Defs>
+              <LinearGradient id="hero" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor="#000" stopOpacity={0} />
+                <Stop offset="1" stopColor="#000" stopOpacity={0.85} />
+              </LinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#hero)" />
+          </Svg>
+        </View>
+        <View style={{ padding: 20, gap: 8 }}>
+          <Copy small style={{ color: '#fff', fontWeight: '600' }}>
+            {dateLabel(meal.scheduledDate)} · {meal.mealType.toUpperCase()}
+          </Copy>
+          <Copy title style={{ color: '#fff' }}>
+            {meal.mealName}
+          </Copy>
+        </View>
+      </View>
+      {actionable ? (
+        <>
+          <Button
+            label={mealDone(meal) ? 'Undo eaten status' : 'Mark as eaten'}
+            busy={action.busy}
+            onPress={() => {
+              Alert.alert(mealDone(meal) ? 'Undo this food log?' : 'Record this meal as eaten?', meal.mealName, [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Confirm', onPress: () => void save(mealDone(meal) ? 'PENDING' : 'DONE') },
+              ]);
+            }}
+          />
+          <Button
+            label="Skip this meal"
+            secondary
+            disabled={action.busy}
+            onPress={() => {
+              Alert.alert('Skip this meal?', 'You can change its status later if the meal remains available.', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Skip meal', onPress: () => void save('SKIPPED') },
+              ]);
+            }}
+          />
+        </>
+      ) : (
+        <Notice
+          title={meal.status === 'APPROVED' ? 'Scheduled for a future day' : 'Awaiting meal clearance'}
+          body="Meal actions become available only when the server’s date, profile and review requirements are met."
         />
-      ) : null}
+      )}
       {meal.image?.attribution?.creator ? (
         <Copy small muted>
           Image: {meal.image.attribution.creator}
         </Copy>
       ) : null}
-      <Macros meal={meal} />
+      <Panel>
+        <Copy style={{ fontWeight: '700' }}>MACRO DISTRIBUTION</Copy>
+        <Macros meal={meal} />
+      </Panel>
       {meal.ricePortion ? <Copy muted>{meal.ricePortion}</Copy> : null}
       <Copy>{meal.description}</Copy>
       <Panel>
@@ -92,36 +151,6 @@ export default function MealDetails() {
           }}
         />
       ) : null}
-      {actionable ? (
-        <>
-          <Button
-            label={mealDone(meal) ? 'Undo eaten status' : 'Mark as eaten'}
-            busy={action.busy}
-            onPress={() => {
-              Alert.alert(mealDone(meal) ? 'Undo this food log?' : 'Record this meal as eaten?', meal.mealName, [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Confirm', onPress: () => void save(mealDone(meal) ? 'PENDING' : 'DONE') },
-              ]);
-            }}
-          />
-          <Button
-            label="Skip this meal"
-            secondary
-            disabled={action.busy}
-            onPress={() => {
-              Alert.alert('Skip this meal?', 'You can change its status later if the meal remains available.', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Skip meal', onPress: () => void save('SKIPPED') },
-              ]);
-            }}
-          />
-        </>
-      ) : (
-        <Notice
-          title={meal.status === 'APPROVED' ? 'Scheduled for a future day' : 'Awaiting meal clearance'}
-          body="Meal actions become available only when the server’s date, profile and review requirements are met."
-        />
-      )}
       <Button
         secondary
         label="Need cooking help?"

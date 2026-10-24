@@ -18,14 +18,14 @@ export default function Login() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
       <Screen keyboard>
-        <View style={{ paddingTop: 28, gap: 28 }}>
+        <View style={{ paddingTop: 24, gap: 24 }}>
           <Image
             source={require('../../assets/kainara-icon.png')}
             accessibilityLabel="KAINARA"
-            style={{ width: 84, height: 84, borderRadius: 24 }}
+            style={{ width: 52, height: 52, borderRadius: 20 }}
           />
           <View style={{ gap: 10 }}>
-            <Copy title>{register ? 'Make room for healthier habits.' : 'Your next meal, thoughtfully planned.'}</Copy>
+            <Copy title>{register ? 'Create your account' : 'Enter your workspace'}</Copy>
             <Copy muted>Familiar food. Personal guidance. A little help from KAINARA.</Copy>
           </View>
           <View style={{ gap: 18 }}>

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { dateLabel, manilaDate } from '../lib/policies';
-import { Copy } from './components';
+import { Copy, Icon } from './components';
 import { fonts, useTheme } from './theme';
 
 export function DateStrip({
@@ -27,11 +27,31 @@ export function DateStrip({
         borderWidth: 1,
         borderRadius: 24,
         alignSelf: 'center',
-        width: dates.length < 4 ? dates.length * 66 + 16 : '100%',
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
         padding: 8,
         boxShadow: '0px 3px 12px rgba(5,18,14,0.06)',
       }}
     >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Previous day"
+        accessibilityState={{ disabled: dates.indexOf(selected) <= 0 }}
+        disabled={dates.indexOf(selected) <= 0}
+        onPress={() => onSelect(dates[dates.indexOf(selected) - 1])}
+        style={{
+          width: 36,
+          minHeight: 48,
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: dates.indexOf(selected) <= 0 ? 0.3 : 1,
+        }}
+      >
+        <View style={{ transform: [{ rotate: '180deg' }] }}>
+          <Icon name="chevron-right" size={18} />
+        </View>
+      </Pressable>
       <ScrollView
         ref={scroller}
         horizontal
@@ -53,19 +73,19 @@ export function DateStrip({
             }}
             style={({ pressed }) => ({
               minWidth: 60,
-              minHeight: 72,
+              minHeight: 58,
               alignItems: 'center',
               justifyContent: 'center',
               gap: 4,
-              padding: 10,
-              borderRadius: 18,
+              padding: 8,
+              borderRadius: 16,
               backgroundColor: selected === date ? theme.primary : date < manilaDate() ? theme.soft : theme.surface,
               opacity: pressed ? 0.7 : 1,
             })}
           >
             <Copy
               small
-              style={{ color: selected === date ? theme.onPrimary : theme.muted, fontSize: 11, fontWeight: '700' }}
+              style={{ color: selected === date ? theme.onPrimary : theme.muted, fontSize: 9, fontWeight: '700' }}
             >
               {new Date(`${date}T12:00:00+08:00`)
                 .toLocaleDateString('en-PH', { weekday: 'short', timeZone: 'Asia/Manila' })
@@ -74,8 +94,8 @@ export function DateStrip({
             <Copy
               style={{
                 fontFamily: fonts.display,
-                fontSize: 24,
-                lineHeight: 28,
+                fontSize: 20,
+                lineHeight: 24,
                 fontWeight: '800',
                 color: selected === date ? theme.onPrimary : theme.text,
               }}
@@ -85,6 +105,22 @@ export function DateStrip({
           </Pressable>
         ))}
       </ScrollView>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Next day"
+        accessibilityState={{ disabled: dates.indexOf(selected) === dates.length - 1 }}
+        disabled={dates.indexOf(selected) === dates.length - 1}
+        onPress={() => onSelect(dates[dates.indexOf(selected) + 1])}
+        style={{
+          width: 36,
+          minHeight: 48,
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: dates.indexOf(selected) === dates.length - 1 ? 0.3 : 1,
+        }}
+      >
+        <Icon name="chevron-right" size={18} />
+      </Pressable>
     </View>
   );
 }

@@ -252,3 +252,60 @@ clinical rule, approval, paid provider request or hosted deployment. Android/iOS
 bundle success does not establish physical-device, iOS visual, tablet or landscape
 acceptance. Other member screens inherit the shared brand components; complete
 web/native feature or pixel parity is not claimed.
+
+## Retain the mobile PWA composition — October 24, 2026
+
+Use the actual mobile website as the layout reference, beyond the shared brand
+colors. Start from `f48496d8`. Run the unchanged local Next.js frontend at
+390 × 844 against a separate loopback reference API on port 5103, using only the
+retained synthetic staging member. Capture Home, Meals, Groceries, Progress and
+Profile. Do not open or test demo. Shut down that reference server after capture;
+the native test API and Metro remain available.
+
+- Replace the generic four-tab shell with the PWA's inset five-item bar and
+  Profile menu. Restore compact breadcrumb headers with appearance/notification
+  actions and the floating Nara portrait across member tabs.
+- Keep Home's greeting/actions/date selector/intake/menu composition. Provide
+  its existing eaten action behind confirmation and server authorization.
+- Restore the distinct white meal-plan tiles, cropped round food images, colored
+  banners, review labels and macro pills. Consume the existing meals workspace
+  endpoint so current and upcoming meals both appear. Recipe reviews and pending
+  previews remain separate from member meal approval and cannot log food.
+- Restore grocery current/next-week selectors, progress summary, search,
+  department/status filters and ingredient checklist. Preserve read-only
+  projections. Expose the existing authorized grocery PDF through native sharing.
+- Restore Progress's overview/adherence switch, metric grid, weight plot and
+  selectable seven-day water bars with saved entry details. Missing observations
+  are not invented. Profile retains health/planning/settings sections and the
+  current report hold after weight changes.
+- Use a white, flat report paper with compact profile fields and formula sections.
+  Restore Nara's bordered quick guides and fixed composer with an inline send
+  control. Keep credit confirmation, canonical limits, editable draft identity
+  and recovery. Quick guides send their explicit free action. Measure the screen
+  origin for keyboard avoidance so the native header cannot obscure the composer.
+- Export the existing web Solar SVGs with the upstream MIT license. No package,
+  backend API, schema, approval or clinical rule is added or changed.
+
+Verification: 18 pure tests and 18 native component tests pass, as do TypeScript
+and lint. Component checks cover the five-item menu, report-held navigation,
+read-only groceries, review scope, confirmation before food logging and free
+Nara quick actions; prior auth and AI-draft tests remain. Initial verification
+catches a stray JSX text node inside a View and a composer clipped by the keyboard;
+both are corrected before the final run. Android/iOS production JS bundles are
+exported; these are not signed store binaries or iOS runtime acceptance.
+
+Actual comparison evidence is in `verification/mobile-pwa-fidelity-20261024/`.
+Native captures include light member screens, dark Home/Meals at 1.3 system font
+scale, the Profile menu, report and Nara with the full Android keyboard. Restore
+normal text scale and the emulator's handwriting preference after inspection.
+Changing text scale restarts the Expo activity; reopen it before capturing.
+One capture initially expects a weekly title while this synthetic member has a
+starter plan; correct the capture expectation, without changing the plan data.
+The native reference device is the Android 16 Pixel 7 emulator using staging SQL
+through the isolated local test API. This UI pass submits no food log, weight,
+water, review, credit or provider request; writes are checked with mocked APIs.
+Existing synthetic account data supplies the screenshots. Physical-device,
+landscape/tablet, full assistive-technology and native PDF-sharing checks remain
+open. Membership and detailed clinical/preference edits still use web handoffs;
+the native report does not reproduce the web zoom/pan canvas. This is overall
+mobile PWA composition fidelity, not complete feature or pixel parity.

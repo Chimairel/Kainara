@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -15,8 +16,10 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { SvgXml } from 'react-native-svg';
+import { solarIcons } from '../../assets/solar-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { fonts, useTheme } from './theme';
 import { safeExternalUrl } from '../lib/policies';
@@ -44,8 +47,8 @@ export function Copy({
       style={[
         {
           color: muted ? theme.muted : theme.text,
-          fontSize: title ? 28 : small ? 13 : 16,
-          lineHeight: title ? 35 : small ? 19 : 24,
+          fontSize: title ? 24 : small ? 12 : 14,
+          lineHeight: title ? 30 : small ? 18 : 22,
           fontWeight: title ? '700' : '400',
           fontFamily: title ? fonts.display : fonts.body,
           flexShrink: 1,
@@ -67,6 +70,11 @@ export function Icon({
   color?: import('react-native').ColorValue | null;
 }) {
   const theme = useTheme();
+  const tint = typeof color === 'string' ? color : theme.green;
+  if (solarIcons[name])
+    return (
+      <SvgXml xml={solarIcons[name].replaceAll('currentColor', tint)} width={size} height={size} accessible={false} />
+    );
   return (
     <MaterialCommunityIcons
       name={name}
@@ -83,6 +91,7 @@ export function Button({
   disabled = false,
   busy = false,
   icon,
+  iconOnly = false,
 }: {
   label: string;
   onPress(): void | Promise<void>;
@@ -90,6 +99,7 @@ export function Button({
   disabled?: boolean;
   busy?: boolean;
   icon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  iconOnly?: boolean;
 }) {
   const theme = useTheme();
   return (
@@ -103,9 +113,9 @@ export function Button({
       }}
       style={({ pressed }) => [
         {
-          minHeight: 52,
-          paddingVertical: 12,
-          paddingHorizontal: 18,
+          minHeight: 48,
+          paddingVertical: 10,
+          paddingHorizontal: iconOnly ? 12 : 20,
           borderRadius: 28,
           backgroundColor: secondary ? '#ffffff' : theme.primary,
           boxShadow: '0px 3px 9px rgba(5,18,14,0.12)',
@@ -122,18 +132,20 @@ export function Button({
       ) : icon ? (
         <Icon name={icon} color={theme.onPrimary} size={21} />
       ) : null}
-      <Text
-        style={{
-          color: theme.onPrimary,
-          fontSize: 16,
-          fontWeight: '700',
-          fontFamily: fonts.display,
-          textAlign: 'center',
-          flexShrink: 1,
-        }}
-      >
-        {label}
-      </Text>
+      {!iconOnly ? (
+        <Text
+          style={{
+            color: theme.onPrimary,
+            fontSize: 14,
+            fontWeight: '700',
+            fontFamily: fonts.display,
+            textAlign: 'center',
+            flexShrink: 1,
+          }}
+        >
+          {label}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -171,15 +183,15 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
         selectionColor={theme.green}
         style={[
           {
-            minHeight: 52,
+            minHeight: 48,
             backgroundColor: theme.surface,
             borderColor: theme.border,
             borderWidth: 1,
-            borderRadius: 14,
+            borderRadius: 16,
             paddingHorizontal: 14,
             paddingVertical: 12,
             color: theme.text,
-            fontSize: 16,
+            fontSize: 14,
             fontFamily: fonts.body,
           },
           props.multiline && { minHeight: 112, textAlignVertical: 'top' },
@@ -195,27 +207,40 @@ export function Screen({
   onRefresh,
   keyboard = false,
   floating,
+  footer,
 }: {
   children: React.ReactNode;
   refreshing?: boolean;
   onRefresh?: () => void;
   keyboard?: boolean;
   floating?: React.ReactNode;
+  footer?: React.ReactNode;
 }) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const screenRef = useRef<React.ComponentRef<typeof View>>(null);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   return (
-    <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: theme.background }}>
+    <SafeAreaView
+      ref={screenRef}
+      edges={['left', 'right']}
+      style={{ flex: 1, backgroundColor: theme.background }}
+      onLayout={() => {
+        if (keyboard) screenRef.current?.measureInWindow((_x, y) => setKeyboardOffset(y));
+      }}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={keyboard ? (Platform.OS === 'ios' ? 'padding' : 'height') : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+        keyboardVerticalOffset={keyboardOffset}
       >
         <ScrollView
+          style={{ flex: 1 }}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
-            padding: 20,
-            paddingBottom: floating ? 116 : 40,
-            gap: 24,
+            padding: 16,
+            paddingBottom: footer ? 24 : 124,
+            gap: 20,
             flexGrow: 1,
             width: '100%',
             maxWidth: 760,
@@ -234,6 +259,20 @@ export function Screen({
         >
           {children}
         </ScrollView>
+        {footer ? (
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            style={{ flexGrow: 0, maxHeight: '65%', borderTopWidth: 1, borderTopColor: theme.border }}
+            contentContainerStyle={{
+              padding: 16,
+              paddingBottom: Math.max(16, insets.bottom + 8),
+              gap: 10,
+              backgroundColor: theme.background,
+            }}
+          >
+            {footer}
+          </ScrollView>
+        ) : null}
       </KeyboardAvoidingView>
       {floating ? (
         <View pointerEvents="box-none" style={{ position: 'absolute', right: 16, bottom: 12 }}>
@@ -360,6 +399,95 @@ export function Choice({
 export function Divider() {
   const theme = useTheme();
   return <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.border }} />;
+}
+export function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly (readonly [string, string])[];
+  onChange(value: string): void;
+}) {
+  const theme = useTheme();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen(true)}
+        style={{
+          minHeight: 48,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: theme.border,
+          backgroundColor: theme.surface,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          paddingHorizontal: 14,
+        }}
+      >
+        <Copy>{options.find(([key]) => key === value)?.[1] ?? label}</Copy>
+        <View style={{ transform: [{ rotate: '90deg' }] }}>
+          <Icon name="chevron-right" size={17} />
+        </View>
+      </Pressable>
+      <Modal transparent visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
+        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Close ${label}`}
+            onPress={() => setOpen(false)}
+            style={{ position: 'absolute', inset: 0, backgroundColor: '#00000060' }}
+          />
+          <View
+            accessibilityViewIsModal
+            style={{
+              backgroundColor: theme.surface,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 20,
+              paddingBottom: 40,
+              maxHeight: '75%',
+              gap: 12,
+            }}
+          >
+            <Copy title>{label}</Copy>
+            <ScrollView>
+              {options.map(([key, text]) => (
+                <Pressable
+                  key={key}
+                  accessibilityRole="radio"
+                  accessibilityLabel={text}
+                  accessibilityState={{ checked: key === value }}
+                  onPress={() => {
+                    onChange(key);
+                    setOpen(false);
+                  }}
+                  style={{
+                    minHeight: 52,
+                    paddingVertical: 12,
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                  }}
+                >
+                  <Copy>{text}</Copy>
+                  {key === value ? <Icon name="check" size={20} /> : null}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
 }
 export async function openExternal(url: string) {
   const safe = safeExternalUrl(url);

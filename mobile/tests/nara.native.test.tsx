@@ -1,5 +1,6 @@
+import { render } from './render-native';
 import React from 'react';
-import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import Nara from '../src/app/(member)/nara';
 import { ChatProvider } from '../src/lib/chat-state';
 import { api } from '../src/lib/client';
@@ -36,6 +37,26 @@ jest.mock('expo-font', () => ({
 }));
 const request = jest.mocked(api.request);
 const balance = { cap: 5, remaining: 5, resetsAt: '2026-11-01T00:00:00Z' };
+
+test('a PWA quick guide submits its explicit action without AI consent', async () => {
+  request.mockResolvedValue({
+    success: true,
+    data: {
+      confirmationRequired: false,
+      allowance: balance,
+      reply: { text: 'Guide response', source: 'SYSTEM', creditsUsed: 0 },
+    },
+  });
+  await mount();
+  await fireEvent.press(screen.getByRole('button', { name: 'Find a meal' }));
+  await waitFor(() =>
+    expect(request).toHaveBeenCalledWith(
+      '/user/assistant/messages',
+      'POST',
+      expect.objectContaining({ action: 'FIND_MEAL', message: 'Find a meal', allowAi: false })
+    )
+  );
+});
 
 async function mount() {
   await render(

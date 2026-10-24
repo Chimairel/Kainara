@@ -1,6 +1,7 @@
+import { render } from './render-native';
 import React from 'react';
 import { Alert } from 'react-native';
-import { render, fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
 import Home from '../src/app/(member)/(tabs)/index';
 import LogFood from '../src/app/(member)/log-food';
 import { api } from '../src/lib/client';

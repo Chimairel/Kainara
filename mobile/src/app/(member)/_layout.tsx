@@ -15,7 +15,7 @@ export default function MemberLayout() {
         screenOptions={{
           headerStyle: { backgroundColor: theme.background },
           headerTintColor: theme.text,
-          headerTitleStyle: { fontFamily: fonts.display },
+          headerTitleStyle: { fontFamily: fonts.body, fontSize: 13, fontWeight: '600' },
           contentStyle: { backgroundColor: theme.background },
           headerShadowVisible: false,
           headerBackButtonDisplayMode: 'minimal',

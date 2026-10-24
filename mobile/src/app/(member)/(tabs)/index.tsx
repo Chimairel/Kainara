@@ -1,35 +1,30 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { router } from 'expo-router';
 import { SvgXml } from 'react-native-svg';
 import { useSession } from '../../../lib/session';
 import { useResource } from '../../../lib/use-resource';
-import { dateLabel, manilaDate, memberGate } from '../../../lib/policies';
-import { dailyIntake } from '../../../lib/dashboard';
+import { dateLabel, manilaDate, mealDone, memberGate } from '../../../lib/policies';
+import { dailyIntake, dashboardDates } from '../../../lib/dashboard';
 import type { HistoryEntry, Meal } from '../../../lib/contracts';
 import { api } from '../../../lib/client';
 import { Button, Copy, Notice, Panel, Screen, useAction } from '../../../ui/components';
 import { MealRow } from '../../../ui/meal-row';
 import { DateStrip } from '../../../ui/date-strip';
 import { DailyIntake } from '../../../ui/daily-intake';
-import { NaraShortcut } from '../../../ui/nara-portrait';
-import { useTheme } from '../../../ui/theme';
+import { PortalHeader } from '../../../ui/portal';
 import { sleepingNara } from '../../../../assets/sleeping-nara';
 
 export default function Home() {
   const { profile, refresh } = useSession();
   const ready = profile && memberGate(profile) === 'ready';
-  const theme = useTheme();
   const action = useAction();
   const [chosenDate, setChosenDate] = useState(manilaDate());
   const plan = useResource<Meal[]>(ready ? '/user/meals/current' : null);
-  const dates = Array.from(
-    new Set([
-      manilaDate(),
-      ...(plan.data ?? []).map((meal) => manilaDate(meal.scheduledDate)),
-      ...(plan.meta?.pendingReview?.meals ?? []).map((meal) => manilaDate(meal.scheduledDate)),
-    ])
-  ).sort();
+  const dates = dashboardDates(
+    [...(plan.data ?? []), ...(plan.meta?.pendingReview?.meals ?? [])],
+    plan.meta?.cycle?.endDate
+  );
   const selected = dates.includes(chosenDate) ? chosenDate : manilaDate();
   const history = useResource<HistoryEntry[]>(
     ready ? `/user/meals/history?startDate=${selected}T00%3A00%3A00%2B08%3A00` : null
@@ -40,7 +35,6 @@ export default function Home() {
   const intake = dailyIntake(history.data ?? [], selected, plan.meta, profile?.userProfile?.dailyCalorieTarget);
   return (
     <Screen
-      floating={ready ? <NaraShortcut /> : undefined}
       refreshing={plan.loading}
       onRefresh={() => {
         void action.run(async () => {
@@ -49,16 +43,23 @@ export default function Home() {
         });
       }}
     >
-      <View style={{ gap: 8, paddingBottom: 20, borderBottomColor: theme.border, borderBottomWidth: 1 }}>
-        <Copy title>Mabuhay, {profile?.name.split(' ')[0]}.</Copy>
-        <Copy muted>Your meals, daily intake, and next steps — all in one place.</Copy>
-        {ready ? (
-          <View style={{ gap: 10, flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
-            <Button label="Log food or snack" icon="plus-circle-outline" onPress={() => router.push('/log-food')} />
-            <Button label="Weekly plan" icon="calendar-month-outline" secondary onPress={() => router.push('/meals')} />
-          </View>
-        ) : null}
-      </View>
+      <PortalHeader
+        title={`Mabuhay, ${profile?.name.split(' ')[0]}.`}
+        description="Your meals, daily intake, and next steps — all in one place."
+        actions={
+          ready ? (
+            <>
+              <Button label="Log food or snack" icon="plus-circle-outline" onPress={() => router.push('/log-food')} />
+              <Button
+                label="Weekly plan"
+                icon="calendar-month-outline"
+                secondary
+                onPress={() => router.push('/meals')}
+              />
+            </>
+          ) : undefined
+        }
+      />
       {!ready ? (
         <Panel>
           <SvgXml xml={sleepingNara} width="100%" height={150} accessibilityLabel="Sleeping Nara" />
@@ -71,11 +72,7 @@ export default function Home() {
         </Panel>
       ) : (
         <>
-          <DateStrip dates={dates} selected={selected} onSelect={setChosenDate} />
-          <Copy small muted>
-            {dateLabel(selected)}
-            {selected === manilaDate() ? ' · Today' : ''}
-          </Copy>
+          {dates.length ? <DateStrip dates={dates} selected={selected} onSelect={setChosenDate} /> : null}
           <DailyIntake
             intake={intake}
             unavailable={Boolean(history.error)}
@@ -84,6 +81,7 @@ export default function Home() {
             waterUnavailable={water.loading || Boolean(water.error)}
             waterBusy={action.busy}
             showWater={selected === manilaDate()}
+            dayLabel={selected === manilaDate() ? 'Today' : dateLabel(selected)}
             onWater={() => {
               void action.run(async () => {
                 await api.request('/user/water', 'POST', { amountMl: 250 });
@@ -108,7 +106,29 @@ export default function Home() {
             ) : meals.length || pending.length ? (
               <>
                 {meals.map((meal) => (
-                  <MealRow key={meal.id} meal={meal} />
+                  <MealRow
+                    key={meal.id}
+                    meal={meal}
+                    busy={action.busy}
+                    onLog={
+                      meal.status === 'APPROVED' && !mealDone(meal) && manilaDate(meal.scheduledDate) <= manilaDate()
+                        ? () =>
+                            Alert.alert('Record this meal as eaten?', meal.mealName, [
+                              { text: 'Cancel', style: 'cancel' },
+                              {
+                                text: 'Confirm',
+                                onPress: () =>
+                                  void action.run(async () => {
+                                    await api.request(`/user/meals/${encodeURIComponent(meal.id)}/status`, 'PATCH', {
+                                      status: 'DONE',
+                                    });
+                                    await Promise.all([plan.reload(), history.reload()]);
+                                  }),
+                              },
+                            ])
+                        : undefined
+                    }
+                  />
                 ))}
                 {pending.length ? <Copy muted>Awaiting RND review · Previews cannot be logged or swapped.</Copy> : null}
                 {pending.map((meal, index) => (

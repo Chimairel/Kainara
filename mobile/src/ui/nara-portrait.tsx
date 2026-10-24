@@ -1,8 +1,6 @@
 import React from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
-import { Copy } from './components';
-import { useTheme } from './theme';
 
 /** Center cell of the same 3x3 direction atlas used by the web Nara portrait. */
 export function NaraPortrait({ size = 64 }: { size?: number }) {
@@ -18,7 +16,6 @@ export function NaraPortrait({ size = 64 }: { size?: number }) {
 }
 
 export function NaraShortcut() {
-  const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -32,20 +29,6 @@ export function NaraShortcut() {
       })}
     >
       <NaraPortrait size={72} />
-      <View
-        style={{
-          paddingHorizontal: 10,
-          paddingVertical: 2,
-          borderRadius: 14,
-          backgroundColor: theme.surface,
-          borderWidth: 1,
-          borderColor: theme.border,
-        }}
-      >
-        <Copy small style={{ fontSize: 11, fontWeight: '700' }}>
-          Ask Nara
-        </Copy>
-      </View>
     </Pressable>
   );
 }

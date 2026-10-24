@@ -20,6 +20,7 @@ export function DailyIntake({
   waterBusy,
   onWater,
   showWater,
+  dayLabel = 'Today',
 }: {
   intake: ReturnType<typeof dailyIntake>;
   unavailable: boolean;
@@ -29,6 +30,7 @@ export function DailyIntake({
   waterBusy: boolean;
   onWater(): void;
   showWater: boolean;
+  dayLabel?: string;
 }) {
   const { totals, targets } = intake;
   const fraction =
@@ -46,8 +48,8 @@ export function DailyIntake({
   return (
     <View
       style={{
-        padding: 22,
-        gap: 22,
+        padding: 20,
+        gap: 20,
         borderRadius: 24,
         backgroundColor: '#0e271f',
         borderColor: '#173e33',
@@ -84,7 +86,16 @@ export function DailyIntake({
         <Path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
         <Path d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z" fill="#1b4e41" />
       </Svg>
-      <Copy style={[secondary, { fontWeight: '600' }]}>Your daily intake</Copy>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+        <Copy small style={[secondary, { fontWeight: '600' }]}>
+          Your daily intake
+        </Copy>
+        <View style={{ borderRadius: 14, backgroundColor: '#071914cc', paddingHorizontal: 10, paddingVertical: 2 }}>
+          <Copy small style={{ color: '#f09e6c', fontSize: 10, fontWeight: '600' }}>
+            {dayLabel}
+          </Copy>
+        </View>
+      </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
         <View
           accessible
@@ -123,19 +134,24 @@ export function DailyIntake({
         </View>
         <View style={{ flex: 1, minWidth: 105, gap: 12 }}>
           <View>
-            <Copy small style={secondary}>
-              Consumed
+            <Copy small style={[secondary, { fontSize: 10, fontWeight: '700' }]}>
+              CONSUMED
             </Copy>
-            <Copy style={[text, { fontFamily: fonts.display, fontWeight: '700', fontSize: 26, lineHeight: 32 }]}>
+            <Copy style={[text, { fontFamily: fonts.display, fontWeight: '700', fontSize: 22, lineHeight: 28 }]}>
               {unavailable ? 'Unavailable' : loading ? 'Checking…' : value(totals.calories, ' kcal')}
             </Copy>
           </View>
           <View>
-            <Copy small style={secondary}>
-              Daily target
+            <Copy small style={[secondary, { fontSize: 10, fontWeight: '700' }]}>
+              DAILY TARGET
             </Copy>
-            <Copy style={[text, { fontWeight: '600' }]}>{value(targets.calories, ' kcal')}</Copy>
+            <Copy style={[secondary, { fontFamily: fonts.display, fontWeight: '700', fontSize: 18 }]}>
+              {value(targets.calories, ' kcal')}
+            </Copy>
           </View>
+          <Copy small style={{ color: '#10b981' }}>
+            Logged for this day
+          </Copy>
         </View>
       </View>
       <View style={{ gap: 18, borderTopColor: '#ffffff20', borderTopWidth: 1, paddingTop: 20 }}>
