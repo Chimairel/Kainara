@@ -1,11 +1,12 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Platform, View } from 'react-native';
 import { SessionProvider, useSession } from '../lib/session';
 import { Busy, Button, Notice, Screen } from '../ui/components';
-import { useTheme } from '../ui/theme';
+import { AppearanceProvider, fonts, useTheme } from '../ui/theme';
 
 function Navigation() {
   const { profile, loading, error, refresh } = useSession();
@@ -42,6 +43,7 @@ function Navigation() {
             screenOptions={{
               headerStyle: { backgroundColor: theme.background },
               headerTintColor: theme.text,
+              headerTitleStyle: { fontFamily: fonts.display },
               headerShadowVisible: false,
               contentStyle: { backgroundColor: theme.background },
               headerBackButtonDisplayMode: 'minimal',
@@ -65,11 +67,22 @@ function Navigation() {
   );
 }
 export default function Layout() {
+  const [loaded, error] = useFonts({
+    [fonts.body]: require('../../assets/fonts/dm-sans.ttf'),
+    [fonts.display]: require('../../assets/fonts/outfit.ttf'),
+    [fonts.data]: require('../../assets/fonts/jetbrains-mono.ttf'),
+  });
   return (
     <SafeAreaProvider>
-      <SessionProvider>
-        <Navigation />
-      </SessionProvider>
+      <AppearanceProvider>
+        {!loaded && !error ? (
+          <Busy label="Opening KAINARA…" />
+        ) : (
+          <SessionProvider>
+            <Navigation />
+          </SessionProvider>
+        )}
+      </AppearanceProvider>
     </SafeAreaProvider>
   );
 }

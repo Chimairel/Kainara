@@ -18,7 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as WebBrowser from 'expo-web-browser';
-import { useTheme } from './theme';
+import { fonts, useTheme } from './theme';
 import { safeExternalUrl } from '../lib/policies';
 import { message } from '../lib/session';
 
@@ -47,6 +47,7 @@ export function Copy({
           fontSize: title ? 28 : small ? 13 : 16,
           lineHeight: title ? 35 : small ? 19 : 24,
           fontWeight: title ? '700' : '400',
+          fontFamily: title ? fonts.display : fonts.body,
           flexShrink: 1,
         },
         style,
@@ -105,8 +106,9 @@ export function Button({
           minHeight: 52,
           paddingVertical: 12,
           paddingHorizontal: 18,
-          borderRadius: 16,
-          backgroundColor: secondary ? theme.soft : theme.primary,
+          borderRadius: 28,
+          backgroundColor: secondary ? '#ffffff' : theme.primary,
+          boxShadow: '0px 3px 9px rgba(5,18,14,0.12)',
           alignItems: 'center',
           justifyContent: 'center',
           flexDirection: 'row',
@@ -116,15 +118,16 @@ export function Button({
       ]}
     >
       {busy ? (
-        <ActivityIndicator color={secondary ? theme.text : theme.onPrimary} />
+        <ActivityIndicator color={theme.onPrimary} />
       ) : icon ? (
-        <Icon name={icon} color={secondary ? theme.text : theme.onPrimary} size={21} />
+        <Icon name={icon} color={theme.onPrimary} size={21} />
       ) : null}
       <Text
         style={{
-          color: secondary ? theme.text : theme.onPrimary,
+          color: theme.onPrimary,
           fontSize: 16,
           fontWeight: '700',
+          fontFamily: fonts.display,
           textAlign: 'center',
           flexShrink: 1,
         }}
@@ -137,7 +140,21 @@ export function Button({
 export function Panel({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   const theme = useTheme();
   return (
-    <View style={[{ backgroundColor: theme.surface, borderRadius: 24, padding: 20, gap: 14 }, style]}>{children}</View>
+    <View
+      style={[
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          borderWidth: 1,
+          borderRadius: 24,
+          padding: 20,
+          gap: 14,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
   );
 }
 export function Field({ label, ...props }: TextInputProps & { label: string }) {
@@ -163,6 +180,7 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
             paddingVertical: 12,
             color: theme.text,
             fontSize: 16,
+            fontFamily: fonts.body,
           },
           props.multiline && { minHeight: 112, textAlignVertical: 'top' },
           props.style,
@@ -176,11 +194,13 @@ export function Screen({
   refreshing = false,
   onRefresh,
   keyboard = false,
+  floating,
 }: {
   children: React.ReactNode;
   refreshing?: boolean;
   onRefresh?: () => void;
   keyboard?: boolean;
+  floating?: React.ReactNode;
 }) {
   const theme = useTheme();
   return (
@@ -194,7 +214,7 @@ export function Screen({
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             padding: 20,
-            paddingBottom: 40,
+            paddingBottom: floating ? 116 : 40,
             gap: 24,
             flexGrow: 1,
             width: '100%',
@@ -215,6 +235,11 @@ export function Screen({
           {children}
         </ScrollView>
       </KeyboardAvoidingView>
+      {floating ? (
+        <View pointerEvents="box-none" style={{ position: 'absolute', right: 16, bottom: 12 }}>
+          {floating}
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -263,19 +288,39 @@ export function Choice({
   options,
   value,
   onChange,
+  segmented = false,
 }: {
   label: string;
   options: readonly (readonly [string, string])[];
   value: string;
   onChange(value: string): void;
+  segmented?: boolean;
 }) {
   const theme = useTheme();
   return (
     <View style={{ gap: 8 }}>
-      <Copy small style={{ fontWeight: '600' }}>
-        {label}
-      </Copy>
-      <View style={{ gap: 8, flexDirection: 'row', flexWrap: 'wrap' }}>
+      {!segmented ? (
+        <Copy small style={{ fontWeight: '600' }}>
+          {label}
+        </Copy>
+      ) : null}
+      <View
+        accessibilityLabel={label}
+        style={
+          segmented
+            ? {
+                padding: 5,
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                borderWidth: 1,
+                borderRadius: 22,
+                gap: 4,
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+              }
+            : { gap: 8, flexDirection: 'row', flexWrap: 'wrap' }
+        }
+      >
         {options.map(([key, text]) => (
           <Pressable
             key={key}
@@ -285,15 +330,25 @@ export function Choice({
             onPress={() => onChange(key)}
             style={{
               minHeight: 48,
-              padding: 12,
-              borderRadius: 14,
-              backgroundColor: key === value ? theme.greenSoft : theme.surface,
+              padding: segmented ? 10 : 12,
+              borderRadius: segmented ? 18 : 14,
+              flex: segmented ? 1 : undefined,
+              minWidth: segmented ? 70 : undefined,
+              alignItems: segmented ? 'center' : undefined,
+              backgroundColor: key === value ? (segmented ? theme.primary : theme.greenSoft) : theme.surface,
               borderColor: key === value ? theme.green : theme.border,
-              borderWidth: 1,
+              borderWidth: segmented ? 0 : 1,
               justifyContent: 'center',
             }}
           >
-            <Copy small style={{ fontWeight: key === value ? '700' : '400' }}>
+            <Copy
+              small
+              style={{
+                fontFamily: segmented ? fonts.display : fonts.body,
+                color: segmented && key === value ? theme.onPrimary : theme.text,
+                fontWeight: key === value ? '700' : '400',
+              }}
+            >
               {text}
             </Copy>
           </Pressable>

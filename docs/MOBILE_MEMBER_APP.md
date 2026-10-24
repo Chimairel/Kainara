@@ -215,3 +215,40 @@ request, migration, configuration change or deployment. Stop the idle loopback
 PostgreSQL rehearsal afterward; keep the emulator, Metro and the staging-bound
 test API available for the owner's manual testing. Private credentials, database
 copies, OTPs and runtime configuration remain under the ignored mobile test folder.
+
+## Restore the existing KAINARA design — October 24, 2026
+
+The owner rejects the simplified native presentation. Preserve the existing web
+design as the visual authority: `CockpitDashboard`, `DashboardMealCardSurface`,
+`CardDecorationVariants`, `compact-meal-theme`, `globals.css` and bundled fonts.
+Native does not require replacing that identity with generic cards or system type.
+
+- Bundle the unchanged existing Outfit, DM Sans and JetBrains Mono assets with
+  their SIL licenses. Apply them to shared copy, headings, buttons, fields and
+  native navigation; keep system text scaling.
+- Restore the pine intake panel, percentage ring, orange/peach corner ribbons,
+  consumed/target values, colored macro bars, water logging and remaining budget.
+  Targets come from saved cycle snapshots; unknown values say “Not recorded,”
+  and partial/provisional intake remains labeled. Selected dates filter recorded
+  DONE intake using Manila dates; no target is inferred from a meal candidate.
+- Restore the round plate images and breakfast/lunch/dinner colored meal surfaces,
+  white secondary actions, orange plan/history/library selection and date pills.
+  Only actionable API meals navigate to the existing meal details; previews stay
+  non-actionable. Report holds still avoid plan/intake/water requests.
+- Add the existing default Nara atlas as a native clipped portrait and a Home
+  shortcut to the existing chat screen. Retain native stack/Back/tab behavior.
+  Header appearance toggle is session-local; system appearance is the default.
+
+Checks: TypeScript, lint, 17 pure tests, 12 native component tests and Android/iOS
+production bundle exports pass. Actual Android 16 Pixel 7 captures cover Home and
+Meals in both themes and at 1.3 system font scale. Visual inspection catches and
+fixes SVG gradient sizing and navigation-label clipping. Restore normal font scale
+and leave the app available for owner inspection. Metro briefly observes a
+partially written formatter file during development; the completed source passes
+bundling and reloads successfully. This is not a release build/device crash.
+
+Evidence: `verification/mobile-design-20261024/`. No new package, API/schema change,
+clinical rule, approval, paid provider request or hosted deployment. Android/iOS
+bundle success does not establish physical-device, iOS visual, tablet or landscape
+acceptance. Other member screens inherit the shared brand components; complete
+web/native feature or pixel parity is not claimed.

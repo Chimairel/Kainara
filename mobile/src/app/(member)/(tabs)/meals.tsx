@@ -4,14 +4,16 @@ import { router } from 'expo-router';
 import { useResource } from '../../../lib/use-resource';
 import type { Meal, HistoryEntry } from '../../../lib/contracts';
 import { dateLabel, manilaDate } from '../../../lib/policies';
-import { Button, Choice, Copy, Divider, Field, Notice, Panel, Screen } from '../../../ui/components';
+import { Button, Choice, Copy, Field, Notice, Panel, Screen } from '../../../ui/components';
 import { MealRow, Macros } from '../../../ui/meal-row';
+import { DateStrip } from '../../../ui/date-strip';
 
 export default function Meals() {
   const [tab, setTab] = useState('plan');
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState('');
   const [cursors, setCursors] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState(manilaDate());
   const plan = useResource<Meal[]>(tab === 'plan' ? '/user/meals/current' : null);
   const history = useResource<HistoryEntry[]>(tab === 'history' ? '/user/meals/history' : null);
   const library = useResource<Meal[]>(
@@ -25,15 +27,17 @@ export default function Meals() {
       [...(plan.data ?? []), ...(plan.meta?.pendingReview?.meals ?? [])].map((meal) => manilaDate(meal.scheduledDate))
     )
   ).sort();
+  const selected = dates.includes(selectedDate) ? selectedDate : dates[0];
   return (
     <Screen refreshing={active.loading} onRefresh={() => void active.reload()}>
-      <Copy title>Meals that fit your day.</Copy>
+      <Copy title>Your meals</Copy>
       <Choice
         label="View"
+        segmented
         value={tab}
         onChange={setTab}
         options={[
-          ['plan', 'Your plan'],
+          ['plan', 'Plan'],
           ['history', 'History'],
           ['library', 'Library'],
         ]}
@@ -78,27 +82,24 @@ export default function Meals() {
               {plan.meta.awaitingGenerationCount ? ` · ${plan.meta.awaitingGenerationCount} slots still preparing` : ''}
             </Copy>
           ) : null}
-          {dates.map((date) => (
-            <View key={date} style={{ gap: 10 }}>
-              <Copy style={{ fontSize: 22, fontWeight: '700' }}>{dateLabel(date)}</Copy>
-              {plan.data
-                ?.filter((meal) => manilaDate(meal.scheduledDate) === date)
-                .map((meal) => (
-                  <View key={meal.id}>
-                    <MealRow meal={meal} />
-                    <Divider />
-                  </View>
-                ))}
-              {plan.meta?.pendingReview?.meals
-                ?.filter((meal) => manilaDate(meal.scheduledDate) === date)
-                .map((meal, index) => (
-                  <View key={`${date}-preview-${index}`}>
-                    <MealRow meal={meal} preview />
-                    <Divider />
-                  </View>
-                ))}
-            </View>
-          ))}
+          {dates.length ? <DateStrip dates={dates} selected={selected} onSelect={setSelectedDate} /> : null}
+          {dates
+            .filter((date) => date === selected)
+            .map((date) => (
+              <View key={date} style={{ gap: 10 }}>
+                <Copy style={{ fontSize: 22, fontWeight: '700' }}>{dateLabel(date)}</Copy>
+                {plan.data
+                  ?.filter((meal) => manilaDate(meal.scheduledDate) === date)
+                  .map((meal) => (
+                    <MealRow key={meal.id} meal={meal} />
+                  ))}
+                {plan.meta?.pendingReview?.meals
+                  ?.filter((meal) => manilaDate(meal.scheduledDate) === date)
+                  .map((meal, index) => (
+                    <MealRow key={`${date}-preview-${index}`} meal={meal} preview />
+                  ))}
+              </View>
+            ))}
           {!dates.length && !plan.error ? (
             <Notice
               title="Your plan is not ready yet"

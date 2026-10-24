@@ -9,3 +9,9 @@
   artwork. They are not referenced by the app configuration or member screens.
 - Food images are API-provided assets. Preserve the API image description and
   attribution; do not infer that a representative photo depicts the logged food.
+- `nara-default-directions.webp`: unchanged copy of the existing web Nara default
+  3×3 atlas at `7dfbbc7f`. The native portrait displays its center cell using a
+  clipped image viewport; the character is not redrawn.
+- `fonts/`: unchanged DM Sans, Outfit and JetBrains Mono variable TrueType files
+  from `frontend/src/app/fonts/` at `7dfbbc7f`, with their adjacent SIL Open Font
+  License files. The web font README records the official Google Fonts sources.

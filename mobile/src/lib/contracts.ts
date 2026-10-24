@@ -63,6 +63,7 @@ export type Meal = {
   cookingLink?: { url: string } | null;
 };
 export type PlanMeta = {
+  planSnapshot?: { dailyCalorieTarget?: number; dailyMacroTargets?: Record<string, NutritionTotals> } | null;
   total?: number;
   nextCursor?: string | null;
   cycle?: { startDate: string; endDate: string; id: string } | null;
@@ -70,6 +71,7 @@ export type PlanMeta = {
   awaitingGenerationCount?: number;
   generationStatus?: string;
 };
+export type NutritionTotals = { calories: number; proteinG: number; carbsG: number; fatG: number };
 export type Report = {
   id: string;
   version: number;
@@ -115,6 +117,7 @@ export type Progress = {
 };
 export type HistoryEntry = {
   id: string;
+  status?: string;
   nutritionCompleteness?: string;
   provisionalCalories?: number;
   mealName: string;
@@ -143,6 +146,5 @@ export type ChatInput = {
   action?: 'TODAY' | 'GUIDANCE' | 'FIND_MEAL' | 'VIEW_PLAN';
 };
 export type ChatResult = { allowance: Allowance } & (
-  | { confirmationRequired: true; cost: number; requestKey: string }
-  | { confirmationRequired: false; reply: Reply }
+  { confirmationRequired: true; cost: number; requestKey: string } | { confirmationRequired: false; reply: Reply }
 );

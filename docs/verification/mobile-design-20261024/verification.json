@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-24",
+  "baseline": "7dfbbc7f",
+  "scope": "Native Home/Meals and shared KAINARA visual identity",
+  "tests": {
+    "native": 12,
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "pure": 17,
+    "iosExport": "PASS",
+    "androidExport": "PASS"
+  },
+  "nativeEvidence": {
+    "normalFontScaleRestored": true,
+    "device": "Android 16 / API 36, Pixel 7 emulator",
+    "fontScales": [
+      1.0,
+      1.3
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ]
+  },
+  "fontChecks": [
+    {
+      "asset": "dm-sans.ttf",
+      "sha256": "8cd08d97e89c24d0aa92edd2f0f4c8ee6195eee9b7c9f154865a58b02f0c1c0d",
+      "matchesWeb": true
+    },
+    {
+      "asset": "outfit.ttf",
+      "sha256": "fc7287273e66929776e2ba54f144fe699080bec29f61bf649d70d871468aeade",
+      "matchesWeb": true
+    },
+    {
+      "asset": "jetbrains-mono.ttf",
+      "sha256": "48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda",
+      "matchesWeb": true
+    }
+  ],
+  "preserved": [
+    "Report acknowledgment gate",
+    "Non-actionable pending meal previews",
+    "Unknown and provisional nutrition labels",
+    "Native navigation and Back"
+  ],
+  "limitations": [
+    "No physical-phone/iOS visual verification",
+    "No tablet or landscape visual verification",
+    "Shared-brand restoration, not complete web/native pixel or feature parity"
+  ],
+  "hostedDeployment": false,
+  "schemaChange": false,
+  "providerRequestsSubmitted": 0
+}

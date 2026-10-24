@@ -9,8 +9,10 @@ dashboard order: greeting, intake, water and today's meals; use native tabs for
 Home, Meals, Groceries and Progress, with Profile in the header and Nara as a
 stack destination. Meal details use stack navigation; focused edits use sheets.
 
-Use semantic light/dark colors, native safe areas and scrolling. Prefer clear
-lists and meaningful empty/error states over decorative dashboard cards. Preserve
+Use semantic light/dark colors, native safe areas and scrolling. The owner rejects
+the simplified native visual language on October 24: reproduce the incumbent
+pine intake card, ring, macro colors, corner ribbons, round meal plates, colored
+meal surfaces, orange selections and Nara. Preserve
 meal previews as pending; only server-returned actionable meals offer logging.
 Typography scales with the system. No added decorative motion in this first pass.
 
@@ -20,12 +22,14 @@ THESIS: Adapt the existing member dashboard into a phone workflow that makes
 today's food and the next required action easy to find.
 
 OWN-WORLD: Preserve DESIGN.md's cream, pine and orange through semantic native
-colors. Use system type, large touch targets and the existing KAINARA/Nara assets.
+colors. Bundle the existing Outfit, DM Sans and JetBrains Mono fonts; use large
+touch targets and the existing KAINARA/Nara assets.
 
 STORY: A member signs in, resolves account/report prerequisites, checks today's
 plan and records intake. Server review holds remain explicit.
 
-FIRST VIEWPORT: Greeting and date precede intake and its logging action. A
+FIRST VIEWPORT: Greeting and logging/weekly-plan actions precede the date selector
+and branded intake card. A
 report hold replaces this content with sleeping Nara and one report action.
 Native tabs own the main destinations; Profile is in the top bar.
 
@@ -46,3 +50,10 @@ secure-session reload is checked. Comprehensive Nara input behavior,
 physical-phone/iOS checks and an independent visual verdict remain open. Bundling
 and mocked component tests are not native visual evidence. The incumbent root
 DESIGN.md remains unchanged. No full-app visual ship verdict is claimed.
+
+October 24 design fidelity correction: Home and the meal-plan surface now use the
+incumbent visual components translated into native views/SVG. Shared typography,
+surfaces and buttons carry through the other screens. Actual Android light/dark
+and 1.3 font-scale captures are in docs/verification/mobile-design-20261024.
+Native tabs, stack navigation, safe areas and server-owned holds remain intact.
+Physical phone, tablet, landscape and iOS visual acceptance remain unverified.

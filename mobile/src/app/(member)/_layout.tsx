@@ -2,7 +2,7 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { useSession } from '../../lib/session';
 import { memberGate } from '../../lib/policies';
-import { useTheme } from '../../ui/theme';
+import { fonts, useTheme } from '../../ui/theme';
 import { ChatProvider } from '../../lib/chat-state';
 
 export default function MemberLayout() {
@@ -15,6 +15,7 @@ export default function MemberLayout() {
         screenOptions={{
           headerStyle: { backgroundColor: theme.background },
           headerTintColor: theme.text,
+          headerTitleStyle: { fontFamily: fonts.display },
           contentStyle: { backgroundColor: theme.background },
           headerShadowVisible: false,
           headerBackButtonDisplayMode: 'minimal',
