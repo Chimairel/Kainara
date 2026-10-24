@@ -40,7 +40,9 @@ Code-led source and component checks are recorded in docs/MOBILE_MEMBER_APP.md.
 An Android 16 emulator is now installed. Actual native sign-in captures cover
 light/dark appearance, 1.3 font scale, text entry and corrected keyboard scrolling;
 see docs/verification/mobile-android-20261023 and the engineering evidence record.
-Authenticated member screens, Nara input behavior, physical-phone/iOS checks and
-an independent visual verdict remain open. Bundling and mocked component tests
-are not native visual evidence. The incumbent root DESIGN.md remains unchanged.
-No full-app visual ship verdict is claimed.
+The October 24 native staging journey now captures actual report-hold/report,
+Home, Meals, Groceries, Progress and a free Nara response for one synthetic member;
+secure-session reload is checked. Comprehensive Nara input behavior,
+physical-phone/iOS checks and an independent visual verdict remain open. Bundling
+and mocked component tests are not native visual evidence. The incumbent root
+DESIGN.md remains unchanged. No full-app visual ship verdict is claimed.

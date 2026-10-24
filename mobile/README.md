@@ -61,11 +61,32 @@ in `EXPO_PUBLIC_*`. Expo exports those values into the client bundle.
 No API URL is selected by default. The app shows configuration guidance without
 contacting demo when it is missing. Restart Metro after editing public variables.
 
-**Current environment limitation:** Docker and its local PostgreSQL volume were
-removed at the owner's request. Dependencies have been installed for this mobile
-work and backend checks, but no local database was recreated. An isolated database
-and matching API are still needed for an actual account/SQL integration run.
-Use a separately confirmed staging API for hosted functional tests, not demo live.
+**Current host setup:** Docker remains removed. Portable PostgreSQL 17 now provides
+a loopback-only rehearsal database on port 55433; its staging-backup restore and
+33 actual HTTP/SQL checks passed. That rehearsal database is stopped when idle.
+The Android app uses the separate Neon staging project through a local test API
+on port 5102. Demo is not a development target. See the dated verification record
+in `docs/MOBILE_MEMBER_APP.md`.
+
+On this configured PC, keep these two terminals running:
+
+```powershell
+# Terminal 1: bounded test API, separate staging database.
+cd C:\Users\chima\Desktop\Nutrimind\backend
+node .local/mobile-native-20261024/start-mobile-staging.cjs
+
+# Terminal 2: emulator and native app.
+cd C:\Users\chima\Desktop\Nutrimind\mobile
+npm run android:local
+```
+
+The first command uses an ignored, host-specific environment and pinned compiled
+API. It is not included in a fresh clone. Keep the private configuration/backups
+out of Git; another computer needs its own confirmed test setup. This runtime
+disables external AI, email, push and payments, and does not start automatic
+worker polling. It retains the normal HTTP handlers and on-demand planning rules.
+Free Nara answers and catalogue-backed plans work; a Gemini reply is not verified.
+Email codes for test accounts are captured privately instead of delivered.
 
 ## Run on a Windows Android emulator
 
@@ -88,6 +109,7 @@ reverse connection used IPv4. The regular `android` script remains available for
 LAN development.
 
 The emulator can reach a running laptop API at `http://10.0.2.2:5000/api`.
+This PC's ignored `.env.local` selects `http://10.0.2.2:5102/api` for staging.
 The emulator does not provide an API or database. Without mobile configuration,
 the native sign-in screen shows a setup notice and cannot submit credentials.
 Keep Metro running while using the development app; Expo Go is its test host,

@@ -72,12 +72,12 @@ and iOS checks remain open. A browser render is not substituted for native evide
 Impeccable's full native visual finish verdict remains open; DESIGN.md is inherited
 unchanged.
 
-The owner's disk cleanup removed local Docker/PostgreSQL. No replacement database
-was created or Neon data queried. Actual HTTP/SQL account lifecycles must be tested
-against a confirmed isolated target; hosted functional verification belongs on
-staging only. The October 20 additive submitted-message migration also remains a
-prerequisite wherever that earlier assistant implementation is activated. This
-mobile update itself adds no migration.
+The initial source pass followed the owner's Docker/PostgreSQL cleanup, so SQL
+integration was initially unavailable. The October 24 follow-up below restores
+loopback rehearsal capability and activates the existing October 20 migration on
+the separate staging project after successful backup/restore verification.
+The mobile implementation itself adds no schema migration. Demo activation is
+separate, and no demo functional test is permitted.
 
 Registry audit after compatible updates and the existing parser mitigation reports
 **28 findings: 4 high and 24 moderate**, propagated from `node-forge` and
@@ -142,3 +142,76 @@ integration remains pending. Automatic approval rejects installer-leftover
 cleanup, so compressed archives and the duplicate extraction remain in the local
 setup folder. Automatic approval also rejects a combined direct Android launch
 command; the documented Expo opener succeeds. Preserve both limitations.
+
+## Native staging connection and actual member checks — October 24, 2026
+
+Owner resumes the paused native work after seeing only login. Confirm the existing
+staging project `dark-cake-36096216` / `kainara-staging-20261016`, its saved direct
+endpoint and database `neondb`; reject the separate demo binding. Read-only ledger
+inspection finds 113 applied migrations, no unresolved row, and the October 20
+message-log migration pending. Provider metadata reports 145,974,314 transfer
+bytes and 9,499 compute seconds for its October period; these are reported counters,
+not proof of current allowance or immediate usage freshness.
+
+Install the official EDB PostgreSQL 17.11-5 Windows ZIP without Docker, pgAdmin,
+an OS service or a startup task. Verify SHA-256 against EDB's published checksum:
+`80379b2c04d51c30225532e0ae04509899141e9957ed096fe749d7fd9df8f82f`.
+Initialize a password-protected cluster listening only on `127.0.0.1:55433`, with
+64 MB shared buffers and a fresh `kainara_mobile_local` database. Do not replace
+the deleted Docker volume or overwrite the normal backend environment.
+
+Create a fresh separate-staging custom-format backup (15,527,516 bytes), SHA-256
+`23c33274ef072447c459fa9b1ea9342a86005cb90f50e7c46dd3a1678b6b06f9`.
+Restore it locally with one transaction and exit-on-error, then apply only the
+pending `20261020010000_nara_submitted_message_records` migration. Verify 33 actual
+loopback HTTP/SQL checks using the new `scripts/mobile-auth-local-acceptance.ts`:
+registration, captured OTP verification, onboarding, deterministic report creation,
+acknowledgment, member reads, water logging, profile-correction hold, refresh
+rotation/replay rejection, logout revocation, browser-origin rejection and retained
+browser HttpOnly-cookie behavior. Synthetic acceptance accounts are removed after
+draining their admitted work. An invalidated report correctly stops in-flight
+preparation with a 409 hold; it is not relaxed for the test. Correct the initial
+test assumptions about report creation and the assistant status route before the
+final passing run. Type-check the isolated acceptance configuration and lint it;
+the backend production build also passes.
+
+Apply that exact existing additive migration to the confirmed staging database
+after the restore rehearsal. Verify all 114 applied migrations and its source
+checksum; preserve accounts, catalogue and existing reviews. No new clinical
+approval or catalogue rewrite is performed. Pin the unchanged compiled API source
+from `cb253253` in a private runtime and enable native transport only there. Bind
+its listener to loopback port 5102. Keep Gemini/email/push/payments off and do not
+start automatic worker polling. Ordinary HTTP and on-demand preparation continue
+through the existing services. The native public URL is `10.0.2.2:5102/api`.
+This is a laptop test API using hosted staging SQL; no public tunnel or online-web
+deployment is changed, and it is not a production runtime acceptance.
+
+Create one retained `Android Test Member` through ordinary registration, privately
+captured OTP, onboarding and report generation on staging. Enter only that
+synthetic account in the emulator. Inspect real native pixels and UI hierarchy:
+
+- Sign-in reaches Home with sleeping Nara and the unacknowledged-report hold.
+- Read the actual saved report and acknowledge its exact version through the
+  native confirmation; Home then reveals the member tabs.
+- Meals renders the prepared catalogue plan; Groceries renders actual projected
+  quantities, and Progress renders the dated water history.
+- Nara answers “What is RND” through its free system guide and records the single
+  submitted message. No paid/provider request is submitted.
+- Reload the native app and verify secure-session refresh restores Home.
+
+Actual screenshots are in `verification/mobile-staging-20261024/`. The native cold
+boot again shows a temporary System UI wait dialog and an interrupted Expo runtime
+reload; waiting/reloading recovers before the passing member journey. A first
+Expo launch before Android finishes booting also fails; retry only after the boot
+completion flag and installed-package check. Do not count failed attempts as
+passing evidence. Physical-phone/iOS, full IME/assistive-technology, PDF/native
+sharing, paid AI and comprehensive visual acceptance remain open.
+
+Final bounded staging receipt: starter 3/3 meals active, upcoming weekly cycle
+21/21 meals ready to shop; zero provider usage events and quota reservations since
+the backup, one submitted guide message. These are synthetic-member checks, not
+clinical validation or proof for all accounts. Demo receives no SQL, functional
+request, migration, configuration change or deployment. Stop the idle loopback
+PostgreSQL rehearsal afterward; keep the emulator, Metro and the staging-bound
+test API available for the owner's manual testing. Private credentials, database
+copies, OTPs and runtime configuration remain under the ignored mobile test folder.

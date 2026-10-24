@@ -1,6 +1,9 @@
 # Dependencies
 **/node_modules/
 
+# Private native-mobile staging configuration, SQL backups and test credentials.
+/backend/.local/mobile-native-20261024/
+
 # Next.js build outputs
 **/.next/
 **/.next-production/

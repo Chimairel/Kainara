@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-24",
+  "sourceSha": "cb2532533202853e1712a4ed47036546b3c9ca6b",
+  "local": {
+    "httpSqlChecks": 33,
+    "result": "PASS",
+    "host": "127.0.0.1:55433",
+    "database": "kainara_mobile_local"
+  },
+  "staging": {
+    "project": "dark-cake-36096216",
+    "migration": "20261020010000_nara_submitted_message_records",
+    "migrationChecksum": "fda9695a78df9d2190da4af3c14d19483d308ff21ebad1b1437c3d28cd877d0c",
+    "ledgerApplied": 114,
+    "providerEventsSinceBackup": 0,
+    "providerReservationsSinceBackup": 0,
+    "cycles": [
+      {
+        "planType": "WEEKLY",
+        "status": "READY_TO_SHOP",
+        "expectedSlotCount": 21,
+        "_count": {
+          "mealPlans": 21
+        }
+      },
+      {
+        "planType": "STARTER",
+        "status": "ACTIVE",
+        "expectedSlotCount": 3,
+        "_count": {
+          "mealPlans": 3
+        }
+      }
+    ]
+  },
+  "nativeChecks": [
+    "synthetic member sign-in",
+    "unacknowledged report hold",
+    "saved report reading",
+    "exact-version report acknowledgment",
+    "Home, Meals, Groceries, Progress read screens",
+    "free What is RND answer",
+    "secure-session refresh after reload"
+  ],
+  "remaining": [
+    "physical phone and iOS",
+    "paid AI",
+    "comprehensive IME and accessibility",
+    "PDF sharing",
+    "signed distribution",
+    "independent full visual acceptance"
+  ],
+  "demoOperations": 0
+}
