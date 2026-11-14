@@ -111,6 +111,11 @@ Neon connection, SMTP session or real provider message is used. Existing Prisma
 Client generation is local code generation, not a schema migration.
 
 Hosted rollout receipts will be appended here.
+The first Render plan (`exs-dbs83fm1egvs73d45ei0`) rejected a custom shutdown
+delay on Free; the unsupported override was removed before re-planning. No
+resource was deployed by that failed plan. Railway OAuth discovery returned no
+projects; original environment values have not been recovered. Vercel returned
+403 for `chimairels-projects`; team access was requested through its consent flow.
 Render plan approval, original environment transfer, bounded staging acceptance,
 daily scheduler retargeting and production Vercel cutover remain required. Do not
 describe this release as complete until each applicable gate is recorded.

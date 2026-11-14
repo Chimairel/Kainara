@@ -12,7 +12,6 @@ services:
     startCommand: npm start
     autoDeployTrigger: 'off'
     healthCheckPath: /health
-    maxShutdownDelaySeconds: 60
     envVars:
       - key: NODE_VERSION
         value: '24'
