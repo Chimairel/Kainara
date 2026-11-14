@@ -7,7 +7,6 @@ import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
 import { getManilaDateKey } from '@/lib/manila-date';
 import DashboardDateNavigation from './DashboardDateNavigation';
 import type { useDashboardWorkspace } from './useDashboardWorkspace';
-import { usePreparationIntro } from './usePreparationIntro';
 
 export default function DashboardContent({ model }: { model: ReturnType<typeof useDashboardWorkspace> }) {
   const {
@@ -18,6 +17,7 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
     currentMeals,
     retainedMealLogs,
     pendingReview,
+    preparingPlan,
     generationStatus,
     profileReviewStatus,
     isGenerating,
@@ -30,17 +30,7 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
     handleMealStatusToggle,
     router,
   } = model;
-  const preparing =
-    !error && (isGenerating || ['GENERATING', 'WAITING_FOR_AI', 'PROCESSING_AI'].includes(generationStatus ?? ''));
-  const showCooking = usePreparationIntro(
-    preparing && !isLoading,
-    `${model.user?.userId}:${model.currentCycle?.id ?? 'unassigned'}`,
-    isReportPending ||
-      clinicalEvidenceRequired ||
-      profileReviewStatus !== 'ready' ||
-      Boolean(error) ||
-      generationStatus === 'FAILED'
-  );
+  const preparing = preparingPlan && !error;
   const today = getManilaDateKey();
   const cycleStart = model.currentCycle?.startDate ? getManilaDateKey(model.currentCycle.startDate) : today;
   const cycleEnd = model.currentCycle?.endDate ? getManilaDateKey(model.currentCycle.endDate) : today;
@@ -52,11 +42,9 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
       model.awaitingGenerationSlots.some((slot) => getManilaDateKey(slot.scheduledDate) === preparationDate));
   return (
     <>
-      {isLoading ? (
-        <DashboardSkeleton />
-      ) : isReportPending ? (
+      {isReportPending ? (
         <StateNotice
-          variant="no-meal-plan"
+          variant="action-needed"
           eyebrow="Action needed"
           eyebrowVariant="amber"
           title="Meal planning isn't available yet"
@@ -75,6 +63,8 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
           description="Your health details need more review before a meal plan can be prepared. Check the requested clinical information and upload a supporting document if required."
           action={{ label: 'Review clinical information', href: '/profile/clinical-evidence' }}
         />
+      ) : isLoading ? (
+        <DashboardSkeleton />
       ) : profileReviewStatus === 'pending' ? (
         <ProfileReviewPlanningHold />
       ) : profileReviewStatus === 'checking' || profileReviewStatus === 'error' ? (
@@ -98,7 +88,7 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
           description="We could not retrieve the latest preparation status. Retry loading your saved plan."
           action={{ label: 'Retry loading', onClick: () => void fetchCurrentPlan() }}
         />
-      ) : showCooking || waitingForToday ? (
+      ) : waitingForToday ? (
         <StateNotice
           variant="preparing"
           title="Preparing your meal plan"
@@ -108,7 +98,7 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
       ) : currentMeals.length === 0 &&
         !retainedMealLogs.length &&
         !pendingReview &&
-        !(preparing && model.currentCycle) ? (
+        (!model.currentCycle || generationStatus === 'FAILED') ? (
         <StateNotice
           variant={generationStatus === 'FAILED' && !isGenerating ? 'preparing-failed' : 'preparing'}
           title={

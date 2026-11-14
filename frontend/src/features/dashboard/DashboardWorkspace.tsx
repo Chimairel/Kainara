@@ -14,10 +14,11 @@ import MealPlanAnnouncements from '@/features/meals/MealPlanAnnouncements';
 export default function DashboardWorkspace() {
   const model = useDashboardWorkspace();
   const { error, clinicalEvidenceRequired, user, outsideLog, router, isLoading, currentCycle, isReportPending } = model;
+  const showPlanNotices = !isLoading && !isReportPending && !clinicalEvidenceRequired && model.profileReviewStatus === 'ready';
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-        {error && !clinicalEvidenceRequired && !error.toLowerCase().includes('nutrition report') ? (
+        {error && !clinicalEvidenceRequired && !isReportPending ? (
           <FeedbackNotice>
             <div className="flex items-center gap-2">
               <span>{error}</span>
@@ -39,16 +40,16 @@ export default function DashboardWorkspace() {
           }
         />
 
-        {!isLoading && !isReportPending && (
-          <UnavailableMealsNotice cycle={currentCycle} onRepair={() => router.push('/meals')} />
-        )}
-        {!isReportPending && <DashboardPlanNotices model={model} />}
-        {!isLoading && !isReportPending && !clinicalEvidenceRequired && (
-          <MealPlanAnnouncements
-            pendingCount={model.pendingReview?.mealCount}
-            isStarterPlan={model.isStarterPlan}
-            nextCycleDay={model.nextCycleDay}
-          />
+        {showPlanNotices && (
+          <>
+            <UnavailableMealsNotice cycle={currentCycle} onRepair={() => router.push('/meals')} />
+            <DashboardPlanNotices model={model} />
+            <MealPlanAnnouncements
+              pendingCount={model.pendingReview?.mealCount}
+              isStarterPlan={model.isStarterPlan}
+              nextCycleDay={model.nextCycleDay}
+            />
+          </>
         )}
 
         <DashboardContent model={model} />

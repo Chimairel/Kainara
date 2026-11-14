@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 // Synthetic API responses exercise the normal localhost:3000 application without changing Neon records.
 for (const theme of ['light', 'dark'])
   for (const width of [390, 1440]) {
-    test(`cooking waits for today, then future gaps use skeletons at ${width}px in ${theme}`, async ({ page }) => {
+    test(`report hold, cooking and automatic menu updates at ${width}px in ${theme}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 1000 });
       await page.addInitScript((value) => localStorage.setItem('nutrimind-theme', value), theme);
       const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
@@ -26,7 +26,13 @@ for (const theme of ['light', 'dark'])
         safetyEntries: [],
       };
       const claims = Buffer.from(
-        JSON.stringify({ userId: profile.id, email: profile.email, role: profile.role, exp: 4102444800 })
+        JSON.stringify({
+          userId: profile.id,
+          email: profile.email,
+          role: profile.role,
+          iat: Math.floor(Date.now() / 1000),
+          exp: 4102444800,
+        })
       ).toString('base64url');
       await page
         .context()
@@ -45,6 +51,7 @@ for (const theme of ['light', 'dark'])
         ingredients: [],
       });
       let ready = false;
+      let needsReport = true;
       const headers = {
         'Access-Control-Allow-Origin': 'http://localhost:3000',
         'Access-Control-Allow-Credentials': 'true',
@@ -64,6 +71,13 @@ for (const theme of ['light', 'dark'])
         else if (path.endsWith('/water/today')) data = { totalMl: 0 };
         else if (path.endsWith('/user/meals/cycles')) data = { upcoming: null };
         else if (path.endsWith('/user/meals/current')) {
+          if (needsReport) {
+            return route.fulfill({
+              headers,
+              status: 409,
+              json: { success: false, errorCode: 'REPORT_ACKNOWLEDGEMENT_REQUIRED', error: 'Your planning report needs updating.' },
+            });
+          }
           data = [meal('BREAKFAST'), ...(ready ? [meal('DINNER')] : [])];
           const gaps = [
             ...(!ready ? [{ scheduledDate: today, mealType: 'DINNER' }] : []),
@@ -83,9 +97,15 @@ for (const theme of ['light', 'dark'])
       });
       await page.clock.install();
       await page.goto('/dashboard');
+      await expect(page.getByText('Action needed', { exact: true })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'View Nutrition Report' })).toHaveAttribute('href', '/profile/nutrition-report');
+      await expect(page.getByRole('heading', { name: 'Preparing your meal plan', exact: true })).toHaveCount(0);
+      await page.screenshot({ path: testInfo.outputPath('report-hold.png'), fullPage: true, animations: 'disabled' });
+      needsReport = false;
+      await page.evaluate(() => window.dispatchEvent(new Event('kainara:live-update')));
       await expect(page.getByRole('heading', { name: 'Preparing your meal plan', exact: true })).toBeVisible();
       await page.screenshot({
-        path: `../backend/.local/preparation-ui/cooking-${width}-${theme}.png`,
+        path: testInfo.outputPath('preparing.png'),
         fullPage: true,
         animations: 'disabled',
       });
@@ -101,7 +121,7 @@ for (const theme of ['light', 'dark'])
       await expect(page.getByRole('heading', { name: 'Preparing your meal plan', exact: true })).toHaveCount(0);
       expect(await page.locator('main').evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
       await page.screenshot({
-        path: `../backend/.local/preparation-ui/slots-${width}-${theme}.png`,
+        path: testInfo.outputPath('meal-slots.png'),
         fullPage: true,
         animations: 'disabled',
       });

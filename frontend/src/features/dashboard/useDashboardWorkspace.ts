@@ -9,7 +9,7 @@ import api from '@/lib/axios';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error';
 import { MealPlan } from '@/types';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
@@ -60,6 +60,7 @@ export function useDashboardWorkspace() {
   const [initialReadsOwner, setInitialReadsOwner] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reportHold, setReportHold] = useState<{ ownerId: string | undefined } | null>(null);
   const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
   const [pendingReview, setPendingReview] = useState<PendingReview | null>(cachedPlan?.pendingReview ?? null);
   const [awaitingGenerationCount, setAwaitingGenerationCount] = useState(cachedPlan?.awaitingGenerationCount ?? 0);
@@ -207,10 +208,8 @@ export function useDashboardWorkspace() {
     }
   }, [ownerId]);
 
-  const isReportPending = Boolean(
-    (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
-    (error && error.toLowerCase().includes('nutrition report'))
-  );
+  const needsReport = Boolean(user?.onboardingDone && user.tosAccepted && !user.reportAcknowledged);
+  const isReportPending = needsReport || Boolean(reportHold && reportHold.ownerId === ownerId);
 
   // Load active plan meals
   const fetchCurrentPlan = useCallback(
@@ -224,7 +223,7 @@ export function useDashboardWorkspace() {
             })
           : existing.promise;
       }
-      if (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) {
+      if (needsReport) {
         setIsLoading(false);
         return Promise.resolve();
       }
@@ -239,6 +238,7 @@ export function useDashboardWorkspace() {
           if (!isCurrent()) return;
           if (res.data && res.data.success) {
             setError(null);
+            setReportHold(null);
             setClinicalEvidenceRequired(false);
             applyCurrentPlan({
               meals: Array.isArray(res.data.data) ? res.data.data : [],
@@ -255,8 +255,10 @@ export function useDashboardWorkspace() {
           }
         } catch (err: unknown) {
           if (!isCurrent() || axios.isCancel(err)) return;
-          if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
-            setClinicalEvidenceRequired(true);
+          const code = getApiErrorCode(err);
+          if (code === 'REPORT_ACKNOWLEDGEMENT_REQUIRED' || code === 'CLINICAL_EVIDENCE_REQUIRED') {
+            if (code === 'REPORT_ACKNOWLEDGEMENT_REQUIRED') setReportHold({ ownerId });
+            else setClinicalEvidenceRequired(true);
             setCurrentMeals([]);
             setRetainedHistory({ ownerId, meals: [] });
             setPendingReview(null);
@@ -274,27 +276,36 @@ export function useDashboardWorkspace() {
       })();
       return request.promise;
     },
-    [applyCurrentPlan, user, ownerId]
+    [applyCurrentPlan, needsReport, ownerId]
   );
 
   const { status: profileReviewStatus, requireReview } = useClinicalProfileGate(ownerId, profileSafetyRevision, () =>
     fetchCurrentPlan(undefined, true)
   );
 
+  const hasPlanContent = Boolean(currentMeals.length || retainedMealLogs.length || pendingReview?.meals.length);
+  // A rebuild keeps the old cycle visible until the replacement is saved.
+  const isRebuilding =
+    currentCycle?.profileAdaptationState === 'REBUILD_REQUIRED' &&
+    currentCycle.requestedProfileRevision != null &&
+    currentCycle.requestedProfileRevision === currentCycle.acknowledgedProfileRevision;
+  const awaitingPlan =
+    isGenerating ||
+    ['GENERATING', 'WAITING_FOR_AI', 'PROCESSING_AI'].includes(generationStatus ?? '') ||
+    (isRebuilding && generationStatus !== 'FAILED') ||
+    (generationStatus !== 'FAILED' && !hasPlanContent && !currentCycle);
   const preparingPlan =
     !isLoading &&
     !isReportPending &&
     !clinicalEvidenceRequired &&
     profileReviewStatus === 'ready' &&
-    (isGenerating ||
-      ['GENERATING', 'WAITING_FOR_AI', 'PROCESSING_AI'].includes(generationStatus ?? '') ||
-      (!currentMeals.length && !retainedMealLogs.length && !pendingReview && !error && generationStatus !== 'FAILED'));
+    awaitingPlan;
 
   useVisiblePolling(fetchCurrentPlan, {
     enabled: Boolean(ownerId),
     // Live events and mutations refresh immediately; a full weekly payload
     // uses a slower fallback than selected review status or notifications.
-    intervalMs: preparingPlan ? 3_000 : 120_000,
+    intervalMs: preparingPlan ? (error ? 10_000 : 3_000) : 120_000,
     immediate: false,
     scopeKey: ownerId,
   });
@@ -313,7 +324,7 @@ export function useDashboardWorkspace() {
       const snapshot = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
       if (snapshot) writeSessionResource(ownerId, currentPlanResource, { ...snapshot, upcomingCycle: upcoming });
     },
-    { enabled: Boolean(ownerId) && !isLoading && !currentCycle, intervalMs: 60000, scopeKey: ownerId }
+    { enabled: Boolean(ownerId) && !isLoading && !currentCycle && !isReportPending, intervalMs: 60000, scopeKey: ownerId }
   );
 
   useEffect(() => {
@@ -369,20 +380,7 @@ export function useDashboardWorkspace() {
   const handleMealStatusToggle = async (mealPlanId: string, newStatus: 'DONE' | 'SKIPPED' | 'PENDING') => {
     try {
       await api.patch(`/user/meals/${mealPlanId}/status`, { status: newStatus });
-      // Fetch plan again to sync local UI check marks and total calories
-      const res = await api.get('/user/meals/current');
-      if (res.data && res.data.success) {
-        applyCurrentPlan({
-          meals: Array.isArray(res.data.data) ? res.data.data : [],
-          retainedMealLogs: res.data.meta?.retainedMealLogs ?? [],
-          pendingReview: res.data.meta?.pendingReview ?? null,
-          awaitingGenerationCount: res.data.meta?.awaitingGenerationCount ?? 0,
-          awaitingGenerationSlots: res.data.meta?.awaitingGenerationSlots ?? [],
-          generationStatus: res.data.meta?.generationStatus ?? null,
-          planSnapshot: res.data.meta?.planSnapshot ?? null,
-          cycle: res.data.meta?.cycle ?? null,
-        });
-      }
+      await fetchCurrentPlan(undefined, true);
     } catch (err) {
       console.error('[Dashboard] Status toggle failed:', err);
     }
@@ -413,6 +411,7 @@ export function useDashboardWorkspace() {
       }
     } catch (err: unknown) {
       const msg = getApiErrorMessage(err, 'Gemini failed to generate standard plan.');
+      if (getApiErrorCode(err) === 'REPORT_ACKNOWLEDGEMENT_REQUIRED') setReportHold({ ownerId });
       if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
         setClinicalEvidenceRequired(true);
       }
@@ -475,6 +474,7 @@ export function useDashboardWorkspace() {
     awaitingGenerationCount,
     awaitingGenerationSlots,
     isReportPending,
+    preparingPlan,
     currentMeals,
     retainedMealLogs,
     pendingReview,
