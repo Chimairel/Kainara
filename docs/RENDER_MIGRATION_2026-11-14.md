@@ -120,13 +120,18 @@ After correction, Render accepted plan `exe-dbs83os9v7es73bvld70` for source
 `d2865b9814037482b76f9deaf4be83a1a7da882f`, with no notices: create one Free
 Node service, `kainara-api-txqu`, in Singapore, with previews and automatic deploys
 off. The required manual environment values remain unset; the plan is not
-approved or applied. Vercel team consent subsequently succeeded and project
+applied. The owner approved the reviewed Free plan, conditional on recovering
+the original staging settings. Vercel team consent subsequently succeeded and project
 `nutrimindv1` (`prj_DxetpuW3fd5zY2ezP4wpdOtQrk8K`) is accessible. Existing
 `codex/staging` preview overrides and production `INTERNAL_API_URL` entries are
 present; none has been changed. Railway identity is `chimairelp2@gmail.com`, whose
 project inventory is empty. The owner was asked to recover the original account
 or private backend environment, rather than create replacement secrets.
-Render plan approval, original environment transfer, bounded staging acceptance,
+The development integration also passes the same 16 mocked tests, test/source
+TypeScript and production build after regenerating its local Prisma Client for
+the existing development schema. No schema was applied to any database.
+
+Original environment transfer, bounded staging acceptance,
 daily scheduler retargeting and production Vercel cutover remain required. Do not
 describe this release as complete until each applicable gate is recorded.
 
