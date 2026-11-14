@@ -24,11 +24,12 @@ function PlanMealCardFrame({
   );
 }
 
-function PlanMealBanner({ mealType, index, children }: { mealType: string; index: number; children: ReactNode }) {
+function PlanMealBanner({ mealType, index, children, compact }: { mealType: string; index: number; children: ReactNode; compact: boolean }) {
   return (
     <div
       className={cn(
-        'relative h-40 w-full overflow-hidden rounded-2xl sm:h-44',
+        'relative w-full overflow-hidden rounded-2xl sm:h-44',
+        compact ? 'aspect-[4/3] sm:aspect-auto' : 'h-40',
         getMealBannerTheme(mealType, index).bannerBg
       )}
     >
@@ -48,6 +49,7 @@ export function PlanMealCardSurface({
   children,
   showAttributionLinks = false,
   badgesClassName,
+  compact = false,
 }: {
   mealType: string;
   mealName: string;
@@ -58,14 +60,16 @@ export function PlanMealCardSurface({
   children: ReactNode;
   showAttributionLinks?: boolean;
   badgesClassName?: string;
+  compact?: boolean;
 }) {
   const theme = getMealBannerTheme(mealType, index);
   return (
-    <PlanMealCardFrame mealType={mealType} index={index}>
-      <PlanMealBanner mealType={mealType} index={index}>
+    <PlanMealCardFrame mealType={mealType} index={index} className={compact ? 'min-w-0 max-sm:rounded-xl max-sm:p-1.5' : undefined}>
+      <PlanMealBanner mealType={mealType} index={index} compact={compact}>
         <div
           className={cn(
             'absolute -left-9 top-1/2 h-52 w-52 -translate-y-1/2 overflow-hidden rounded-full bg-white shadow-[0_6px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition-transform duration-300 group-hover:scale-105 sm:-left-12 sm:h-56 sm:w-56 dark:bg-[#071914]',
+            compact && 'max-sm:inset-0 max-sm:h-full max-sm:w-full max-sm:translate-y-0 max-sm:rounded-none',
             theme.plateBorder
           )}
         >
@@ -77,13 +81,16 @@ export function PlanMealCardSurface({
             variant="thumbnail"
             hideRepresentativeBadge
             showAttributionLinks={showAttributionLinks}
-            className="!h-full !w-full !rounded-full !border-0 object-cover"
+            className={cn('!h-full !w-full !rounded-full !border-0 object-cover', compact && 'max-sm:!rounded-none')}
           />
         </div>
-        <div className={cn('absolute right-2.5 top-2.5 z-10 flex flex-col items-end gap-1.5', badgesClassName)}>
+        {!compact && <div className={cn('absolute right-2.5 top-2.5 z-10 flex flex-col items-end gap-1.5', badgesClassName)}>{badges}</div>}
+      </PlanMealBanner>
+      {compact && (
+        <div className={cn('flex flex-wrap items-center gap-1 px-1 pt-1.5 sm:absolute sm:right-5 sm:top-5 sm:z-10 sm:flex-col sm:items-end sm:gap-1.5 sm:p-0', badgesClassName)}>
           {badges}
         </div>
-      </PlanMealBanner>
+      )}
       {children}
     </PlanMealCardFrame>
   );

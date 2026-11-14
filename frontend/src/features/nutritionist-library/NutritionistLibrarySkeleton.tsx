@@ -12,9 +12,9 @@ export function LibraryGridSkeleton({
 }) {
   return (
     <div aria-label="Loading meal library grid" aria-busy="true">
-      <MealLibraryLayout label="Loading recipe cards">
+      <MealLibraryLayout label="Loading recipe cards" compact={variant === 'member'}>
         {Array.from({ length: count }, (_, i) => (
-          <SkeletonMealTile key={i} footer={variant === 'staff'} />
+          <SkeletonMealTile key={i} footer={variant === 'staff'} compact={variant === 'member'} />
         ))}
       </MealLibraryLayout>
     </div>

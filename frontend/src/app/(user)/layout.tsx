@@ -54,7 +54,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 </PortalAnnouncement>
               )}
               <WeeklyProfileNotice />
-              <main className="portal-main custom-scrollbar relative flex-1 overflow-y-auto pb-36 md:pb-4">
+              <main className="portal-main member-main custom-scrollbar relative min-h-0 flex-1 overflow-y-auto md:pb-4">
                 <PortalAnnouncements />
                 {children}
               </main>

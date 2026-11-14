@@ -13,11 +13,11 @@ export default function MemberMealActions({
   destination?: 'plan' | 'grocery';
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
-      <Button variant="primary" onClick={onLogFood}>
+    <div className="grid w-full grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] gap-2 sm:flex sm:w-auto sm:flex-wrap">
+      <Button variant="primary" className="max-sm:min-h-11 max-sm:px-2" onClick={onLogFood}>
         <Plus className="h-4 w-4" /> Log food or snack
       </Button>
-      <Button variant="secondary" onClick={onOpenDestination}>
+      <Button variant="secondary" className="max-sm:min-h-11 max-sm:px-2" onClick={onOpenDestination}>
         {destination === 'grocery' ? <ShoppingBasket className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
         {destination === 'grocery' ? 'Groceries' : 'Weekly plan'}
       </Button>

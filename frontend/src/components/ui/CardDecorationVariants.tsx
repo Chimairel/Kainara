@@ -5,7 +5,7 @@ export const CARD_DECORATION_VARIANTS = {
   intake: (
     <>
       {/* Retro Wave Organic Corner Accent (Top Right) - Connected with On your menu card */}
-      <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-32 w-32 overflow-hidden rounded-tr-3xl z-0">
+      <div className="pointer-events-none absolute -top-0.5 -right-0.5 z-0 h-16 w-16 overflow-hidden rounded-tr-3xl sm:h-32 sm:w-32">
         <svg viewBox="0 0 160 160" className="h-full w-full" fill="none" aria-hidden="true">
           <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
           <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />

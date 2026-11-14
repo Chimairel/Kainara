@@ -162,7 +162,7 @@ export default function ProgressOverviewSection({ model }: SectionProps) {
             </Card>
           )}
 
-          <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <section aria-label="Progress summary" className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-brand-border bg-brand-border sm:gap-3 sm:overflow-visible sm:rounded-none sm:border-0 sm:bg-transparent lg:grid-cols-4">
             {[
               {
                 label: 'Current weight',
@@ -208,9 +208,9 @@ export default function ProgressOverviewSection({ model }: SectionProps) {
               return (
                 <div
                   key={metric.label}
-                  className="group relative rounded-2xl border border-brand-border/70 bg-brand-surface p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-brand-border transition-all duration-200"
+                  className="group relative min-w-0 bg-brand-surface p-3 transition-all duration-200 sm:rounded-2xl sm:border sm:border-brand-border/70 sm:p-5 sm:shadow-sm sm:hover:border-brand-border sm:hover:shadow-md"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
                     <div
                       className={`flex h-9 w-9 items-center justify-center rounded-xl ${metric.bgColor} ${metric.color}`}
                     >
@@ -222,7 +222,7 @@ export default function ProgressOverviewSection({ model }: SectionProps) {
                       </span>
                     )}
                   </div>
-                  <p className="mt-4 font-display text-2xl font-black text-brand-text tracking-tight">{metric.value}</p>
+                  <p className="mt-2 font-display text-2xl sm:mt-4 font-black text-brand-text tracking-tight">{metric.value}</p>
                   <p className="mt-1 text-xs font-semibold text-brand-muted">{metric.label}</p>
                 </div>
               );

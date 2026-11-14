@@ -127,7 +127,7 @@ export default function MealsPlanSection({ model }: Props) {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+                    <div className="member-item-rail member-plan-rail sm:grid sm:grid-cols-2 sm:gap-4 md:grid-cols-3 md:gap-5">
                       {day.mealsList.map((meal, index) => (
                         <PendingMealPreviewCard
                           key={`${meal.scheduledDate}-${meal.mealType}-${index}`}
@@ -196,7 +196,7 @@ export default function MealsPlanSection({ model }: Props) {
                   </div>
 
                   {/* Day's 3 Floating Meals Column Stack */}
-                  <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+                  <div className="member-item-rail member-plan-rail sm:grid sm:grid-cols-2 sm:gap-4 md:grid-cols-3 md:gap-5">
                     {day.mealsList.map((meal, index) => (
                       <MealSwapRefresh
                         key={meal.id}
@@ -249,7 +249,7 @@ export default function MealsPlanSection({ model }: Props) {
                         </p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+                    <div className="member-item-rail member-plan-rail sm:grid sm:grid-cols-2 sm:gap-4 md:grid-cols-3 md:gap-5">
                       {day.mealsList.map((meal, index) => (
                         <PendingMealPreviewCard
                           key={`${meal.scheduledDate}-${meal.mealType}-${index}`}

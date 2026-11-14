@@ -57,7 +57,7 @@ export default function MealsWorkspace() {
   }, workspace.ownerId);
   const canLogFood = !isReportPending && Boolean(workspace.user?.reportAcknowledged);
   return (
-    <div className="portal-page select-none pb-32 text-brand-text">
+    <div className="portal-page select-none text-brand-text">
       {/* Main Container */}
       <div className="mx-auto flex max-w-6xl flex-col gap-5">
         {/* Header Block */}

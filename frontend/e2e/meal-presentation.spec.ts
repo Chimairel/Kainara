@@ -8,8 +8,9 @@ const restoredImage = process.env.KAINARA_CLOUDINARY_IMAGE_FIXTURE
 
 // The real localhost:3000 UI with intercepted synthetic API data. No database writes.
 for (const theme of ['light', 'dark'])
-  for (const width of [390, 1440]) {
-    test(`clean meal names and logo fallbacks at ${width}px in ${theme}`, async ({ page }) => {
+  for (const width of [360, 390, 1440]) {
+    test(`member layouts, meal images and checklist at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+      test.setTimeout(60_000);
       await page.setViewportSize({ width, height: 1100 });
       await page.addInitScript((value) => localStorage.setItem('nutrimind-theme', value), theme);
       const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
@@ -29,7 +30,7 @@ for (const theme of ['light', 'dark'])
         safetyEntries: [],
       };
       const claims = Buffer.from(
-        JSON.stringify({ userId: profile.id, email: profile.email, role: profile.role, exp: 4102444800 })
+        JSON.stringify({ userId: profile.id, email: profile.email, role: profile.role, iat: Math.floor(Date.now() / 1000), exp: 4102444800 })
       ).toString('base64url');
       await page
         .context()
@@ -161,6 +162,22 @@ for (const theme of ['light', 'dark'])
         else if (path.endsWith('/checkin/status')) data = { isDue: false, hasPendingChanges: false };
         else if (path.endsWith('/water/today')) data = { totalMl: 0 };
         else if (path.endsWith('/user/meals/cycles')) data = { upcoming: null };
+        else if (path.endsWith('/user/meal-clarifications')) data = { enabled: false, forms: [] };
+        else if (path.endsWith('/user/meals/history/count')) data = { total: 0 };
+        else if (path.endsWith('/user/meals/verified-recipes/summary')) data = { total: 3, restrictedProfile: false };
+        else if (path.endsWith('/user/meals/verified-recipes')) {
+          data = {
+            total: 3, page: 1, pageCount: 1, restrictedProfile: false,
+            items: meals.map((meal) => ({
+              id: meal.id, name: meal.mealName, mealTypes: [meal.mealType], calories: meal.calories,
+              proteinG: meal.proteinG, carbsG: meal.carbsG, fatG: meal.fatG, planningReady: true,
+              imageUrl: meal.image?.url ?? null, sourceUrl: 'https://panlasangpinoy.com/bam-i-recipe/',
+            })),
+          };
+        }
+        else if (path.endsWith('/user/grocery/items/water/toggle') && route.request().method() === 'PATCH') {
+          data = { id: 'water', ingredientName: 'Water', category: 'Beverages', quantity: 1, unit: 'L', isChecked: true, sourceMealCount: 1, isPantryStaple: false };
+        }
         else if (path.endsWith('/user/meals/workspace')) {
           data = meals;
           meta = {
@@ -179,7 +196,10 @@ for (const theme of ['light', 'dark'])
             awaitingGenerationSlots: [],
             pendingReview: null,
             retainedMealLogs: [],
-            planSnapshot: { dailyCalorieTarget: 2000, dailyMacroTargets: {} },
+            planSnapshot: {
+              dailyCalorieTarget: 2000,
+              dailyMacroTargets: { [today]: { calories: 2000, proteinG: 120, carbsG: 250, fatG: 58 } },
+            },
           };
         }
         return route.fulfill({ headers, json: { success: true, data, meta } });
@@ -188,6 +208,16 @@ for (const theme of ['light', 'dark'])
       await expect(page.getByText('French Toast', { exact: true })).toBeVisible();
       await expect(page.getByText('Adobong Dilaw (Yellow Adobo)', { exact: true })).toBeVisible();
       await expect(page.getByText('Bam-I', { exact: true })).toBeVisible();
+      if (width < 640) {
+        const rail = page.locator('.member-menu-rail');
+        await expect(rail).toBeVisible();
+        await expect(page.getByRole('navigation', { name: 'Mobile navigation' })).toBeVisible();
+        expect(await page.locator('.member-main').evaluate((el) => el.scrollWidth)).toBeLessThanOrEqual(width);
+        expect(await rail.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+        await page.getByRole('button', { name: 'Mark Bam-I as eaten' }).scrollIntoViewIfNeeded();
+        expect(await rail.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+        expect(await page.getByRole('button', { name: 'Add 250 mL of water' }).evaluate((el) => el.getBoundingClientRect().width)).toBeGreaterThanOrEqual(44);
+      }
       await page.getByText('Adobong Dilaw (Yellow Adobo)', { exact: true }).scrollIntoViewIfNeeded();
       for (const name of restoredImage
         ? ['Adobong Dilaw (Yellow Adobo)']
@@ -210,8 +240,9 @@ for (const theme of ['light', 'dark'])
         )
         .toBeGreaterThan(0);
       await page.getByRole('heading', { name: 'On your menu' }).scrollIntoViewIfNeeded();
+      await page.locator('.member-menu-rail').evaluate((el) => el.scrollTo({ left: 0, behavior: 'instant' }));
       await page.screenshot({
-        path: `../backend/.local/meal-presentation-audit/${restoredImage ? 'cloudinary-' : ''}dashboard-${width}-${theme}.png`,
+        path: testInfo.outputPath('dashboard.png'),
         fullPage: true,
         animations: 'disabled',
       });
@@ -258,10 +289,22 @@ for (const theme of ['light', 'dark'])
       expect(paints.stroke).toBe(2.25);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await page.screenshot({
-        path: `../backend/.local/meal-presentation-audit/${restoredImage ? 'cloudinary-' : ''}meals-${width}-${theme}.png`,
+        path: testInfo.outputPath('meals.png'),
         fullPage: true,
         animations: 'disabled',
       });
+      await page.goto('/meals?tab=library');
+      const recipes = page.getByRole('region', { name: 'Meal library recipes' });
+      await expect(recipes.getByRole('heading')).toHaveCount(3);
+      const cards = await recipes.locator('article').evaluateAll((elements) => elements.map((el) => {
+        const { x, y, width } = el.getBoundingClientRect();
+        return { x, y, width };
+      }));
+      expect(cards[1].y).toBe(cards[0].y);
+      expect(cards[1].x).toBeGreaterThan(cards[0].x);
+      if (width < 640) expect(cards[2].y).toBeGreaterThan(cards[0].y);
+      await expect(recipes.getByRole('link', { name: /view source recipe/i }).first()).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath('library.png'), fullPage: true, animations: 'disabled' });
       await page.goto('/grocery');
       const department = page.getByRole('combobox', { name: 'Filter by department category' });
       await expect(department).toBeVisible();
@@ -271,8 +314,18 @@ for (const theme of ['light', 'dark'])
       await department.click();
       await expect(department).toHaveAttribute('aria-expanded', 'true');
       await page.getByRole('option', { name: 'Beverages (1)', exact: true }).click();
-      await expect(page.getByRole('cell', { name: 'Water', exact: true })).toBeVisible();
-      await expect(page.getByRole('cell', { name: 'Rice', exact: true })).toHaveCount(0);
+      if (width < 640) {
+        const list = page.getByRole('region', { name: 'Grocery checklist' });
+        await expect(list.getByText('Water', { exact: true })).toBeVisible();
+        await expect(list.getByText('1 l', { exact: true })).toBeVisible();
+        await expect(list.getByText('Rice', { exact: true })).toHaveCount(0);
+        await list.getByRole('checkbox', { name: 'Mark as available: Water' }).click();
+        await expect(list.getByRole('checkbox', { name: 'Mark as needed: Water' })).toBeChecked();
+      } else {
+        await expect(page.getByRole('cell', { name: 'Water', exact: true })).toBeVisible();
+        await expect(page.getByRole('cell', { name: 'Rice', exact: true })).toHaveCount(0);
+      }
+      await page.screenshot({ path: testInfo.outputPath('groceries.png'), fullPage: true, animations: 'disabled' });
       await page.getByRole('button', { name: 'View notifications', exact: true }).click();
       const inbox = page.getByRole('dialog', { name: 'Notifications', exact: true });
       await expect(inbox.getByText('Membership updated', { exact: true })).toBeVisible();
@@ -295,7 +348,7 @@ for (const theme of ['light', 'dark'])
       });
       expect(notificationPaints.color).toBe(notificationPaints.inheritedColor);
       await page.screenshot({
-        path: `../backend/.local/meal-presentation-audit/grocery-notifications-${width}-${theme}.png`,
+        path: testInfo.outputPath('grocery-notifications.png'),
         fullPage: true,
         animations: 'disabled',
       });

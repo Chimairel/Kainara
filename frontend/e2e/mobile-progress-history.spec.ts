@@ -18,7 +18,13 @@ async function setup(page: Page, date = '2026-10-06') {
     safetyEntries: [],
   };
   const claims = Buffer.from(
-    JSON.stringify({ userId: user.id, email: user.email, role: 'USER', exp: 4102444800 })
+    JSON.stringify({
+      userId: user.id,
+      email: user.email,
+      role: 'USER',
+      iat: Date.parse(`${date}T04:00:00Z`) / 1000,
+      exp: 4102444800,
+    })
   ).toString('base64url');
   await page.context().addCookies([
     {
@@ -120,6 +126,11 @@ for (const width of [320, 358, 390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await setup(page);
     await page.goto('/progress');
+    const summary = page.getByRole('region', { name: 'Progress summary' });
+    await expect(summary).toBeVisible();
+    if (width < 480) {
+      expect(await summary.evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length)).toBe(2);
+    }
     const chart = page.getByRole('img', { name: 'Weight progress chart' });
     await expect(chart).toBeVisible();
     if (width < 480) {

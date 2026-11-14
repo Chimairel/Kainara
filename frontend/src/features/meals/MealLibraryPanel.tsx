@@ -201,7 +201,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
     catalogLoading || (isClientSource && workspace.isLibraryLoading && workspace.libraryTotalCount == null);
   return (
     <div className="space-y-6 text-left">
-      <div className="flex flex-col items-stretch gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row md:items-center md:justify-between">
+      <div className="grid grid-cols-1 gap-2 md:flex md:flex-row md:items-center md:justify-between md:gap-3 md:rounded-[22px] md:border md:border-brand-border/70 md:bg-brand-surface/90 md:p-3 md:shadow-sm">
         <form onSubmit={handleLibrarySearchSubmit} className="flex w-full gap-2 md:max-w-xs lg:max-w-sm">
           <label className="relative min-w-0 flex-1">
             <span className="sr-only">Search verified recipes</span>
@@ -211,15 +211,15 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
               placeholder="Search recipes..."
               value={librarySearch}
               onChange={(e) => setLibrarySearch(e.target.value)}
-              className="h-10 w-full rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-10 pr-3 text-xs text-brand-text outline-none focus:border-brand-green"
+              className="h-11 w-full rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-10 pr-3 text-base md:h-10 md:text-xs text-brand-text outline-none focus:border-brand-green"
             />
           </label>
-          <Button type="submit" variant="secondary" className="h-10 px-4 text-xs">
+          <Button type="submit" variant="secondary" className="h-11 px-4 text-xs md:h-10">
             Apply
           </Button>
         </form>
 
-        <div className="relative flex items-center shrink-0">
+        <div className="relative flex min-w-0 items-center md:shrink-0">
           <label htmlFor="library-rice-role-select" className="sr-only">
             Rice role
           </label>
@@ -228,7 +228,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
             value={libraryRiceRole}
             onChange={(event) => setLibraryRiceRole(event)}
             aria-label="Rice role"
-            className="h-10 appearance-none rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-3.5 pr-8 text-xs font-bold text-brand-text transition-all outline-none hover:border-brand-green/50 focus:border-brand-green focus:bg-brand-surface dark:bg-[#0e271f] dark:border-[#173e33] dark:text-white cursor-pointer"
+            className="h-11 max-w-full appearance-none rounded-xl md:h-10 border border-brand-border bg-brand-bgAlt/60 pl-3.5 pr-8 text-xs font-bold text-brand-text transition-all outline-none hover:border-brand-green/50 focus:border-brand-green focus:bg-brand-surface dark:bg-[#0e271f] dark:border-[#173e33] dark:text-white cursor-pointer"
           >
             <option value="All">All reviewed roles</option>
             <option value="PAIR_WITH_RICE">Pair with rice</option>
@@ -242,7 +242,8 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
             <button
               key={type}
               onClick={() => setLibraryMealType(type)}
-              className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
+              aria-pressed={libraryMealType === type}
+              className={`min-h-11 whitespace-nowrap rounded-lg md:min-h-0 border px-3 py-1.5 text-xs font-bold transition-all ${
                 libraryMealType === type
                   ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black shadow-sm'
                   : 'border-transparent text-brand-muted hover:bg-brand-surface hover:text-brand-text'
@@ -280,7 +281,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
         </div>
       ) : (
         <div className="space-y-4">
-          <MealLibraryLayout>
+          <MealLibraryLayout compact>
             {displayItems.map((item) => (
               <RecipeLibraryCard
                 key={item.id}
