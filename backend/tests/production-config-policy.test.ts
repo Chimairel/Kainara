@@ -106,3 +106,26 @@ test('Brevo production config requires a server key and a plain verified sender 
     }).some((issue) => issue.key === 'EMAIL_FROM')
   );
 });
+
+test('Render startup rejects implicit or explicit SMTP and requires configured HTTPS email', () => {
+  for (const EMAIL_PROVIDER of [undefined, 'smtp']) {
+    const issues = validateProductionConfig({ ...secureDemo, RENDER: 'true', EMAIL_PROVIDER });
+    assert.ok(issues.some((issue) => issue.key === 'EMAIL_PROVIDER' && issue.reason.includes('HTTPS')));
+  }
+  const incomplete = validateProductionConfig({ ...secureDemo, RENDER: 'true', EMAIL_PROVIDER: 'brevo' });
+  assert.ok(incomplete.some((issue) => issue.key === 'BREVO_API_KEY'));
+  assert.ok(incomplete.some((issue) => issue.key === 'EMAIL_FROM'));
+  assert.deepEqual(
+    validateProductionConfig({
+      ...secureDemo,
+      RENDER: 'true',
+      EMAIL_PROVIDER: 'brevo',
+      BREVO_API_KEY: 'test-only-key',
+      EMAIL_FROM: 'sender@example.com',
+    }),
+    []
+  );
+  // Local development and existing non-Render deployments retain SMTP support.
+  assert.deepEqual(validateProductionConfig({ ...secureDemo, EMAIL_PROVIDER: 'smtp' }), []);
+  assert.deepEqual(validateProductionConfig({ NODE_ENV: 'development', RENDER: 'true' }), []);
+});

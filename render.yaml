@@ -1,0 +1,56 @@
+# One backend service only. Vercel, Neon and Cloudinary stay external.
+# Plan the first deployment against staging; see docs/RENDER_MIGRATION_2026-11-14.md.
+# No credentials, automatic database migrations or generated replacement keys.
+services:
+  - type: web
+    name: kainara-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci --include=dev && npx prisma generate && npm run build
+    startCommand: npm start
+    autoDeployTrigger: 'off'
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 60
+    envVars:
+      - key: NODE_VERSION
+        value: '24'
+      - key: NODE_ENV
+        value: production
+      - key: NUTRIMIND_DEPLOYMENT_MODE
+        value: capstone-demo
+      - key: EMAIL_PROVIDER
+        value: brevo
+      - key: SMTP_VERIFY_ON_STARTUP
+        value: 'false'
+      - key: API_DOCS_ENABLED
+        value: 'false'
+      - key: TRUST_PROXY
+        value: 'true'
+      # Copy these from the matching existing environment. Start with staging.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: CLINICAL_DOCUMENT_ENCRYPTION_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      # Preserve operational features instead of silently resetting their flags.
+      - key: MEMBERSHIP_ENABLED
+        sync: false
+      - key: MEMBER_ASSISTANT_ENABLED
+        sync: false
+      - key: CLINICAL_CLARIFICATIONS_ENABLED
+        sync: false

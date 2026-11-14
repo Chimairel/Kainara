@@ -26,6 +26,12 @@ export function validateProductionConfig(env: NodeJS.ProcessEnv): ProductionConf
   if (env.EMAIL_PROVIDER && !['smtp', 'brevo'].includes(env.EMAIL_PROVIDER)) {
     issues.push({ key: 'EMAIL_PROVIDER', reason: 'must be smtp or brevo' });
   }
+  if (env.RENDER === 'true' && env.EMAIL_PROVIDER !== 'brevo') {
+    issues.push({
+      key: 'EMAIL_PROVIDER',
+      reason: 'must use Brevo HTTPS delivery on Render; SMTP ports are blocked on Free',
+    });
+  }
   const required = [
     'DATABASE_URL',
     'JWT_SECRET',
