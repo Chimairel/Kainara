@@ -74,6 +74,9 @@ export type CycleMetaSnapshot = {
   startDate?: string | Date | null;
   endDate?: string | Date | null;
   status?: string;
+  profileAdaptationState?: string;
+  requestedProfileRevision?: number | null;
+  acknowledgedProfileRevision?: number | null;
   unavailableMealCount?: number;
   retiredMealCount?: number;
 } | null;

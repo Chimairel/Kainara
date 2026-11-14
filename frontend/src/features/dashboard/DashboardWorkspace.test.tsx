@@ -31,8 +31,6 @@ vi.mock('@/lib/clinical-profile-status', () => ({
   refreshClinicalProfileStatus: async () => fixture.eligibility,
 }));
 vi.mock('@/features/navigation/useDashboardPreload', () => ({ useDashboardPreload: () => undefined }));
-// The minimum display duration is covered with a controlled clock in DashboardPreparation.
-vi.mock('./usePreparationIntro', () => ({ usePreparationIntro: () => false }));
 vi.mock('./useOutsideMealLog', () => ({
   useOutsideMealLog: () => ({ isLoading: false, setIsOpen: vi.fn() }),
 }));
@@ -167,13 +165,85 @@ describe('dashboard route after feature extraction', () => {
     expect(await screen.findByRole('button', { name: /Log food or snack/i })).toBeInTheDocument();
   });
   it('refreshes a preparing page into its saved meals without remounting or manual reload', async () => {
+    vi.useFakeTimers();
+    try {
+      render(<DashboardPage />);
+      await act(async () => {});
+      expect(screen.getByText('Preparing your meal plan')).toBeInTheDocument();
+      plan = { data: [meal], meta: { generationStatus: 'COMPLETED' } };
+      await act(async () => vi.advanceTimersByTimeAsync(3_000));
+      expect(screen.getByRole('button', { name: 'Eat Fixture rice plate' })).toBeInTheDocument();
+      expect(screen.queryByText('Preparing your meal plan')).not.toBeInTheDocument();
+      expect(post).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows the report action when the server blocks preparation despite an acknowledged session', async () => {
+    const ordinaryGet = get.getMockImplementation()!;
+    get.mockImplementation(async (url, config) => {
+      if (url === '/user/meals/current') {
+        throw { response: { data: { errorCode: 'REPORT_ACKNOWLEDGEMENT_REQUIRED', error: 'Your planning report needs updating.' } } };
+      }
+      return ordinaryGet(url, config);
+    });
     render(<DashboardPage />);
-    await screen.findByText('Preparing your meal plan');
-    plan = { data: [meal], meta: { generationStatus: 'COMPLETED' } };
-    await refresh();
-    expect(await screen.findByRole('button', { name: 'Eat Fixture rice plate' })).toBeInTheDocument();
+    expect(await screen.findByText('Action needed')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View Nutrition Report' })).toHaveAttribute('href', '/profile/nutrition-report');
     expect(screen.queryByText('Preparing your meal plan')).not.toBeInTheDocument();
-    expect(post).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /Weekly plan/i })).not.toBeInTheDocument();
+  });
+
+  it('resumes background reads after a temporary failure during preparation', async () => {
+    vi.useFakeTimers();
+    try {
+      const ordinaryGet = get.getMockImplementation()!;
+      let temporaryFailure = false;
+      get.mockImplementation(async (url, config) => {
+        if (url === '/user/meals/current' && temporaryFailure) throw new Error('Gateway timeout');
+        return ordinaryGet(url, config);
+      });
+      render(<DashboardPage />);
+      await act(async () => {});
+      expect(screen.getByText('Preparing your meal plan')).toBeInTheDocument();
+      temporaryFailure = true;
+      await act(async () => vi.advanceTimersByTimeAsync(3_000));
+      expect(screen.getByText('Could not load your meal plan')).toBeInTheDocument();
+      temporaryFailure = false;
+      plan = { data: [meal], meta: { generationStatus: 'COMPLETED' } };
+      await act(async () => vi.advanceTimersByTimeAsync(10_000));
+      expect(screen.getByRole('button', { name: 'Eat Fixture rice plate' })).toBeInTheDocument();
+      expect(post).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('checks for the replacement after acknowledgment even if the old cycle was completed', async () => {
+    vi.useFakeTimers();
+    try {
+      plan = {
+        data: [],
+        meta: {
+          generationStatus: 'COMPLETED',
+          cycle: {
+            id: 'old-cycle', startDate: dateKey, endDate: dateKey,
+            profileAdaptationState: 'REBUILD_REQUIRED', requestedProfileRevision: 2, acknowledgedProfileRevision: 2,
+          },
+          retainedMealLogs: [{ ...meal, status: 'DONE' }],
+        },
+      };
+      render(<DashboardPage />);
+      await act(async () => {});
+      expect(screen.getByText('Recorded: Fixture rice plate')).toBeInTheDocument();
+      plan = { data: [meal], meta: { generationStatus: 'COMPLETED' } };
+      await act(async () => vi.advanceTimersByTimeAsync(3_000));
+      expect(screen.getByRole('button', { name: 'Eat Fixture rice plate' })).toBeInTheDocument();
+      expect(post).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('refreshes into failure and routes retry results to pending previews', async () => {
