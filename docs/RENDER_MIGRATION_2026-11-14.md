@@ -116,6 +116,16 @@ delay on Free; the unsupported override was removed before re-planning. No
 resource was deployed by that failed plan. Railway OAuth discovery returned no
 projects; original environment values have not been recovered. Vercel returned
 403 for `chimairels-projects`; team access was requested through its consent flow.
+After correction, Render accepted plan `exe-dbs83os9v7es73bvld70` for source
+`d2865b9814037482b76f9deaf4be83a1a7da882f`, with no notices: create one Free
+Node service, `kainara-api-txqu`, in Singapore, with previews and automatic deploys
+off. The required manual environment values remain unset; the plan is not
+approved or applied. Vercel team consent subsequently succeeded and project
+`nutrimindv1` (`prj_DxetpuW3fd5zY2ezP4wpdOtQrk8K`) is accessible. Existing
+`codex/staging` preview overrides and production `INTERNAL_API_URL` entries are
+present; none has been changed. Railway identity is `chimairelp2@gmail.com`, whose
+project inventory is empty. The owner was asked to recover the original account
+or private backend environment, rather than create replacement secrets.
 Render plan approval, original environment transfer, bounded staging acceptance,
 daily scheduler retargeting and production Vercel cutover remain required. Do not
 describe this release as complete until each applicable gate is recorded.
