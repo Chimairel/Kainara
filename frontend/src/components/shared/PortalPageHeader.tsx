@@ -35,7 +35,7 @@ export default function PortalPageHeader({
           <p className="mt-1 max-w-3xl text-sm leading-relaxed text-brand-muted">{description}</p>
         </div>
         {(actions || meta) && (
-          <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
+          <div className="flex w-full shrink-0 flex-col items-start gap-3 sm:w-auto sm:items-end">
             {meta}
             {actions}
           </div>

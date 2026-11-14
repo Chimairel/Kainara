@@ -11,7 +11,7 @@ import type { MealPlan } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import type { RetainedMealLog } from '@/features/meals/RetainedMealLogs';
 
-type Props =
+type Props = { inMenu?: boolean } & (
   | {
       meal: PendingMealPreview;
       pending: true;
@@ -28,7 +28,7 @@ type Props =
       index?: number;
       onOpen: () => void;
       onStatusToggle?: (id: string, status: 'DONE' | 'SKIPPED' | 'PENDING') => Promise<void> | void;
-    };
+    });
 
 export { getMealTheme, THEMES } from '@/lib/compact-meal-theme';
 import { getMealTheme } from '@/lib/compact-meal-theme';
@@ -104,7 +104,7 @@ export function DashboardMealRow(props: Props) {
 
   const foodPlate = (
     <DashboardMealPlate
-      className={`relative -ml-7 sm:-ml-13 lg:-ml-16 h-24 w-24 sm:h-32 sm:w-32 lg:h-36 lg:w-36 shrink-0 rounded-full p-1.5 sm:p-2 bg-white dark:bg-[#12362c] shadow-[0_14px_32px_-4px_rgba(0,0,0,0.25),0_4px_12px_rgba(0,0,0,0.1)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.7)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
+      className={`relative ${props.inMenu ? 'h-14 w-14' : '-ml-7 h-24 w-24'} sm:-ml-13 lg:-ml-16 sm:h-32 sm:w-32 lg:h-36 lg:w-36 shrink-0 rounded-full p-1.5 sm:p-2 bg-white dark:bg-[#12362c] shadow-[0_14px_32px_-4px_rgba(0,0,0,0.25),0_4px_12px_rgba(0,0,0,0.1)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.7)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
     >
       <MealImage
         mealName={meal.mealName}

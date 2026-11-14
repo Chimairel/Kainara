@@ -44,11 +44,12 @@ export default function RecipeLibraryCard({
         mealType={mealType}
         mealName={name}
         image={image}
+        compact={variant !== 'nutritionist'}
         showAttributionLinks
-        badgesClassName="max-w-[55%]"
+        badgesClassName={variant === 'nutritionist' ? 'max-w-[55%]' : 'sm:max-w-[55%]'}
         badges={
           <>
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-brand-text shadow-sm backdrop-blur-md dark:bg-black/60">
+            <span className="inline-flex items-center rounded-md bg-brand-bgAlt px-1.5 py-0.5 text-xs font-semibold capitalize text-brand-muted sm:rounded-full sm:bg-white/95 sm:px-3 sm:py-1 sm:text-[11px] sm:font-black sm:uppercase sm:tracking-wider sm:text-brand-text sm:shadow-sm sm:backdrop-blur-md sm:dark:bg-black/60">
               {types.join(' · ')}
             </span>
             {badges}
@@ -57,7 +58,7 @@ export default function RecipeLibraryCard({
       >
         <div className="flex flex-1 flex-col justify-between p-2 pt-2.5">
           <div>
-            <h3 className="line-clamp-2 font-display text-base font-bold leading-snug tracking-tight text-brand-text">
+            <h3 className="break-words font-display text-base font-bold leading-snug tracking-tight text-brand-text sm:line-clamp-2">
               {formatMealTitle(name)}
             </h3>
             {description && <p className="mt-0.5 line-clamp-2 text-xs text-brand-muted">{description}</p>}
@@ -69,7 +70,11 @@ export default function RecipeLibraryCard({
             ) : (
               <p className="mt-2 text-[11px] italic text-brand-muted">Serving evidence pending clinical portioning</p>
             )}
-            {footer && <div className="mt-3 border-t border-brand-border/40 pt-2.5 text-xs">{footer}</div>}
+            {footer && (
+              <div className={`mt-3 border-t border-brand-border/40 text-xs ${variant === 'nutritionist' ? 'pt-2.5' : 'sm:pt-2.5 max-sm:[&_a]:inline-flex max-sm:[&_a]:min-h-11 max-sm:[&_a]:items-center'}`}>
+                {footer}
+              </div>
+            )}
           </div>
         </div>
       </PlanMealCardSurface>

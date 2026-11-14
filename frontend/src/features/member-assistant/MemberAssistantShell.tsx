@@ -107,7 +107,7 @@ export default function MemberAssistantShell({ ready, children }: { ready: boole
     return () => document.removeEventListener('keydown', close);
   }, [docked, open, setOpen, titleId]);
   const opened = model.enabled && model.open;
-  return <div className="portal-shell flex h-screen w-full p-0 md:p-4">
+  return <div className="portal-shell member-shell flex h-dvh w-full p-0 md:h-screen md:p-4">
     {children}
     {model.enabled && !opened ? <NaraLauncher id={`${titleId}-trigger`} panelId={`${titleId}-panel`}
       onOpen={() => { model.setOpen(true); model.refreshAllowance(); }} /> : null}

@@ -7,11 +7,11 @@ export function PreparingMealRow({ mealType }: Pick<PreparingMealSlot, 'mealType
     <div
       role="status"
       aria-label={`${label} is being prepared`}
-      className="relative flex min-h-[176px] items-center rounded-3xl bg-brand-bgAlt px-5 py-6 pl-16 sm:pl-24"
+      className="relative flex min-h-40 items-center gap-3 rounded-2xl bg-brand-bgAlt p-3 sm:min-h-[176px] sm:rounded-3xl sm:px-5 sm:py-6 sm:pl-24"
     >
       <div
         aria-hidden="true"
-        className="absolute -left-7 h-20 w-20 rounded-full bg-brand-border/60 motion-safe:animate-pulse sm:-left-10 sm:h-28 sm:w-28"
+        className="h-14 w-14 shrink-0 rounded-full bg-brand-border/60 motion-safe:animate-pulse sm:absolute sm:-left-10 sm:h-28 sm:w-28"
       />
       <div className="min-w-0 flex-1">
         <p className="text-xs font-semibold uppercase text-brand-muted">{label}</p>

@@ -12,8 +12,8 @@ export function DashboardSkeleton({ includeHeader = false }: { includeHeader?: b
             <Skeleton className="h-5 w-28" />
             <Skeleton className="h-5 w-12 rounded-full" />
           </div>
-          <div className="my-6 flex items-center gap-5 sm:gap-6">
-            <Skeleton className="h-[152px] w-[152px] max-w-[55%] shrink-0 rounded-full" />
+          <div className="my-3 flex items-center gap-4 sm:my-6 sm:gap-6">
+            <Skeleton className="size-[92px] max-w-[55%] shrink-0 rounded-full sm:size-[152px]" />
             <div className="min-w-0 flex-1 space-y-5">
               {[0, 1].map((i) => (
                 <div key={i} className="space-y-1.5">
@@ -24,12 +24,12 @@ export function DashboardSkeleton({ includeHeader = false }: { includeHeader?: b
             </div>
           </div>
           <Skeleton className="mb-5 ml-auto h-4 w-36 max-w-full" />
-          <div className="space-y-5 border-t border-brand-border/50 pt-6">
+          <div className="grid grid-cols-3 gap-3 border-t border-brand-border/50 pt-3 sm:block sm:space-y-5 sm:pt-6">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="space-y-2">
-                <div className="flex justify-between gap-3">
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-24" />
+              <div key={i} className={`min-w-0 space-y-2 ${i === 3 ? 'col-span-full' : ''}`}>
+                <div className="flex flex-col justify-between gap-2 sm:flex-row sm:gap-3">
+                  <Skeleton className="h-4 w-20 max-w-full" />
+                  <Skeleton className="h-4 w-24 max-w-full" />
                 </div>
                 <Skeleton className="h-2 w-full rounded-full" />
               </div>
@@ -42,7 +42,7 @@ export function DashboardSkeleton({ includeHeader = false }: { includeHeader?: b
             <Skeleton className="h-4 w-28" />
             <Skeleton className="h-7 w-44" />
           </div>
-          <div className="space-y-4 pl-7 sm:pl-10 lg:pl-11">
+          <div className="member-item-rail sm:space-y-4 sm:pl-10 lg:pl-11">
             {[0, 1, 2].map((i) => (
               <div key={i} className="relative rounded-3xl border border-brand-border bg-brand-surface p-4 sm:p-5">
                 <div className="mb-3 flex justify-between gap-2 sm:hidden">
@@ -50,7 +50,7 @@ export function DashboardSkeleton({ includeHeader = false }: { includeHeader?: b
                   <Skeleton className="h-5 w-16 rounded-full" />
                 </div>
                 <div className="flex items-center gap-3">
-                  <Skeleton className="-ml-7 h-24 w-24 shrink-0 rounded-full sm:-ml-10 sm:h-32 sm:w-32 lg:h-36 lg:w-36" />
+                  <Skeleton className="h-14 w-14 shrink-0 rounded-full sm:-ml-10 sm:h-32 sm:w-32 lg:h-36 lg:w-36" />
                   <div className="min-w-0 flex-1 space-y-2">
                     <Skeleton className="hidden h-3 w-20 sm:block" />
                     <Skeleton className="h-5 w-4/5" />

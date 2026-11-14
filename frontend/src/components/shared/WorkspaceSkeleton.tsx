@@ -68,16 +68,16 @@ export function SkeletonMacros() {
   );
 }
 
-export function SkeletonMealTile({ footer = false }: { footer?: boolean }) {
+export function SkeletonMealTile({ footer = false, compact = false }: { footer?: boolean; compact?: boolean }) {
   return (
     <article
       aria-hidden="true"
       className="flex h-full min-w-0 flex-col rounded-3xl bg-brand-surface p-2 shadow-card sm:p-2.5"
     >
-      <div className="relative h-40 overflow-hidden rounded-2xl sm:h-44">
+      <div className={`relative overflow-hidden rounded-2xl sm:h-44 ${compact ? 'aspect-[4/3] sm:aspect-auto' : 'h-40'}`}>
         <Skeleton className="absolute inset-0 h-full w-full rounded-2xl" />
         <Skeleton className="absolute -left-9 top-1/2 h-52 w-52 -translate-y-1/2 rounded-full sm:-left-12 sm:h-56 sm:w-56" />
-        <div className="absolute right-2.5 top-2.5 space-y-1.5">
+        <div className={`absolute right-2.5 top-2.5 space-y-1.5 ${compact ? 'hidden sm:block' : ''}`}>
           <Skeleton className="h-6 w-24 rounded-full" />
           <Skeleton className="ml-auto h-5 w-20 rounded-full" />
         </div>

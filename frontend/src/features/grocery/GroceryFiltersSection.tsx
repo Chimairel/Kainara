@@ -46,10 +46,10 @@ export default function GroceryFiltersSection({ model }: Props) {
 
   return (
     <>
-      <section className="rounded-[24px] border border-brand-border/70 bg-brand-surface/90 p-4 shadow-sm backdrop-blur-xl">
+      <section className="sm:rounded-[24px] sm:border sm:border-brand-border/70 sm:bg-brand-surface/90 sm:p-4 sm:shadow-sm">
         <div className="flex flex-col gap-3">
           {/* Top Row: Search Input & Category Dropdown */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] items-stretch gap-2 sm:flex sm:items-center sm:gap-2.5">
             {/* Search Bar with Clear Icon */}
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
@@ -57,15 +57,16 @@ export default function GroceryFiltersSection({ model }: Props) {
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search ingredients, category..."
-                className="h-10 w-full rounded-xl border border-brand-border/70 bg-brand-bgAlt/60 pl-10 pr-9 text-xs font-semibold text-brand-text outline-none transition placeholder:text-brand-muted/70 focus:border-brand-green/40 focus:ring-2 focus:ring-brand-green/15 [&::-webkit-search-cancel-button]:hidden"
+                aria-label="Search ingredients"
+                placeholder="Search ingredients"
+                className="h-11 w-full rounded-xl border border-brand-border/70 bg-brand-bgAlt/60 pl-9 pr-2 text-base sm:h-10 sm:pl-10 sm:pr-9 sm:text-xs font-semibold text-brand-text outline-none transition placeholder:text-brand-muted/70 focus:border-brand-green/40 focus:ring-2 focus:ring-brand-green/15 [&::-webkit-search-cancel-button]:hidden"
               />
               {query && (
                 <button
                   type="button"
                   onClick={() => setQuery('')}
                   aria-label="Clear search"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-brand-muted hover:text-brand-text transition"
+                  className="hidden sm:block absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-brand-muted hover:text-brand-text transition"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -78,7 +79,7 @@ export default function GroceryFiltersSection({ model }: Props) {
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e)}
                 aria-label="Filter by department category"
-                className="h-10 w-full appearance-none rounded-xl border border-brand-border/70 bg-brand-bgAlt/60 px-3 text-xs font-bold text-brand-text outline-none transition focus:border-brand-green/40 focus:ring-2 focus:ring-brand-green/15 cursor-pointer"
+                className="h-11 w-full appearance-none sm:h-10 rounded-xl border border-brand-border/70 bg-brand-bgAlt/60 px-3 text-xs font-bold text-brand-text outline-none transition focus:border-brand-green/40 focus:ring-2 focus:ring-brand-green/15 cursor-pointer"
               >
                 <option value="ALL">All Departments ({dayView ? selectedDayData?.items.length ?? 0 : totalItems})</option>
                 {allCategories.map((cat) => (
@@ -90,11 +91,11 @@ export default function GroceryFiltersSection({ model }: Props) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <label htmlFor="grocery-day" className="shrink-0 text-sm font-semibold">Ingredients by day</label>
             <Dropdown id="grocery-day" value={selectedDay} onChange={value => {
               setSelectedDay(value); setFilter('all'); setSelectedCategory('ALL');
-            }} className="w-full sm:w-56">
+            }} className="min-h-11 min-w-0 flex-1 sm:w-56 sm:flex-none">
               <option value="ALL">All days · shopping checklist</option>
               {selectedDay !== 'ALL' && !days.some(day => day.date === selectedDay) ? <option value={selectedDay}>{selectedDay} · unavailable</option> : null}
               {days.map(day => <option key={day.date} value={day.date}>{new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${day.date}T00:00:00+08:00`))}</option>)}

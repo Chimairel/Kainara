@@ -1,5 +1,6 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import WorkspaceTable, { type WorkspaceTableColumn } from '@/components/shared/WorkspaceTable';
 import { ArrowDown, ArrowUp, ArrowUpDown, CircleCheckBig } from '@/components/ui/icons';
 import { isGroceryItemAvailable, type GroceryItem } from './current-grocery';
@@ -8,6 +9,15 @@ import { CircularCheckbox } from '@/components/watermelon/checkbox-14';
 
 export type GrocerySortField = 'name' | 'category' | 'quantity' | 'status';
 export type GrocerySortOrder = 'asc' | 'desc';
+
+const compactQuery = '(max-width: 639px)';
+const isCompact = () => typeof window.matchMedia === 'function' && window.matchMedia(compactQuery).matches;
+const subscribeToWidth = (onChange: () => void) => {
+  if (typeof window.matchMedia !== 'function') return () => undefined;
+  const media = window.matchMedia(compactQuery);
+  media.addEventListener('change', onChange);
+  return () => media.removeEventListener('change', onChange);
+};
 
 interface GroceryTableProps {
   items: GroceryItem[];
@@ -36,6 +46,7 @@ export default function GroceryTable({
   bulkBusy = false,
   readOnly = false,
 }: GroceryTableProps) {
+  const compact = useSyncExternalStore(subscribeToWidth, isCompact, () => false);
   const renderSortIndicator = (field: GrocerySortField) => {
     if (sortField !== field) {
       return <ArrowUpDown className="ml-1 h-3 w-3 opacity-40 group-hover:opacity-100 transition-opacity" />;
@@ -51,6 +62,7 @@ export default function GroceryTable({
     <button
       type="button"
       onClick={() => onSort(field)}
+      aria-label={compact && sortField === field ? `${label}, ${sortOrder === 'asc' ? 'ascending' : 'descending'}` : undefined}
       className="group flex items-center font-bold text-brand-text hover:text-brand-green transition-colors"
     >
       <span>{label}</span>
@@ -163,6 +175,61 @@ export default function GroceryTable({
     sortDirection:
       column.key === sortField ? (sortOrder === 'asc' ? ('ascending' as const) : ('descending' as const)) : undefined,
   }));
+  if (compact) return (
+    <section
+      aria-label={readOnly ? 'Ingredient requirements for the selected day' : 'Grocery checklist'}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-x-3 border-b border-brand-border pb-1">
+        <div className="flex flex-wrap gap-x-3 text-xs [&_button]:min-h-11">
+          {sortHeader('name', 'Ingredient')}
+          {sortHeader('category', 'Category')}
+          {sortHeader('quantity', 'Quantity')}
+        </div>
+        {!readOnly && onToggleAllVisible && (
+          <button
+            type="button"
+            className="min-h-11 rounded-lg px-2 text-sm font-semibold text-brand-green disabled:opacity-50"
+            onClick={onToggleAllVisible}
+            disabled={items.length === 0 || bulkBusy || pendingIds.size > 0}
+          >
+            {allVisibleChecked ? 'Uncheck visible' : 'Check visible'}
+          </button>
+        )}
+      </div>
+      <ul className="divide-y divide-brand-border">
+        {items.map((item) => {
+          const display = formatGroceryItemDisplay(item);
+          const available = isGroceryItemAvailable(item);
+          return (
+            <li key={item.id} className="flex items-center gap-2 py-3">
+              {!readOnly && (
+                <CircularCheckbox
+                  checked={available}
+                  onCheckedChange={() => onToggleItem(item.id)}
+                  disabled={bulkBusy || pendingIds.has(item.id)}
+                  title={!canCheckItems ? 'Click to see why this checklist is pending' : undefined}
+                  aria-label={`${available ? 'Mark as needed' : 'Mark as available'}: ${display.cleanName}`}
+                  className="!h-11 !w-11"
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className={`break-words text-base font-semibold ${available && !readOnly ? 'text-brand-muted line-through' : 'text-brand-text'}`}>
+                  {display.cleanName}
+                </p>
+                <p className="mt-0.5 break-words text-sm text-brand-muted">
+                  {normalizeGroceryCategory(item.category)} · {display.recipeBadge}
+                  {display.prepNote && ` · ${display.prepNote}`}
+                </p>
+              </div>
+              <p className="max-w-[35%] break-words text-right text-sm font-semibold tabular-nums text-brand-text">
+                {display.displayQuantity}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
   return (
     <WorkspaceTable
       label={readOnly ? 'Ingredient requirements for the selected day' : 'Grocery items'}

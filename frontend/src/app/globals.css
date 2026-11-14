@@ -622,11 +622,51 @@ textarea[data-nara-composer]:focus-visible {
   background: linear-gradient(90deg, var(--brand-accent), var(--brand-accent-soft));
 }
 @media (max-width: 767px) {
+  .member-main {
+    scrollbar-gutter: auto;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
   .portal-page {
     padding: 1rem;
   }
   .workspace-header {
     padding-bottom: 0.75rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .member-item-rail {
+    display: grid;
+    grid-auto-columns: min(82%, 19rem);
+    grid-auto-flow: column;
+    gap: 0.75rem;
+    margin-inline: -1rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding: 0.25rem 1rem 0.75rem;
+    scroll-padding-inline: 1rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .member-item-rail > * {
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+
+  .member-item-rail:has(> :only-child) {
+    grid-auto-columns: 100%;
+  }
+
+  .member-menu-rail .dashboard-meal {
+    border-radius: 1rem;
+    box-shadow: none;
+  }
+
+  .member-menu-rail .dashboard-meal:hover,
+  .member-menu-rail .dashboard-meal:focus-within {
+    transform: none;
   }
 }
 

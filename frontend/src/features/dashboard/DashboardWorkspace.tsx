@@ -16,8 +16,8 @@ export default function DashboardWorkspace() {
   const { error, clinicalEvidenceRequired, user, outsideLog, router, isLoading, currentCycle, isReportPending } = model;
   const showPlanNotices = !isLoading && !isReportPending && !clinicalEvidenceRequired && model.profileReviewStatus === 'ready';
   return (
-    <div className="portal-page select-none pb-32 text-brand-text">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+    <div className="portal-page select-none text-brand-text">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-6">
         {error && !clinicalEvidenceRequired && !isReportPending ? (
           <FeedbackNotice>
             <div className="flex items-center gap-2">

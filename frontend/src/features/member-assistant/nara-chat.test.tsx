@@ -20,7 +20,7 @@ it('uses larger launcher and header portraits while keeping conversation avatars
   Element.prototype.scrollIntoView = vi.fn();
   const launcher = render(<NaraLauncher id="larger-nara" panelId="chat" onOpen={vi.fn()} />);
   expect(launcher.container.querySelector('[data-nara-mood]')).toHaveStyle({ width: '104px', height: '104px' });
-  expect(screen.getByRole('button', { name: 'Open Nara chat' })).toHaveClass('h-28', 'w-28');
+  expect(screen.getByRole('button', { name: 'Open Nara chat' })).toHaveClass('h-[72px]', 'w-[72px]', 'md:h-28', 'md:w-28');
   launcher.unmount();
   const chat = render(<AssistantConversation model={{ ...model, messages: [{ id: 'greeting', role: 'assistant', text: 'Hello' }] }} titleId="larger" />);
   const portraits = chat.container.querySelectorAll('[data-nara-mood]');
